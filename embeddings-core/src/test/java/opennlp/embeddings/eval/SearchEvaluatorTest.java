@@ -289,6 +289,12 @@ class SearchEvaluatorTest {
   }
 
   @Test
+  void testFirstHalfCutsAtUnicodeWhitespace() {
+    assertEquals("one two", SearchEvaluator.firstHalf("one two three four"));
+    assertEquals("one\u2003two", SearchEvaluator.firstHalf("one\u2003two\u2003three\u2003four"));
+  }
+
+  @Test
   void testFirstHalfDoesNotSplitASupplementaryCodePoint() {
     final String emoji = Character.toString(0x1f600);
     assertEquals(emoji, SearchEvaluator.firstHalf(emoji.repeat(3)));
