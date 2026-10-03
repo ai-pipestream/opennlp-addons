@@ -200,7 +200,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
 The English first-name table in
 coref/src/main/resources/opennlp/tools/coref/first-names-en.txt
 is an Apache-licensed project derivative of the United States Social Security
