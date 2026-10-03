@@ -87,6 +87,9 @@ public final class PlaceProfiles {
   /** The prefix of the failure naming a cell that is not usable table data. */
   private static final String MALFORMED_VALUE = "malformed value in row ";
 
+  /** The failure for a missing place identifier. */
+  private static final String ID_REQUIRED = "id must not be null";
+
   /** Precision for load-time division and square roots. */
   private static final MathContext STATISTICS_PRECISION = MathContext.DECIMAL128;
 
@@ -365,7 +368,7 @@ public final class PlaceProfiles {
    */
   public boolean contains(String id) {
     if (id == null) {
-      throw new IllegalArgumentException("id must not be null");
+      throw new IllegalArgumentException(ID_REQUIRED);
     }
     return profiles.containsKey(id);
   }
@@ -383,7 +386,7 @@ public final class PlaceProfiles {
    */
   public double similarity(String id, String otherId) {
     if (id == null) {
-      throw new IllegalArgumentException("id must not be null");
+      throw new IllegalArgumentException(ID_REQUIRED);
     }
     if (otherId == null) {
       throw new IllegalArgumentException("otherId must not be null");
@@ -405,7 +408,7 @@ public final class PlaceProfiles {
    */
   public List<Neighbor> mostSimilar(String id, int count) {
     if (id == null) {
-      throw new IllegalArgumentException("id must not be null");
+      throw new IllegalArgumentException(ID_REQUIRED);
     }
     if (count <= 0) {
       throw new IllegalArgumentException("count must be positive: " + count);
