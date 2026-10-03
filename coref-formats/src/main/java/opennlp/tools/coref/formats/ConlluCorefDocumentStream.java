@@ -65,6 +65,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
   private static final String SPEAKER = "# speaker =";
   private static final String ENTITY = "Entity";
   private static final String SPACE_AFTER = "SpaceAfter";
+  private static final String EMPTY_ENTITY_ID = "entity id must not be empty";
 
   private final InputStreamFactory in;
   private final ConlluTagset tagset;
@@ -397,7 +398,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
       Map<String, List<Integer>> openStarts, Map<String, List<Span>> entities)
       throws InvalidFormatException {
     if (entity.isEmpty()) {
-      throw new InvalidFormatException("entity id must not be empty");
+      throw new InvalidFormatException(EMPTY_ENTITY_ID);
     }
     int i = 0;
     while (i < entity.length()) {
@@ -469,7 +470,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
       }
     }
     if (end == 0) {
-      throw new InvalidFormatException("entity id must not be empty");
+      throw new InvalidFormatException(EMPTY_ENTITY_ID);
     }
     return id.substring(0, end);
   }
