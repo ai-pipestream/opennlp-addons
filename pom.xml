@@ -107,6 +107,7 @@
     </issueManagement>
 
     <modules>
+        <module>native-image</module>
         <module>opennlp-addons-docs</module>
     </modules>
 
