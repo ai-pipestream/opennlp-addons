@@ -21,16 +21,19 @@ limitations under the License.
 Optional OpenNLP components, published as `org.apache.opennlp.addons:native-image`.
 
 Add this jar next to the OpenNLP modules an application uses, and the GraalVM image builder
-picks up the reachability metadata for the resources the core jars read by a computed name
-(stopword lists, UAX 29 and normalizer tables, default feature descriptors, the version file).
+picks up its reachability metadata: the constructors core creates by class name (tool
+factories, serializers, feature generator factories, sequence codecs, trainers, model readers
+and writers, model classes), the Snowball routines found through method handles, and the
+resources core reads by a computed name (stopword lists, UAX 29 and normalizer tables,
+default feature descriptors, the version file). No core change is needed; it works with the
+released 3.0.0-M6.
+
 `NativeSmoke` is a minimal native OpenNLP application and the smoke test for the image.
 
-This add-on needs the core extension registry and native image guards (OPENNLP-1954), which
-are not in a released core yet. Until then build it against a local core install that has
-them:
+Build and run the module tests from the repository root:
 
 ```sh
-mvn -pl native-image -am verify -Dopennlp.version=<that core version>
+mvn -pl native-image -am verify -Dopennlp.forkCount=1
 ```
 
 Build and run the image (GraalVM JDK 25 or later, models as named in `NativeSmoke`):
@@ -39,10 +42,17 @@ Build and run the image (GraalVM JDK 25 or later, models as named in `NativeSmok
 mvn -Pnative -pl native-image -am verify -Dopennlp.native.models=/path/to/models
 ```
 
+After a core upgrade, `ReachabilityMetadataTest` fails until the metadata is regenerated:
+
+```sh
+mvn -pl native-image test-compile
+java -cp "$(mvn -q -pl native-image dependency:build-classpath -Dmdep.outputFile=/dev/stdout):native-image/target/test-classes" \
+    opennlp.tools.nativeimage.ReachabilityMetadataGenerator native-image/src/main/resources
+```
+
 ## Source
 
-Migrated from [ai-pipestream/opennlp OPENNLP-1954-native-prep](https://github.com/ai-pipestream/opennlp/tree/49152b6eb),
-commit bb71fa043: the `opennlp-native-tests` module, the reachability metadata of
-opennlp-runtime and opennlp-formats (merged into one file here, since the image builder reads
-resource globs from any jar), its coverage test, the CI job and the manual chapter. The
-registry, ModelLoader and native image guards stay in core.
+Started from [ai-pipestream/opennlp OPENNLP-1954-native-prep](https://github.com/ai-pipestream/opennlp/tree/49152b6eb):
+the smoke application, the resource metadata, the CI job and the manual chapter. That branch
+removed reflection from core with an extension registry; this add-on registers the reflective
+constructors in GraalVM metadata instead, so core stays as it is.

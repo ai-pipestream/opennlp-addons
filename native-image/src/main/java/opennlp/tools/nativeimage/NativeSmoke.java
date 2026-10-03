@@ -31,13 +31,12 @@ import opennlp.tools.postag.POSModel;
 import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.sentdetect.SentenceDetectorME;
 import opennlp.tools.sentdetect.SentenceModel;
+import opennlp.tools.stemmer.snowball.SnowballStemmer;
 import opennlp.tools.stopword.StopwordLists;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.Version;
-import opennlp.tools.util.jvm.NativeImage;
-import opennlp.tools.util.model.ModelLoader;
 
 /**
  * Smoke test for a GraalVM native image of OpenNLP.
@@ -83,7 +82,7 @@ public final class NativeSmoke {
     }
     if (failures.isEmpty()) {
       System.out.println("OK: OpenNLP " + Version.currentVersion() + " smoke test passed"
-          + (NativeImage.inImageRuntime() ? " in a native image" : " on the JVM"));
+          + (inImage() ? " in a native image" : " on the JVM"));
     } else {
       for (String failure : failures) {
         System.out.println("FAIL: " + failure);
@@ -93,10 +92,10 @@ public final class NativeSmoke {
   }
 
   private static void run(Path dir, List<String> failures) throws IOException {
-    final SentenceModel sentenceModel = load(dir, SENTENCE_MODEL, SentenceModel.class);
-    final TokenizerModel tokenizerModel = load(dir, TOKENIZER_MODEL, TokenizerModel.class);
-    final POSModel posModel = load(dir, POS_MODEL, POSModel.class);
-    final TokenNameFinderModel nerModel = load(dir, NER_MODEL, TokenNameFinderModel.class);
+    final SentenceModel sentenceModel = load(dir, SENTENCE_MODEL, SentenceModel::new);
+    final TokenizerModel tokenizerModel = load(dir, TOKENIZER_MODEL, TokenizerModel::new);
+    final POSModel posModel = load(dir, POS_MODEL, POSModel::new);
+    final TokenNameFinderModel nerModel = load(dir, NER_MODEL, TokenNameFinderModel::new);
 
     final String[] sentences = new SentenceDetectorME(sentenceModel).sentDetect(TEXT);
     System.out.println("sentences: " + Arrays.toString(sentences));
@@ -128,18 +127,36 @@ public final class NativeSmoke {
         "bundled English stopword list should be readable");
     check(failures, StopwordLists.forLanguage("de").isStopword("und"),
         "bundled German stopword list should be readable");
+
+    // the Finnish and Indonesian Snowball stemmers find their routines through method handles
+    final String finnish = new SnowballStemmer(SnowballStemmer.ALGORITHM.FINNISH).stem("taloissakin")
+        .toString();
+    final String indonesian = new SnowballStemmer(SnowballStemmer.ALGORITHM.INDONESIAN)
+        .stem("bermainlah").toString();
+    System.out.println("stems: " + finnish + ", " + indonesian);
+    check(failures, "talo".equals(finnish), "the Finnish stemmer should stem taloissakin to talo");
+    check(failures, "main".equals(indonesian), "the Indonesian stemmer should stem bermainlah to main");
   }
 
-  private static <T extends opennlp.tools.util.model.BaseModel> T load(Path dir, String name, Class<T> type)
-      throws IOException {
+  private static <T> T load(Path dir, String name, ModelReader<T> reader) throws IOException {
     final Path file = dir.resolve(name);
     if (!Files.isRegularFile(file)) {
       throw new IOException("model file not found: " + file.toAbsolutePath());
     }
     try (InputStream in = Files.newInputStream(file)) {
-      // the registry route: the model class is resolved by name, without reflection
-      return ModelLoader.forType(type).load(in);
+      return reader.read(in);
     }
+  }
+
+  /** {@return whether this code runs in a native image, from the property the image builder sets} */
+  private static boolean inImage() {
+    return System.getProperty("org.graalvm.nativeimage.imagecode") != null;
+  }
+
+  /** Reads a model from a stream; the model constructors that take an {@link InputStream}. */
+  @FunctionalInterface
+  private interface ModelReader<T> {
+    T read(InputStream in) throws IOException;
   }
 
   private static void check(List<String> failures, boolean condition, String message) {
