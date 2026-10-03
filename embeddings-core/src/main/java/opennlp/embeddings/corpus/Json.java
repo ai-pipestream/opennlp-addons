@@ -355,7 +355,11 @@ final class Json {
     return value;
   }
 
-  /** Advances past JSON space, tab, carriage return, and line feed characters. */
+  /**
+   * Advances past JSON space, tab, carriage return, and line feed characters. RFC 8259 defines
+   * insignificant whitespace as exactly these four ASCII characters, so this scan is ASCII on
+   * purpose rather than Unicode whitespace.
+   */
   private void skipWhitespace() {
     while (position < text.length()) {
       final char c = text.charAt(position);
