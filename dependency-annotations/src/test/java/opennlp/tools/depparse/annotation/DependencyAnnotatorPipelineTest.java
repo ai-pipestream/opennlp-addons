@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.depparse;
+package opennlp.tools.depparse.annotation;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +25,10 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import opennlp.tools.depparse.DependencyArc;
+import opennlp.tools.depparse.DependencyGraph;
+import opennlp.tools.depparse.DependencyParserME;
+import opennlp.tools.depparse.DependencySample;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;
