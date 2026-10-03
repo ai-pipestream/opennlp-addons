@@ -35,6 +35,11 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.opennlp.addons</groupId>
+      <artifactId>embedding-annotator</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.opennlp.addons</groupId>
       <artifactId>embeddings-core</artifactId>
       <version>${project.version}</version>
     </dependency>

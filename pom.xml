@@ -113,6 +113,7 @@
         <module>embeddings-onnx</module>
         <module>embeddings</module>
         <module>embeddings-cli</module>
+        <module>embedding-annotator</module>
     </modules>
 
     <properties>
