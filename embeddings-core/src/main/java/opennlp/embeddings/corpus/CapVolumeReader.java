@@ -39,8 +39,8 @@ import opennlp.tools.util.InvalidFormatException;
  * <p>Each {@code json/*.json} entry is one case; each of its opinions is split on
  * newline paragraphs and packed into passages of roughly {@link #TARGET_CHARS}
  * characters without splitting inside a paragraph, so a passage stays a coherent run of
- * argument. A paragraph longer than {@link #HARD_MAX_CHARS} is cut at the last space
- * before the limit.</p>
+ * argument. A paragraph longer than {@link #HARD_MAX_CHARS} is cut at the last whitespace
+ * character before the limit.</p>
  *
  * @since 3.0.0
  */
@@ -171,7 +171,7 @@ public final class CapVolumeReader {
 
   /**
    * Packs newline paragraphs into passages: whole paragraphs up to the soft target,
-   * over-long paragraphs cut at the last space before the hard maximum.
+   * over-long paragraphs cut at the last whitespace character before the hard maximum.
    *
    * @param text The opinion text.
    * @return The packed passages in source order.
@@ -196,7 +196,7 @@ public final class CapVolumeReader {
         }
         while (paragraph.length() > HARD_MAX_CHARS) {
           // A cut at the limit would make the first passage exceed the hard maximum.
-          int cut = paragraph.lastIndexOf(' ', HARD_MAX_CHARS - 1);
+          int cut = lastWhitespace(paragraph, HARD_MAX_CHARS - 1);
           if (cut <= 0) {
             cut = HARD_MAX_CHARS;
           }
@@ -217,5 +217,21 @@ public final class CapVolumeReader {
       result.add(String.join(" ", batch));
     }
     return result;
+  }
+
+  /**
+   * {@return the index of the last {@link Character#isWhitespace(int) whitespace} character at
+   * or before {@code from}, or {@code -1} when there is none}
+   *
+   * @param text The text to search.
+   * @param from The last index to consider.
+   */
+  private static int lastWhitespace(String text, int from) {
+    for (int i = Math.min(from, text.length() - 1); i >= 0; i--) {
+      if (Character.isWhitespace(text.charAt(i))) {
+        return i;
+      }
+    }
+    return -1;
   }
 }
