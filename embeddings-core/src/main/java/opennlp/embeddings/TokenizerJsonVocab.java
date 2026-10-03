@@ -37,6 +37,8 @@ import opennlp.tools.util.InvalidFormatException;
  */
 final class TokenizerJsonVocab {
 
+  private static final String ADDED_TOKEN_FIELDS_REQUIRED = "An added token must carry 'id' and 'content'";
+
   /** Not instantiable. */
   private TokenizerJsonVocab() {
   }
@@ -299,7 +301,7 @@ final class TokenizerJsonVocab {
     String content = null;
     Boolean special = null;
     if (cursor.peek() == '}') {
-      throw cursor.malformed("An added token must carry 'id' and 'content'");
+      throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
     }
     while (true) {
       cursor.skipWhitespace();
@@ -340,7 +342,7 @@ final class TokenizerJsonVocab {
           + next + "'");
     }
     if (id == null || content == null) {
-      throw cursor.malformed("An added token must carry 'id' and 'content'");
+      throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
     }
     if (id < 0) {
       throw cursor.malformed("An added token's id must not be negative: " + id);
