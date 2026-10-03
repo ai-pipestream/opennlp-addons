@@ -15,13 +15,16 @@
  * limitations under the License.
  */
 
-package opennlp.tools.util.normalizer;
+package opennlp.tools.glossary;
 
 import java.io.Serial;
 import java.util.Arrays;
 
 import opennlp.tools.tokenize.uax29.WordSegmenter;
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.normalizer.AlignedText;
+import opennlp.tools.util.normalizer.Alignment;
+import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
 
 /**
  * Expands unambiguous English contractions into whitespace-separated words while

@@ -31,7 +31,6 @@ import opennlp.tools.stemmer.snowball.SnowballStemmerFactory;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 import opennlp.tools.util.normalizer.Dimension;
-import opennlp.tools.util.normalizer.EnglishContractionCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.TermAnalyzer;
 
 import static opennlp.tools.glossary.GlossaryTestSupport.englishStemmingAnalyzer;

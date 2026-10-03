@@ -31,7 +31,6 @@ import opennlp.tools.stemmer.snowball.SnowballStemmerFactory;
 import opennlp.tools.tokenize.TokenizerAnnotator;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.normalizer.EnglishContractionCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.GermanUmlautCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
 import opennlp.tools.util.normalizer.TermAnalyzer;

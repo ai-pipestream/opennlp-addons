@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.util.normalizer;
+package opennlp.tools.glossary;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -24,6 +24,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.normalizer.AlignedText;
+import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
+import opennlp.tools.util.normalizer.TextNormalizer;
 
 /** Tests supported expansions, ambiguous forms, and the aligned builder. */
 public class EnglishContractionCharSequenceNormalizerTest {
