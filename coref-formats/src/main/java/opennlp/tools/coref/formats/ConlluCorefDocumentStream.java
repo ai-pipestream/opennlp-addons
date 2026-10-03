@@ -172,7 +172,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
       }
       if (line.charAt(0) == '#') {
         if (line.startsWith(SPEAKER)) {
-          speaker = line.substring(SPEAKER.length()).trim();
+          speaker = StringUtil.trimUnicodeWhitespace(line.substring(SPEAKER.length()));
           if (StringUtil.isBlank(speaker)) {
             throw new InvalidFormatException("speaker label must not be blank");
           }
