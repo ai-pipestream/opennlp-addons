@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.formats;
+package opennlp.morfologik.fsa;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
