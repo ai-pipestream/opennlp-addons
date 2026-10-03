@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.util.normalizer;
+package opennlp.tools.glossary;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,6 +37,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.normalizer.AlignedText;
+import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;

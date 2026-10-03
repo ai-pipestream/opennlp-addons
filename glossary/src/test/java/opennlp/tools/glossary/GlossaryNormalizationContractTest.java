@@ -24,7 +24,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
-import opennlp.tools.util.normalizer.EnglishContractionCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
 import opennlp.tools.util.normalizer.TermAnalyzer;
 import opennlp.tools.util.normalizer.TextNormalizer;

@@ -36,7 +36,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import opennlp.tools.stemmer.snowball.SnowballStemmer;
 import opennlp.tools.stemmer.snowball.SnowballStemmerFactory;
-import opennlp.tools.util.normalizer.EnglishContractionCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.GermanUmlautCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.TermAnalyzer;
 
