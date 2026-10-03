@@ -1067,6 +1067,7 @@ public final class CursorAssetDetector implements AssetDetector {
       return false;
     }
     return switch ((first << 2) | (second >>> 4)) {
+      // A decoded byte: XML 1.0 whitespace is exactly these 4 ASCII bytes.
       case '<', ' ', '\t', '\r', '\n', 0, 0xef, 0xfe, 0xff -> true;
       default -> false;
     };
