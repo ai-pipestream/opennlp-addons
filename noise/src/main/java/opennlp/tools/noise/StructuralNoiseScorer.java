@@ -28,7 +28,7 @@ import opennlp.tools.util.StringUtil;
 /**
  * Scores whitespace-delimited ASCII tokens using character-pattern heuristics.
  *
- * <p>After common ASCII punctuation is trimmed, cores shorter than 3 characters or
+ * <p>After surrounding punctuation, ASCII or not, is trimmed, cores shorter than 3 characters or
  * containing non-ASCII characters are skipped. Signals include consonant runs,
  * repeated characters, low vowel proportions, and letter-digit transitions. One
  * signal produces {@link NoiseSpan#SEVERITY_DAMAGED}; multiple signals produce
@@ -427,7 +427,7 @@ public final class StructuralNoiseScorer implements NoiseScorer {
   }
 
   /**
-   * Counts the ASCII punctuation a token starts with.
+   * Counts the surrounding punctuation a token starts with.
    *
    * @param token The whitespace-delimited token.
    * @return The index of the first character that is not surrounding punctuation, or
@@ -435,14 +435,14 @@ public final class StructuralNoiseScorer implements NoiseScorer {
    */
   private int leadingPunctuation(String token) {
     int start = 0;
-    while (start < token.length() && isAsciiPunctuation(token.charAt(start))) {
+    while (start < token.length() && isSurroundingPunctuation(token.charAt(start))) {
       start++;
     }
     return start;
   }
 
   /**
-   * Strips trailing ASCII punctuation, keeping the word core.
+   * Strips trailing surrounding punctuation, keeping the word core.
    *
    * @param token The whitespace-delimited token.
    * @param from The index {@link #leadingPunctuation(String)} returned for the token.
@@ -450,23 +450,34 @@ public final class StructuralNoiseScorer implements NoiseScorer {
    */
   private String trimPunctuation(String token, int from) {
     int end = token.length();
-    while (end > from && isAsciiPunctuation(token.charAt(end - 1))) {
+    while (end > from && isSurroundingPunctuation(token.charAt(end - 1))) {
       end--;
     }
     return token.substring(from, end);
   }
 
   /**
-   * Whether the character is ASCII punctuation that surrounds words, deliberately
-   * excluding the base64 alphabet's {@code +}, {@code /}, and {@code =}.
+   * Whether the character is punctuation that surrounds words. In ASCII these are the
+   * sentence marks, quotes and brackets, deliberately excluding the base64 alphabet's
+   * {@code +}, {@code /}, and {@code =}. Outside ASCII, which no base64 character is,
+   * every opening, closing, quote and other punctuation character counts, such as
+   * curly quotes, guillemets, CJK corner brackets or the horizontal ellipsis.
    *
    * @param c The character.
    * @return {@code true} for surrounding punctuation.
    */
-  private boolean isAsciiPunctuation(char c) {
-    return c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?'
-        || c == '"' || c == '\'' || c == '(' || c == ')' || c == '[' || c == ']'
-        || c == '{' || c == '}';
+  private boolean isSurroundingPunctuation(char c) {
+    if (c <= 0x7F) {
+      return c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?'
+          || c == '"' || c == '\'' || c == '(' || c == ')' || c == '[' || c == ']'
+          || c == '{' || c == '}';
+    }
+    return switch (Character.getType(c)) {
+      case Character.START_PUNCTUATION, Character.END_PUNCTUATION,
+           Character.INITIAL_QUOTE_PUNCTUATION, Character.FINAL_QUOTE_PUNCTUATION,
+           Character.OTHER_PUNCTUATION -> true;
+      default -> false;
+    };
   }
 
   /**

@@ -30,7 +30,9 @@
 		</para>
 		<para>
 			<code>StructuralNoiseScorer</code> uses rules and includes no model or dictionary.
-			It examines whitespace-delimited tokens after trimming common ASCII punctuation.
+			It examines whitespace-delimited tokens after trimming surrounding punctuation:
+			ASCII sentence marks, quotes and brackets, and any quote, bracket or other
+			punctuation outside ASCII, such as curly quotes or guillemets.
 			Cores shorter than 3 characters or containing non-ASCII characters are skipped.
 			The rules count consonant runs, repeated characters, vowel proportions, and
 			letter-digit transitions. Binary-content detection also checks length and
