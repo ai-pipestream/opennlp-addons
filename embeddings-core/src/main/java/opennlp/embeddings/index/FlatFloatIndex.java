@@ -49,6 +49,9 @@ import opennlp.tools.util.java.Experimental;
 @Experimental
 public final class FlatFloatIndex implements VectorIndex {
 
+  private static final String DIRECTORY_NULL = "Directory must not be null";
+  private static final String NOT_FROZEN = "The index is not frozen; freeze() ends the build phase";
+
   /** File name of the row-major float vectors inside a written index directory. */
   public static final String VECTORS_FILE = "vectors.f32";
 
@@ -139,10 +142,10 @@ public final class FlatFloatIndex implements VectorIndex {
    */
   public void write(Path directory) throws IOException {
     if (directory == null) {
-      throw new IllegalArgumentException("Directory must not be null");
+      throw new IllegalArgumentException(DIRECTORY_NULL);
     }
     if (buffer != null) {
-      throw new IllegalStateException("The index is not frozen; freeze() ends the build phase");
+      throw new IllegalStateException(NOT_FROZEN);
     }
     if (ids.isEmpty()) {
       throw new IllegalStateException("An empty index cannot be persisted");
@@ -183,7 +186,7 @@ public final class FlatFloatIndex implements VectorIndex {
    */
   public static FlatFloatIndex read(Path directory) throws IOException {
     if (directory == null) {
-      throw new IllegalArgumentException("Directory must not be null");
+      throw new IllegalArgumentException(DIRECTORY_NULL);
     }
     final Path vectorsFile = directory.resolve(VECTORS_FILE);
     final Path idsFile = directory.resolve(IDS_FILE);
@@ -236,7 +239,7 @@ public final class FlatFloatIndex implements VectorIndex {
   @Override
   public List<Hit> topK(float[] query, int k) {
     if (buffer != null) {
-      throw new IllegalStateException("The index is not frozen; freeze() ends the build phase");
+      throw new IllegalStateException(NOT_FROZEN);
     }
     final double queryNorm = IndexQueries.checkedQueryNorm(query, k, dimension);
     if (queryNorm == 0.0 || ids.isEmpty()) {
