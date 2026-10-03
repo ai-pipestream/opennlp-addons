@@ -109,7 +109,6 @@
     <modules>
         <module>parser-tagger</module>
         <module>native-image</module>
-        <module>opennlp-addons-docs</module>
         <module>light-stemmers</module>
         <module>geo</module>
         <module>numeric</module>
@@ -136,6 +135,7 @@
         <module>coref-dl</module>
         <module>coref-formats</module>
         <module>addons-eval</module>
+        <module>opennlp-addons-docs</module>
     </modules>
 
     <properties>
