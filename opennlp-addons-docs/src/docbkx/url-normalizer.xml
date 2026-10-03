@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
+"http://docbook.org/xml/5.0/dtd/docbook.dtd"[
+]>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
+	license agreements. See the NOTICE file distributed with this work for additional
+	information regarding copyright ownership. The ASF licenses this file to
+	you under the Apache License, Version 2.0 (the "License"); you may not use
+	this file except in compliance with the License. You may obtain a copy of
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
+	by applicable law or agreed to in writing, software distributed under the
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+	OF ANY KIND, either express or implied. See the License for the specific
+	language governing permissions and limitations under the License. -->
+
+<chapter xml:id="addons.url-normalizer" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title>Bounded URL normalizer</title>
+	<section xml:id="tools.normalizer.url">
+		<title>Removing whole URLs</title>
+		<para>
+			The package <code>opennlp.tools.normalizer.url</code> provides
+			<code>BoundedUrlCharSequenceNormalizer</code>, a <code>CharSequenceNormalizer</code>
+			that replaces each HTTP or HTTPS URL and each email address with one space. A URL
+			runs to the next Unicode whitespace, control character, typographic quotation mark,
+			or one of <code>&lt; &gt; "</code>, so ports, user information, percent escapes,
+			bracketed IPv6 hosts, and non-ASCII host names and paths are removed with it.
+			Trailing sentence punctuation and closing brackets without an opening bracket in the
+			URL are kept. A scheme must start the text or follow a character other than a letter,
+			digit, underscore, plus, hyphen, period, or colon, so <code>git+https://</code> and
+			<code>see:http://</code> are not HTTP URLs. URLs with other schemes are kept, and no
+			email address is matched inside them. The normalizer is stateless and safe for
+			concurrent use.
+		</para>
+		<programlisting language="java"><![CDATA[CharSequenceNormalizer normalizer = BoundedUrlCharSequenceNormalizer.getInstance();
+normalizer.normalize("See https://example.org:8080/a%20b, or mail me@example.org today.");
+// "See  , or mail   today."]]>
+		</programlisting>
+	</section>
+	<section xml:id="tools.normalizer.url.langdetect">
+		<title>Using it for language detection</title>
+		<para>
+			Core's <code>UrlCharSequenceNormalizer</code> removes a URL only up to the first
+			character outside its ASCII body set, and the existing language detector models were
+			trained with that output. To use the bounded normalizer, supply a custom
+			<code>LanguageDetectorFactory</code> whose <code>getContextGenerator()</code> uses it,
+			and use that factory for both training and inference. A model trained with one URL
+			normalizer must be decoded with the same one, and changing it requires evaluation.
+		</para>
+		<para>
+			The normalizer finds URL boundaries in running text. It does not validate URLs
+			against the WHATWG URL Standard.
+		</para>
+	</section>
+</chapter>

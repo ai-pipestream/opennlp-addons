@@ -107,6 +107,7 @@
     </issueManagement>
 
     <modules>
+        <module>url-normalizer</module>
         <module>opennlp-addons-docs</module>
     </modules>
 
