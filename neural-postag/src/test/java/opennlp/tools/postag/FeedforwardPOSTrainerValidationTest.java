@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag.neural;
+package opennlp.tools.postag;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,7 +30,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import opennlp.tools.postag.POSSample;
 import opennlp.tools.util.ObjectStreamUtils;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;

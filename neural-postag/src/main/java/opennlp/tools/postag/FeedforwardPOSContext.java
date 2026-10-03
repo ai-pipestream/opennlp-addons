@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag.neural;
+package opennlp.tools.postag;
 
 import java.util.List;
 

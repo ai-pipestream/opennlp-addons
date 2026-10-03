@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag.neural;
+package opennlp.tools.postag;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,7 +30,6 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import opennlp.tools.postag.POSSample;
 import opennlp.tools.util.ObjectStream;
 import opennlp.tools.util.StringUtil;
 
