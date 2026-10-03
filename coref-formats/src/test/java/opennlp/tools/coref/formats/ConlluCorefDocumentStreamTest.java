@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.formats.conllu;
+package opennlp.tools.coref.formats;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,6 +32,7 @@ import opennlp.tools.coref.CorefMention;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
+import opennlp.tools.formats.conllu.ConlluTagset;
 import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.Span;
 
