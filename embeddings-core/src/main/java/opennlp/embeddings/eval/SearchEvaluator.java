@@ -616,9 +616,9 @@ public final class SearchEvaluator {
   }
 
   /**
-   * {@return the first half of a text, cut at the last space before the midpoint when there is
-   * one} A passage's first half still describes the same case, so the passage itself is the
-   * relevant answer for it.
+   * {@return the first half of a text, cut at the last whitespace character before the midpoint
+   * when there is one} A passage's first half still describes the same case, so the passage
+   * itself is the relevant answer for it.
    *
    * @param text The passage text.
    */
@@ -628,7 +628,10 @@ public final class SearchEvaluator {
     if (midpoint == 0) {
       return text;
     }
-    final int cut = text.lastIndexOf(' ', midpoint);
+    int cut = Math.min(midpoint, text.length() - 1);
+    while (cut >= 0 && !Character.isWhitespace(text.charAt(cut))) {
+      cut--;
+    }
     return text.substring(0, cut > 0 ? cut : midpoint);
   }
 
