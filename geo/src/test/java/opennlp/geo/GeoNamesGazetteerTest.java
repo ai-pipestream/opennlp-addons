@@ -180,4 +180,21 @@ public class GeoNamesGazetteerTest {
     assertThrows(IllegalArgumentException.class, () -> gazetteer.byId(null, "1"));
     assertThrows(IllegalArgumentException.class, () -> gazetteer.byRegion(null));
   }
+
+  /**
+   * Verifies that cell padding is trimmed by Unicode whitespace, not only ASCII, so a name
+   * padded with a no-break or ideographic space is still found by its plain spelling.
+   */
+  @Test
+  void testTrimsUnicodeWhitespacePadding() throws IOException {
+    final GeoNamesGazetteer gazetteer = GeoNamesGazetteer.load(new ByteArrayInputStream(
+        (row("7", " Lyon　", "Lyon", " Lugdunum ", "45.76", "4.84", "P",
+            "FR ", " 500000") + "\n").getBytes(StandardCharsets.UTF_8)));
+    final List<GazetteerEntry> found = gazetteer.lookup("Lyon");
+    assertEquals(1, found.size());
+    assertEquals("Lyon", found.get(0).name());
+    assertEquals("FR", found.get(0).countryCode());
+    assertEquals(500000L, found.get(0).population());
+    assertEquals("7", gazetteer.lookup("Lugdunum").get(0).recordId());
+  }
 }
