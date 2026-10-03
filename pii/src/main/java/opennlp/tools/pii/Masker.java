@@ -39,6 +39,15 @@ public final class Masker {
 
   private static final String POSITIONAL_LAYER_REQUIRED = "layer must be positional: ";
 
+  /** The message for a {@code null} document. */
+  private static final String DOCUMENT_REQUIRED = "document must not be null";
+
+  /** The message for a {@code null} layer. */
+  private static final String LAYER_REQUIRED = "layer must not be null";
+
+  /** The message prefix for a layer that the document does not hold. */
+  private static final String LAYER_NOT_PRESENT = "layer is not present on the document: ";
+
   /** Prevents construction. */
   private Masker() {
   }
@@ -73,7 +82,7 @@ public final class Masker {
    */
   public static String mask(Document document, LayerKey<?> layer, MaskPolicy policy) {
     if (layer == null) {
-      throw new IllegalArgumentException("layer must not be null");
+      throw new IllegalArgumentException(LAYER_REQUIRED);
     }
     return mask(document, List.of(layer), policy);
   }
@@ -100,16 +109,16 @@ public final class Masker {
   public static <T> String mask(Document document, LayerKey<T> layer,
       Function<? super T, MaskPolicy> policies) {
     if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
+      throw new IllegalArgumentException(DOCUMENT_REQUIRED);
     }
     if (layer == null) {
-      throw new IllegalArgumentException("layer must not be null");
+      throw new IllegalArgumentException(LAYER_REQUIRED);
     }
     if (policies == null) {
       throw new IllegalArgumentException("policies must not be null");
     }
     if (!document.layers().contains(layer)) {
-      throw new IllegalArgumentException("layer is not present on the document: " + layer);
+      throw new IllegalArgumentException(LAYER_NOT_PRESENT + layer);
     }
     if (layer.scope() != LayerKey.Scope.POSITIONAL) {
       throw new IllegalArgumentException(POSITIONAL_LAYER_REQUIRED + layer);
@@ -163,7 +172,7 @@ public final class Masker {
   public static String mask(Document document, Collection<LayerKey<?>> layers,
       MaskPolicy policy) {
     if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
+      throw new IllegalArgumentException(DOCUMENT_REQUIRED);
     }
     if (layers == null || layers.isEmpty()) {
       throw new IllegalArgumentException("layers must not be null or empty");
@@ -176,7 +185,7 @@ public final class Masker {
         throw new IllegalArgumentException("layers must not contain null");
       }
       if (!document.layers().contains(layer)) {
-        throw new IllegalArgumentException("layer is not present on the document: " + layer);
+        throw new IllegalArgumentException(LAYER_NOT_PRESENT + layer);
       }
       if (layer.scope() != LayerKey.Scope.POSITIONAL) {
         throw new IllegalArgumentException(POSITIONAL_LAYER_REQUIRED + layer);
