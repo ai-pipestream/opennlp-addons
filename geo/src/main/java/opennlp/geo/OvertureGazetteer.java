@@ -32,6 +32,7 @@ import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * A {@link Gazetteer} over a division table derived from Overture Maps data with the
@@ -66,7 +67,7 @@ public final class OvertureGazetteer implements Gazetteer {
 
   private static final int COLUMNS = 8;
 
-  /** The separator between the fields of one row. */
+  /** The ASCII tab the derived division format defines between the fields of one row. */
   private static final char FIELD_SEPARATOR = '\t';
 
   /** The separator between the elements of the alternate-names field. */
@@ -162,23 +163,23 @@ public final class OvertureGazetteer implements Gazetteer {
           + " columns, expected " + COLUMNS);
     }
     try {
-      final String id = fields[0].trim();
-      final String name = fields[1].trim();
+      final String id = trim(fields[0]);
+      final String name = trim(fields[1]);
       final Set<String> alternates = new LinkedHashSet<>();
       for (final String alternate : GazetteerIndex.split(fields[2], LIST_SEPARATOR)) {
-        final String trimmed = alternate.trim();
+        final String trimmed = trim(alternate);
         if (!trimmed.isEmpty() && !trimmed.equals(name)) {
           alternates.add(trimmed);
         }
       }
       final GeoPoint location = new GeoPoint(
-          Double.parseDouble(fields[3].trim()), Double.parseDouble(fields[4].trim()));
-      final String country = fields[5].trim();
+          Double.parseDouble(trim(fields[3])), Double.parseDouble(trim(fields[4])));
+      final String country = trim(fields[5]);
       final String countryCode = country.isEmpty() ? null : country;
-      final String population = fields[7].trim();
+      final String population = trim(fields[7]);
       return new GazetteerEntry(SOURCE, id, name, List.copyOf(alternates), location,
           countryCode, List.of(), population.isEmpty() ? 0L : Long.parseLong(population),
-          featureClass(fields[6].trim()), Map.of());
+          featureClass(trim(fields[6])), Map.of());
     } catch (IllegalArgumentException e) {
       throw new InvalidFormatException(
           "line " + lineNumber + " is not a derived division row: " + e.getMessage(), e);
@@ -192,5 +193,16 @@ public final class OvertureGazetteer implements Gazetteer {
     }
     return SUB_LOCALITY_SUBTYPES.contains(subtype)
         ? GazetteerEntry.FEATURE_CLASS_POI : GazetteerEntry.FEATURE_CLASS_ADMIN;
+  }
+
+  /**
+   * Trims a cell by Unicode whitespace, so padding with a no-break or ideographic space is
+   * removed like ASCII padding.
+   *
+   * @param cell The cell content. Must not be {@code null}.
+   * @return The cell without leading and trailing Unicode whitespace.
+   */
+  private static String trim(String cell) {
+    return StringUtil.trimUnicodeWhitespace(cell);
   }
 }
