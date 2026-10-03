@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package opennlp.tools.util.normalizer;
+package opennlp.tools.symboljoiner;
 
 import java.io.Serial;
+
+import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 
 /**
  * Replaces a supported single-symbol input with a fixed English word.
