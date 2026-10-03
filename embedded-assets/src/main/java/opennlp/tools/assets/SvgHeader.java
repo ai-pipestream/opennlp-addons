@@ -85,6 +85,7 @@ final class SvgHeader {
       return false;
     }
     return switch (header[0] & 0xff) {
+      // Decoded bytes, not text: XML 1.0 defines whitespace as exactly these 4 ASCII bytes.
       case '<', ' ', '\t', '\r', '\n' -> true;
       case 0 -> header.length >= 2 && header[1] == '<';
       case 0xef -> header.length >= 3 && (header[1] & 0xff) == 0xbb && (header[2] & 0xff) == 0xbf;

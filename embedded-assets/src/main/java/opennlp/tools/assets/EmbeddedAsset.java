@@ -192,6 +192,7 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
       } else if (c == '-' || c == '_') {
         urlOnly = true;
       } else if (c == '\r' || c == '\n') {
+        // MIME base64 (RFC 2045) wraps encoded lines with CRLF only.
         wrapped = true;
       } else if (!isSharedBase64Char(c) && c != '=') {
         throw new IllegalArgumentException("payload contains a non-base64 character");
