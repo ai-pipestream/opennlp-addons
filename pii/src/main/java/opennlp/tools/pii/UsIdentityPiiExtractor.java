@@ -26,7 +26,8 @@ import java.util.Set;
  * Identification Number candidates. This detector is opt-in.
  *
  * <p>Requires 9 ASCII digits grouped as {@code xxx-xx-xxxx}, using matching single
- * spaces or hyphens. Compact digits and other separators are rejected. These types
+ * spaces or hyphens; any Unicode space separator, such as a no-break space, counts as
+ * a space. Compact digits and other separators are rejected. These types
  * have no checksum. The leading and middle groups determine the type:</p>
  * <ul>
  *   <li>Social Security number: the area may not be {@code 000} or {@code 666} and may not
@@ -120,9 +121,9 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
       if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
         continue;
       }
-      final char separator = text.charAt(i + AREA_DIGITS);
-      if ((separator != '-' && separator != ' ')
-          || text.charAt(i + AREA_DIGITS + GROUP_DIGITS + 1) != separator) {
+      final char separator = Boundaries.separatorKind(text.charAt(i + AREA_DIGITS));
+      if ((separator != '-' && separator != ' ') || Boundaries.separatorKind(
+          text.charAt(i + AREA_DIGITS + GROUP_DIGITS + 1)) != separator) {
         continue;
       }
       final int end = i + FORM_LENGTH;
@@ -141,7 +142,8 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
       }
       final StringBuilder normalized = new StringBuilder(FORM_LENGTH);
       for (int p = i; p < end; p++) {
-        normalized.append(text.charAt(p) == separator ? '-' : text.charAt(p));
+        normalized.append(Boundaries.separatorKind(text.charAt(p)) == separator
+            ? '-' : text.charAt(p));
       }
       Hits.add(hits, i, end, type, normalized.toString());
       // The loop increment resumes the scan at the exclusive match end.

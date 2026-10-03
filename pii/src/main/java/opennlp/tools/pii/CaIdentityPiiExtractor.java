@@ -20,13 +20,16 @@ package opennlp.tools.pii;
 import java.util.ArrayList;
 import java.util.List;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Extracts labeled Canadian
  * <a href="https://www.canada.ca/en/employment-social-development/services/sin.html">
  * Social Insurance Number</a> candidates.
  *
  * <p>Accepts 9 ASCII digits, compact or in 3 groups of 3 separated by a single
- * space or hyphen. Both separators must be present and match. Candidates must pass the
+ * space or hyphen. Both separators must be present and match; any Unicode space
+ * separator, such as a no-break space, counts as a space. Candidates must pass the
  * Luhn check and directly follow an ASCII case-insensitive {@code SIN},
  * {@code Social Insurance Number} or {@code Social Insurance No.} label. A label must not
  * continue a Unicode letter or digit. Whitespace and {@code :}, {@code #}, {@code =}
@@ -112,11 +115,11 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
     char separator = 0;
     for (int count = 0; count < DIGITS; count++) {
       if (count == GROUP_DIGITS && p < text.length()
-          && (text.charAt(p) == '-' || text.charAt(p) == ' ')) {
-        separator = text.charAt(p);
+          && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))) {
+        separator = Boundaries.separatorKind(text.charAt(p));
       }
       if (count > 0 && count % GROUP_DIGITS == 0 && separator != 0) {
-        if (p >= text.length() || text.charAt(p) != separator) {
+        if (p >= text.length() || Boundaries.separatorKind(text.charAt(p)) != separator) {
           return -1;
         }
         p++;
@@ -129,7 +132,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
     if (!Boundaries.onEnd(text, p)) {
       return -1;
     }
-    if (p + 1 < text.length() && (text.charAt(p) == '-' || text.charAt(p) == ' ')
+    if (p + 1 < text.length() && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))
         && Ascii.isDigit(text.charAt(p + 1))) {
       return -1;
     }
@@ -143,6 +146,6 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
    * @return {@code true} for accepted label separators.
    */
   private boolean isLabelSeparator(char c) {
-    return Character.isWhitespace(c) || c == ':' || c == '#' || c == '=' || c == '.';
+    return StringUtil.isUnicodeWhitespace(c) || c == ':' || c == '#' || c == '=' || c == '.';
   }
 }

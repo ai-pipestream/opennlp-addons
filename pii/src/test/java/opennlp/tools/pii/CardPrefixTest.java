@@ -156,7 +156,7 @@ class CardPrefixTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"8", "8  1", "8--1", "8 -1", "8\t1", "8\n1", "8.1",
-      "8,1", "8\u00a01", "8\u0661", "\uff181", "81x"})
+      "8,1", "8\u00a0\u00a01", "8\u0661", "\uff181", "81x"})
   void testMalformedPrefix(String prefix) {
     Assertions.assertTrue(extractor.extract(prefix + EXAMPLE.substring(2)).isEmpty());
   }
