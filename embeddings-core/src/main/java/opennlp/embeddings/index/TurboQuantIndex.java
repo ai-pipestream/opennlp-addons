@@ -44,6 +44,9 @@ import opennlp.tools.util.java.Experimental;
 @Experimental
 public final class TurboQuantIndex implements VectorIndex {
 
+  private static final String DIRECTORY_NULL = "Directory must not be null";
+  private static final String NOT_FROZEN = "The index is not frozen; freeze() ends the build phase";
+
   /** The quantized vectors of a persisted index, in the TurboQuant file format. */
   public static final String VECTORS_FILE = "vectors.onq";
 
@@ -148,7 +151,7 @@ public final class TurboQuantIndex implements VectorIndex {
   @Override
   public List<Hit> topK(float[] query, int k) {
     if (buffer != null) {
-      throw new IllegalStateException("The index is not frozen; freeze() ends the build phase");
+      throw new IllegalStateException(NOT_FROZEN);
     }
     final double queryNorm = IndexQueries.checkedQueryNorm(query, k, dimension);
     if (queryNorm == 0.0 || ids.isEmpty()) {
@@ -197,7 +200,7 @@ public final class TurboQuantIndex implements VectorIndex {
    */
   public double bytesPerVector() {
     if (buffer != null) {
-      throw new IllegalStateException("The index is not frozen; freeze() ends the build phase");
+      throw new IllegalStateException(NOT_FROZEN);
     }
     if (matrix == null) {
       throw new IllegalStateException("An empty index stores no vectors");
@@ -217,10 +220,10 @@ public final class TurboQuantIndex implements VectorIndex {
    */
   public void write(Path directory) throws IOException {
     if (directory == null) {
-      throw new IllegalArgumentException("Directory must not be null");
+      throw new IllegalArgumentException(DIRECTORY_NULL);
     }
     if (buffer != null) {
-      throw new IllegalStateException("The index is not frozen; freeze() ends the build phase");
+      throw new IllegalStateException(NOT_FROZEN);
     }
     if (ids.isEmpty()) {
       throw new IllegalStateException("An empty index cannot be persisted");
@@ -243,7 +246,7 @@ public final class TurboQuantIndex implements VectorIndex {
    */
   public static TurboQuantIndex read(Path directory) throws IOException {
     if (directory == null) {
-      throw new IllegalArgumentException("Directory must not be null");
+      throw new IllegalArgumentException(DIRECTORY_NULL);
     }
     final Path vectorsFile = directory.resolve(VECTORS_FILE);
     final Path idsFile = directory.resolve(IDS_FILE);
