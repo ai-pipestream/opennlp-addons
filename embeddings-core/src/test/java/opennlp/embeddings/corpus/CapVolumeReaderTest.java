@@ -111,6 +111,17 @@ public class CapVolumeReaderTest {
   }
 
   @Test
+  void testCutsAnOverlongParagraphAtUnicodeWhitespace() {
+    // Em spaces only: the cut must still fall between words, not at the hard maximum.
+    final String paragraph = "word\u2003".repeat(600).strip();
+    final List<String> passages = CapVolumeReader.passagesOf(paragraph);
+    assertEquals(2, passages.size());
+    assertTrue(passages.get(0).length() < CapVolumeReader.HARD_MAX_CHARS);
+    assertTrue(passages.get(0).endsWith("word"));
+    assertTrue(passages.get(1).startsWith("word"));
+  }
+
+  @Test
   void testHardCutBoundIsExclusive() {
     // A space exactly at the hard maximum must not be chosen as the cut.
     final String paragraph =
