@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.termvector;
+package opennlp.tools.dehyphenation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +26,10 @@ import org.junit.jupiter.api.Test;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
+import opennlp.tools.termvector.TermVector;
+import opennlp.tools.termvector.TermVectorAnnotator;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.normalizer.DehyphenationCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
 import opennlp.tools.util.normalizer.TextNormalizer;
 
