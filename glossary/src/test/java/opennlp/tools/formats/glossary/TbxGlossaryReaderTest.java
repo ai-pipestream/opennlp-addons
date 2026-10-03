@@ -175,6 +175,26 @@ public class TbxGlossaryReaderTest {
     Assertions.assertTrue(ex.getMessage().contains("id"), ex.getMessage());
   }
 
+  /**
+   * Strips Unicode whitespace such as no-break and ideographic spaces around a term.
+   *
+   * @throws IOException If reading fails.
+   */
+  @Test
+  void testTermIsTrimmedOfUnicodeWhitespace() throws IOException {
+    final String doc = "<?xml version=\"1.0\"?>"
+        + "<martif type=\"TBX\"><text><body>"
+        + "<termEntry id=\"c1\"><langSet xml:lang=\"en\">"
+        + "<tig><term>\u00A0hot dog\u3000</term></tig>"
+        + "</langSet></termEntry>"
+        + "</body></text></martif>";
+
+    final List<GlossaryEntry> entries = new TbxGlossaryReader("en")
+        .read(new ByteArrayInputStream(doc.getBytes(StandardCharsets.UTF_8)));
+    Assertions.assertEquals(1, entries.size());
+    Assertions.assertEquals("hot dog", entries.get(0).term());
+  }
+
   /** Rejects a blank term in a selected language. */
   @Test
   void testBlankTermFailsLoud() {
