@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.depparse;
+package opennlp.tools.depparse.annotation;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +26,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import opennlp.tools.depparse.DependencyArc;
+import opennlp.tools.depparse.DependencyGraph;
+import opennlp.tools.depparse.DependencyParser;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;

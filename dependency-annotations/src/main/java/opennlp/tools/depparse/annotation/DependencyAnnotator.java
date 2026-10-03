@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
-package opennlp.tools.depparse;
+package opennlp.tools.depparse.annotation;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.depparse.DependencyArc;
+import opennlp.tools.depparse.DependencyGraph;
+import opennlp.tools.depparse.DependencyParser;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
