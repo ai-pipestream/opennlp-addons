@@ -263,7 +263,7 @@ class HuggingFaceModelCacheTest {
     final Path cache = HuggingFaceModelCache.resolve(MODEL_ID, hub.base(), cacheRoot, null);
 
     assertEquals(COMMIT,
-        Files.readString(cache.resolve(HuggingFaceModelCache.REVISION_FILE)).trim());
+        Files.readString(cache.resolve(HuggingFaceModelCache.REVISION_FILE)).strip());
   }
 
   /** A recorded revision surrounded by any Unicode whitespace still names its commit. */

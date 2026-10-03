@@ -307,7 +307,7 @@ final class HuggingFaceModelCache {
       return null;
     }
     try {
-      final String recorded = Files.readString(file, StandardCharsets.UTF_8).trim();
+      final String recorded = Files.readString(file, StandardCharsets.UTF_8).strip();
       return isCommitSha(recorded) ? recorded : null;
     } catch (IOException e) {
       return null;
@@ -534,7 +534,7 @@ final class HuggingFaceModelCache {
           + modelId + ": the hub sent no " + ETAG_HEADER
           + " header, so the file cannot be verified");
     }
-    String hex = header.trim();
+    String hex = header.strip();
     if (hex.length() >= 2 && hex.charAt(0) == '"' && hex.charAt(hex.length() - 1) == '"') {
       hex = hex.substring(1, hex.length() - 1);
     }
