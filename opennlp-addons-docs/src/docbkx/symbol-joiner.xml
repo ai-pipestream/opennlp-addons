@@ -34,7 +34,7 @@
 <![CDATA[import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
-import opennlp.tools.util.normalizer.SymbolJoinerCharSequenceNormalizer;
+import opennlp.tools.symboljoiner.SymbolJoinerCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.TextNormalizer;
 
 String text = "Dungeons & Dragons";

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package opennlp.tools.util.normalizer;
+package opennlp.tools.symboljoiner;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import opennlp.tools.tokenize.WhitespaceTokenizer;
 import opennlp.tools.tokenize.uax29.WordTokenizer;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.normalizer.CharSequenceNormalizer;
+import opennlp.tools.util.normalizer.TextNormalizer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
