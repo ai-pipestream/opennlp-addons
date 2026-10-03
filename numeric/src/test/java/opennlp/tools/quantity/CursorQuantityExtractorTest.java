@@ -304,4 +304,22 @@ public class CursorQuantityExtractorTest {
     assertThrows(IllegalArgumentException.class,
         () -> new QuantityAnnotator(extractor).annotate(null));
   }
+
+  /**
+   * Verifies that the single gap between a number and its unit may be any Unicode
+   * whitespace, such as a no-break, narrow no-break, thin, or ideographic space or a tab,
+   * and yields the same mention as an ASCII space.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u202F", "\u2009", "\u3000", "\t"})
+  void testUnicodeWhitespaceGapMatchesLikeASpace(String gap) {
+    for (final String shape : List.of("3.5 %", "50 percent", "80 kg", "1,250 GB")) {
+      final Quantity expected = single(shape);
+      final String text = shape.replace(" ", gap);
+      final Quantity mention = single(text);
+      assertEquals(expected.span(), mention.span(), text);
+      assertEquals(0, expected.value().compareTo(mention.value()), text);
+      assertEquals(expected.unit(), mention.unit(), text);
+    }
+  }
 }
