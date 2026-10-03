@@ -60,13 +60,12 @@ public interface FsaSequenceReader {
       throw new IllegalArgumentException("bytes must not be null");
     }
     final String signature = "\\fsa";
-    if (bytes.length <= signature.length()) {
-      throw new IOException("not an FSA automaton: bad magic header");
+    boolean valid = bytes.length > signature.length();
+    for (int i = 0; valid && i < signature.length(); i++) {
+      valid = bytes[i] == signature.charAt(i);
     }
-    for (int i = 0; i < signature.length(); i++) {
-      if (bytes[i] != signature.charAt(i)) {
-        throw new IOException("not an FSA automaton: bad magic header");
-      }
+    if (!valid) {
+      throw new IOException("not an FSA automaton: bad magic header");
     }
   }
 
