@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 
-package opennlp.tools.document;
+package opennlp.tools.document.predicate;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+
+import opennlp.tools.document.Document;
+import opennlp.tools.document.DocumentAnnotator;
+import opennlp.tools.document.DocumentAnnotators;
+import opennlp.tools.document.LayerKey;
 
 /**
  * Chooses an annotator according to a condition over the document. The two-argument
