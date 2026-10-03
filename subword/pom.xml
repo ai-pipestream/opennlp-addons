@@ -32,12 +32,6 @@
 	<description>SentencePiece subword tokenization for OpenNLP.</description>
 	<packaging>jar</packaging>
 
-	<properties>
-		<!-- SubwordTokenizer landed in core after 3.0.0-M5. Until the release that carries it
-		     reaches Maven Central, this module builds against the snapshot and stays in draft. -->
-		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.opennlp</groupId>
