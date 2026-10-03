@@ -31,7 +31,10 @@ final class LemmaFolding {
   /**
    * Converts a written form to the lookup form: lowercase with the locale-independent
    * one-to-one mapping of {@link StringUtil#toLowerCase(CharSequence)}, with the underscore
-   * some formats store in multiword lemmas treated as a space.
+   * some formats store in multiword lemmas treated as a space. Leading and trailing whitespace
+   * is removed and every inner run of underscores or Unicode whitespace
+   * ({@link StringUtil#isWhitespace(char)}) becomes one space, so a query typed with a
+   * no-break space or tab finds the same lemma as one typed with a plain space.
    *
    * @param writtenForm The form as written in a source file or query. Must not be {@code null}.
    * @return The folded form.
@@ -41,11 +44,28 @@ final class LemmaFolding {
     if (writtenForm == null) {
       throw new IllegalArgumentException("writtenForm must not be null");
     }
-    return StringUtil.toLowerCase(writtenForm.replace('_', ' '));
+    final StringBuilder normalized = new StringBuilder(writtenForm.length());
+    boolean pendingSpace = false;
+    for (int i = 0; i < writtenForm.length(); i++) {
+      final char c = writtenForm.charAt(i);
+      if (c == '_' || StringUtil.isWhitespace(c)) {
+        pendingSpace = !normalized.isEmpty();
+      } else {
+        if (pendingSpace) {
+          normalized.append(' ');
+          pendingSpace = false;
+        }
+        normalized.append(c);
+      }
+    }
+    return StringUtil.toLowerCase(normalized);
   }
 
   /**
-   * Splits a space-separated field list, collapsing runs of spaces.
+   * Splits a space-separated field list, collapsing runs of spaces. Only the ASCII space
+   * separates fields: both callers parse formats whose separator is defined as U+0020, the
+   * WNDB exception lists (wndb(5WN)) and the WN-LMF {@code members} IDREFS attribute, whose
+   * tabs and line breaks the XML parser already normalized to spaces.
    *
    * @param value The field list. Must not be {@code null}.
    * @return The non-empty fields in order, never {@code null}.
