@@ -171,6 +171,9 @@ public final class WnLmfReader {
   /** The element declaring an extension's base lexicon. */
   private static final String EXTENDS_ELEMENT = "Extends";
 
+  /** The message for a null resolver argument. */
+  private static final String RESOLVER_NULL = "resolver must not be null";
+
   /** The element referencing a base lexical entry to attach additive content to. */
   private static final String EXTERNAL_LEXICAL_ENTRY_ELEMENT = "ExternalLexicalEntry";
 
@@ -279,7 +282,7 @@ public final class WnLmfReader {
    */
   public static WnLmfResource readResource(Path file, WnLmfResolver resolver) throws IOException {
     if (resolver == null) {
-      throw new IllegalArgumentException("resolver must not be null");
+      throw new IllegalArgumentException(RESOLVER_NULL);
     }
     return readResourceFromFile(file, resolver);
   }
@@ -358,7 +361,7 @@ public final class WnLmfReader {
   public static WnLmfResource readResource(InputStream in, String resourceName,
       WnLmfResolver resolver) throws IOException {
     if (resolver == null) {
-      throw new IllegalArgumentException("resolver must not be null");
+      throw new IllegalArgumentException(RESOLVER_NULL);
     }
     return readResourceInternal(in, resourceName, resolver);
   }
