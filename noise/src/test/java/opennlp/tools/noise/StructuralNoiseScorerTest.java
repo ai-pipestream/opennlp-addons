@@ -173,6 +173,19 @@ public class StructuralNoiseScorerTest {
     assertEquals(token, found.get(0).span().getCoveredText(text).toString());
   }
 
+  /** Quotes and brackets outside ASCII are excluded from the encoded-content span too. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u201C%s\u201D", "\u00AB%s\u00BB", "\u300C%s\u300D",
+      "\uFF08%s\uFF09", "\u2018%s\u2019\u3002", "%s\u2026"})
+  void testBase64ShapedRunInUnicodePunctuationIsBinaryish(String wrapper) {
+    final String token = "QWxhZGRpbjpvcGVuIHNlc2FtZQ==";
+    final String text = "payload " + wrapper.formatted(token) + " here";
+    final List<NoiseSpan> found = scorer.score(text, List.of());
+    assertEquals(1, found.size());
+    assertEquals(NoiseSpan.SEVERITY_BINARYISH, found.get(0).severity());
+    assertEquals(token, found.get(0).span().getCoveredText(text).toString());
+  }
+
   /** An excluded region is not scored at all. */
   @Test
   void testExcludedRegionIsNotScored() {
