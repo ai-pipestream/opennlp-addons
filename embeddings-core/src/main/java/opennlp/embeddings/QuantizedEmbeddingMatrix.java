@@ -69,6 +69,8 @@ import opennlp.tools.util.java.Experimental;
 @ThreadSafe
 public final class QuantizedEmbeddingMatrix {
 
+  private static final String FILE_NULL = "File must not be null";
+
   /** The smallest supported bit width. */
   public static final int MIN_BITS = GaussianQuantizer.MIN_BITS;
 
@@ -504,7 +506,7 @@ public final class QuantizedEmbeddingMatrix {
    */
   public void write(Path file) throws IOException {
     if (file == null) {
-      throw new IllegalArgumentException("File must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     try (OutputStream out = Files.newOutputStream(file);
          DataOutputStream data = new DataOutputStream(new BufferedOutputStream(out))) {
@@ -546,7 +548,7 @@ public final class QuantizedEmbeddingMatrix {
    */
   public static QuantizedEmbeddingMatrix read(Path file) throws IOException {
     if (file == null) {
-      throw new IllegalArgumentException("File must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     try (InputStream in = Files.newInputStream(file);
          DataInputStream data = new DataInputStream(new BufferedInputStream(in))) {
