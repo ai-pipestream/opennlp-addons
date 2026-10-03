@@ -39,6 +39,8 @@ package opennlp.embeddings;
  */
 final class HadamardRotation {
 
+  private static final String DIMENSION_TOO_SMALL = "Dimension must be at least 1, got ";
+
   private static final long SPLITMIX64_GOLDEN_GAMMA = 0x9E3779B97F4A7C15L;
 
   private final int paddedDimension;
@@ -55,7 +57,7 @@ final class HadamardRotation {
    */
   HadamardRotation(int dimension, long seed) {
     if (dimension < 1) {
-      throw new IllegalArgumentException("Dimension must be at least 1, got " + dimension);
+      throw new IllegalArgumentException(DIMENSION_TOO_SMALL + dimension);
     }
     this.paddedDimension = paddedDimension(dimension);
     this.flip = new boolean[paddedDimension];
@@ -80,7 +82,7 @@ final class HadamardRotation {
    */
   static int paddedDimension(int dimension) {
     if (dimension < 1) {
-      throw new IllegalArgumentException("Dimension must be at least 1, got " + dimension);
+      throw new IllegalArgumentException(DIMENSION_TOO_SMALL + dimension);
     }
     if (dimension > 1 << 30) {
       throw new IllegalArgumentException("Dimension must be at most " + (1 << 30)
