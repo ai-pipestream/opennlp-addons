@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag;
+package opennlp.tools.postag.neural;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +33,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import opennlp.tools.parser.AbstractBottomUpParser;
 import opennlp.tools.parser.HeadRules;
 import opennlp.tools.parser.Parse;
+import opennlp.tools.postag.POSSample;
+import opennlp.tools.postag.POSTagger;
 import opennlp.tools.util.ObjectStreamUtils;
 import opennlp.tools.util.Sequence;
 
