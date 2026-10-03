@@ -48,6 +48,7 @@ public class InMemoryWordNetLexiconTest {
         Map.of(InMemoryWordNetLexicon.LemmaKey.of("lemma", WordNetPOS.NOUN), List.of("a", "b")));
     assertEquals(2, lexicon.size());
     assertEquals(List.of(a, b), lexicon.lookup("lemma", WordNetPOS.NOUN));
+    assertEquals(List.of(a, b), lexicon.lookup("\u00A0Lemma\u2003", WordNetPOS.NOUN));
   }
 
   @Test

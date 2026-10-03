@@ -38,6 +38,17 @@ public class LemmaFoldingTest {
   }
 
   @Test
+  void testFoldNormalizesUnicodeWhitespaceInQueries() {
+    assertEquals("domestic dog", LemmaFolding.fold("domestic\u00A0dog"));
+    assertEquals("domestic dog", LemmaFolding.fold("domestic\tdog"));
+    assertEquals("domestic dog", LemmaFolding.fold("domestic \u2003 dog"));
+    assertEquals("dog", LemmaFolding.fold("\u3000dog\u2009"));
+    assertEquals("dog", LemmaFolding.fold(" dog\n"));
+    assertEquals("domestic dog", LemmaFolding.fold("domestic_ dog"));
+    assertEquals("", LemmaFolding.fold("\u00A0 "));
+  }
+
+  @Test
   void testSplitOnSpacesCollapsesRunsAndIgnoresEdges() {
     assertEquals(List.of("a", "b", "c"), LemmaFolding.splitOnSpaces("a b c"));
     assertEquals(List.of("a", "b"), LemmaFolding.splitOnSpaces("a   b"));
