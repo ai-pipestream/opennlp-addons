@@ -53,6 +53,8 @@ import opennlp.tools.util.InvalidFormatException;
  */
 final class TeacherTokenizer {
 
+  private static final String TRAILING_CONTENT = "Trailing content after the top-level object";
+
   private static final String HEX_DIGITS = "0123456789abcdef";
 
   /** The prefix of the BERT-style placeholder tokens Model2Vec's cleaning drops. */
@@ -201,7 +203,7 @@ final class TeacherTokenizer {
         throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
       }
     }
-    cursor.requireEnd("Trailing content after the top-level object");
+    cursor.requireEnd(TRAILING_CONTENT);
     if (modelType == null || tokensById == null) {
       throw new InvalidFormatException(tokenizerJsonFile + " has no model with a vocabulary; "
           + "it does not look like a teacher's tokenizer.json");
@@ -560,7 +562,7 @@ final class TeacherTokenizer {
         throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
       }
     }
-    cursor.requireEnd("Trailing content after the top-level object");
+    cursor.requireEnd(TRAILING_CONTENT);
     out.append('}');
     Files.writeString(file, out.toString());
   }

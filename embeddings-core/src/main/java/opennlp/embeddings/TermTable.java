@@ -43,6 +43,8 @@ import opennlp.tools.util.StringUtil;
 @ThreadSafe
 final class TermTable {
 
+  private static final String TEXT_NULL = "text must not be null";
+
   private final List<String> termsByOffset;
   private final Map<String, Integer> rowByTerm;
   private final int firstRow;
@@ -101,7 +103,7 @@ final class TermTable {
    */
   static String normalizeTerm(String text) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_NULL);
     }
     final StringBuilder normalized = new StringBuilder(text.length());
     final String folded = StringUtil.toLowerCase(text);
@@ -178,7 +180,7 @@ final class TermTable {
    */
   List<Match> matches(String text) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_NULL);
     }
     if (termsByOffset.isEmpty()) {
       return List.of();

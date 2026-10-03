@@ -99,6 +99,9 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   private static final String WEIGHTS_TENSOR_NAME = "weights";
   // The only pooling this model implements; the value the distiller writes into config.json.
   private static final String MEAN_POOLING = "mean";
+  private static final String SAFETENSORS_FILE_NULL = "safetensorsFile must not be null";
+  private static final String NORMALIZATION_NULL = "normalization must not be null";
+  private static final String TEXT_NULL = "text must not be null";
   private static final int[] NO_EXCLUDED_ROWS = new int[0];
   // Conventional WordPiece special tokens, excluded from neighbor results when present.
   private static final Set<String> WORDPIECE_SPECIAL_TOKENS =
@@ -382,13 +385,13 @@ public final class StaticEmbeddingModel implements TextEmbedder {
       throw new IllegalArgumentException("vocabularyFile must not be null");
     }
     if (safetensorsFile == null) {
-      throw new IllegalArgumentException("safetensorsFile must not be null");
+      throw new IllegalArgumentException(SAFETENSORS_FILE_NULL);
     }
     if (casing == null) {
       throw new IllegalArgumentException("casing must not be null");
     }
     if (normalization == null) {
-      throw new IllegalArgumentException("normalization must not be null");
+      throw new IllegalArgumentException(NORMALIZATION_NULL);
     }
     final EmbeddingVocabulary vocabulary = EmbeddingVocabulary.fromVocabTxt(vocabularyFile);
     final TermTable terms = TermTable.of(termLines, vocabulary.size(), termsSourceName);
@@ -515,10 +518,10 @@ public final class StaticEmbeddingModel implements TextEmbedder {
       throw new IllegalArgumentException("tokenizerJsonFile must not be null");
     }
     if (safetensorsFile == null) {
-      throw new IllegalArgumentException("safetensorsFile must not be null");
+      throw new IllegalArgumentException(SAFETENSORS_FILE_NULL);
     }
     if (normalization == null) {
-      throw new IllegalArgumentException("normalization must not be null");
+      throw new IllegalArgumentException(NORMALIZATION_NULL);
     }
     final EmbeddingVocabulary vocabulary =
         EmbeddingVocabulary.fromTokenizerJson(tokenizerJsonFile);
@@ -741,7 +744,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   @Override
   public float[] embed(CharSequence text) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_NULL);
     }
     return embed(text instanceof String s ? s : text.toString());
   }
@@ -756,7 +759,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    */
   public float[] embed(String text) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_NULL);
     }
     final double[] sum = new double[dimension];
     // IntConsumer needs a mutable counter for the pooled rows.
@@ -909,7 +912,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    */
   public List<Neighbor> mostSimilar(String text, int topK) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_NULL);
     }
     requirePositive(topK);
     return nearestNeighbors(embed(text), topK, NO_EXCLUDED_ROWS);
