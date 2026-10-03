@@ -79,6 +79,11 @@ public final class CorefTrainer {
   /** The AdaGrad smoothing term. */
   private static final double ADAGRAD_EPSILON = 1e-8;
 
+  private static final String DOCUMENTS_NULL = "documents must not be null";
+  private static final String ANNOTATOR_NULL = "annotator must not be null";
+  private static final String MISSING_GOLD_CHAINS =
+      "document lacks the required layer " + CorefAnnotator.GOLD_CHAINS;
+
   /**
    * One anaphor's options for ranking: the binary feature ids per option, the last
    * being new chain, and with contextual vectors the anaphor's span vector and each
@@ -184,13 +189,13 @@ public final class CorefTrainer {
       TrainingParameters parameters, CorefAnnotator annotator) throws IOException {
     CorefModel.requireLanguageCode(languageCode);
     if (documents == null) {
-      throw new IllegalArgumentException("documents must not be null");
+      throw new IllegalArgumentException(DOCUMENTS_NULL);
     }
     if (parameters == null) {
       throw new IllegalArgumentException("parameters must not be null");
     }
     if (annotator == null) {
-      throw new IllegalArgumentException("annotator must not be null");
+      throw new IllegalArgumentException(ANNOTATOR_NULL);
     }
     final Map<String, String> manifestInfoEntries = new HashMap<>();
     final EventTrainer<TrainingParameters> trainer =
@@ -249,10 +254,10 @@ public final class CorefTrainer {
       throws IOException {
     CorefModel.requireLanguageCode(languageCode);
     if (documents == null) {
-      throw new IllegalArgumentException("documents must not be null");
+      throw new IllegalArgumentException(DOCUMENTS_NULL);
     }
     if (annotator == null) {
-      throw new IllegalArgumentException("annotator must not be null");
+      throw new IllegalArgumentException(ANNOTATOR_NULL);
     }
     if (epochs <= 0) {
       throw new IllegalArgumentException("epochs must be positive: " + epochs);
@@ -451,8 +456,7 @@ public final class CorefTrainer {
   private static List<RankingInstance> rankingInstances(Document document,
       CorefAnnotator annotator, Map<String, Integer> featureIds) {
     if (document == null || !document.layers().contains(CorefAnnotator.GOLD_CHAINS)) {
-      throw new IllegalArgumentException(
-          "document lacks the required layer " + CorefAnnotator.GOLD_CHAINS);
+      throw new IllegalArgumentException(MISSING_GOLD_CHAINS);
     }
     final List<RankingInstance> instances = new ArrayList<>();
     final SieveResolver resolver = annotator.resolver(document);
@@ -530,8 +534,7 @@ public final class CorefTrainer {
    */
   static List<Event> pairs(Document document, CorefAnnotator annotator) {
     if (document == null || !document.layers().contains(CorefAnnotator.GOLD_CHAINS)) {
-      throw new IllegalArgumentException(
-          "document lacks the required layer " + CorefAnnotator.GOLD_CHAINS);
+      throw new IllegalArgumentException(MISSING_GOLD_CHAINS);
     }
     final SieveResolver resolver = annotator.resolver(document);
     final List<Event> events = new ArrayList<>();
