@@ -179,4 +179,21 @@ public class OvertureGazetteerTest {
     assertThrows(IllegalArgumentException.class, () -> gazetteer.byId(null, "d1"));
     assertThrows(IllegalArgumentException.class, () -> gazetteer.byRegion(null));
   }
+
+  /**
+   * Verifies that cell padding is trimmed by Unicode whitespace, not only ASCII, so a name
+   * padded with a no-break or ideographic space is still found by its plain spelling.
+   */
+  @Test
+  void testTrimsUnicodeWhitespacePadding() throws IOException {
+    final OvertureGazetteer gazetteer = OvertureGazetteer.load(new ByteArrayInputStream(
+        (row("d7", " Tasmania　", " Lutruwita ", "-42.0", "146.6",
+            "AU ", "region", " 570000") + "\n").getBytes(StandardCharsets.UTF_8)));
+    final List<GazetteerEntry> found = gazetteer.lookup("Tasmania");
+    assertEquals(1, found.size());
+    assertEquals("Tasmania", found.get(0).name());
+    assertEquals("AU", found.get(0).countryCode());
+    assertEquals(570000L, found.get(0).population());
+    assertEquals("d7", gazetteer.lookup("Lutruwita").get(0).recordId());
+  }
 }

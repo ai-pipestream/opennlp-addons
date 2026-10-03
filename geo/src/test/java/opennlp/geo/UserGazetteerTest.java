@@ -222,4 +222,27 @@ public class UserGazetteerTest {
             new ByteArrayInputStream((line + "\n").getBytes(StandardCharsets.UTF_8))));
     assertTrue(e.getMessage().startsWith("line 1 "), e.getMessage());
   }
+
+  /**
+   * Verifies that cell padding is trimmed by Unicode whitespace, not only ASCII: a name,
+   * alternate, coordinate, or suppression cell padded with a no-break or ideographic
+   * space is read as its content.
+   */
+  @Test
+  void testTrimsUnicodeWhitespacePadding() throws IOException {
+    final UserGazetteer gazetteer = load(
+        "site-1\t Acme Depot　\t Depot |　\t 33.75\t-84.39 "
+            + "\tUS \tPOI\t 12\n");
+    final List<GazetteerEntry> found = gazetteer.lookup("Acme Depot");
+    assertEquals(1, found.size());
+    final GazetteerEntry entry = found.get(0);
+    assertEquals("Acme Depot", entry.name());
+    assertEquals(List.of("Depot"), entry.alternateNames());
+    assertEquals("US", entry.countryCode());
+    assertEquals(12L, entry.population());
+
+    final List<Suppression> rules = UserGazetteer.loadSuppressions(new ByteArrayInputStream(
+        " Mobile　\tUS \n".getBytes(StandardCharsets.UTF_8)));
+    assertEquals(List.of(new Suppression("Mobile", "US", null)), rules);
+  }
 }
