@@ -17,7 +17,7 @@
 
 # Document region voting
 
-This feature combines geocoded location mentions and country names into a document-level ballot for the most likely geographic region.
+This feature combines geocoded location mentions, country names, and country flag emoji into a document-level ballot for the most likely geographic region.
 
 ## Human definition
 
@@ -32,3 +32,6 @@ It gathers several weak geographic clues from a document and chooses a region on
 `geo` supplies the region ballot, gazetteer, and geocoder contracts. `numeric`
 contains the region-aware currency adapter and depends on `geo`. The immutable
 Document container and typed layer contracts come from core.
+
+Run `GeocodeAnnotator` first, then `DocumentRegionAnnotator`. Both the entities
+and locations layers must be present, though they may be empty.
