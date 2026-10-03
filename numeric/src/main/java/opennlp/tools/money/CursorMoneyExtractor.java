@@ -132,6 +132,9 @@ public class CursorMoneyExtractor implements MoneyExtractor {
   /** The length of the longest currency word, {@code sterling} and {@code renminbi}. */
   private static final int MAX_CURRENCY_WORD_LENGTH = 8;
 
+  /** The prefix of the failure naming a region without a currency. */
+  private static final String NO_REGION_CURRENCY = "region has no currency: ";
+
   private static final Set<String> ISO_CODES = isoCodes();
 
   /**
@@ -258,10 +261,10 @@ public class CursorMoneyExtractor implements MoneyExtractor {
     try {
       currency = Currency.getInstance(region);
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("region has no currency: " + region, e);
+      throw new IllegalArgumentException(NO_REGION_CURRENCY + region, e);
     }
     if (currency == null) {
-      throw new IllegalArgumentException("region has no currency: " + region);
+      throw new IllegalArgumentException(NO_REGION_CURRENCY + region);
     }
     final NumberNotation regionNotation = NumberNotation.forLocale(region);
     final String symbol = currency.getSymbol(region);

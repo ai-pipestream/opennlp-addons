@@ -92,6 +92,9 @@ public class CursorTemporalExtractor implements TemporalExtractor {
 
   private static final String DAY_UNIT = "day";
 
+  /** The failure for missing text. */
+  private static final String TEXT_REQUIRED = "text must not be null";
+
   private static final DateTimeFormatter YEAR_FORMAT = new DateTimeFormatterBuilder()
       .appendValue(ChronoField.YEAR, 4, 10, SignStyle.EXCEEDS_PAD)
       .toFormatter(Locale.ROOT);
@@ -134,7 +137,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
   @Override
   public List<TemporalExpression> extract(CharSequence text) {
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_REQUIRED);
     }
     return scan(text, null);
   }
@@ -150,7 +153,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
       throw new IllegalArgumentException("reference must not be null");
     }
     if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
+      throw new IllegalArgumentException(TEXT_REQUIRED);
     }
     return scan(text, reference);
   }

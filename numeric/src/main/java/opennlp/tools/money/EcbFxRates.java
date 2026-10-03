@@ -82,6 +82,12 @@ public class EcbFxRates implements FxRates {
   private static final char FIELD_SEPARATOR = ',';
   private static final String HEADER_PREFIX = "Date,";
 
+  /** The failure for a missing or blank target currency. */
+  private static final String TO_REQUIRED = "to must not be null or blank";
+
+  /** The failure for a missing lookup date. */
+  private static final String AS_OF_REQUIRED = "asOf must not be null";
+
   private final TreeMap<LocalDate, Map<String, BigDecimal>> table;
 
   /**
@@ -267,10 +273,10 @@ public class EcbFxRates implements FxRates {
       throw new IllegalArgumentException("from must not be null or blank");
     }
     if (to == null || to.isBlank()) {
-      throw new IllegalArgumentException("to must not be null or blank");
+      throw new IllegalArgumentException(TO_REQUIRED);
     }
     if (asOf == null) {
-      throw new IllegalArgumentException("asOf must not be null");
+      throw new IllegalArgumentException(AS_OF_REQUIRED);
     }
     final Map<String, BigDecimal> row = usableRow(asOf);
     if (row == null) {
@@ -301,10 +307,10 @@ public class EcbFxRates implements FxRates {
       throw new IllegalArgumentException("money must not be null");
     }
     if (to == null || to.isBlank()) {
-      throw new IllegalArgumentException("to must not be null or blank");
+      throw new IllegalArgumentException(TO_REQUIRED);
     }
     if (asOf == null) {
-      throw new IllegalArgumentException("asOf must not be null");
+      throw new IllegalArgumentException(AS_OF_REQUIRED);
     }
     final Map<String, BigDecimal> row = usableRow(asOf);
     if (row == null) {
