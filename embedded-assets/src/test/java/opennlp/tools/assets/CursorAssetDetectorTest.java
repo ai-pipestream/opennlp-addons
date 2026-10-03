@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static opennlp.tools.assets.AssetTestSupport.gif;
 import static opennlp.tools.assets.AssetTestSupport.png;
@@ -587,6 +588,24 @@ public class CursorAssetDetectorTest {
     assertEquals(text.length(), assets.get(1).span().getEnd());
     assertArrayEquals(bytes.toByteArray(), assets.get(0).decode(text));
     assertArrayEquals(bytes.toByteArray(), assets.get(1).decode(text));
+  }
+
+  /**
+   * A data URI media type cannot contain whitespace, so a Unicode space between
+   * {@code data:} and {@code ;base64,} means the text is not a data URI, the same as
+   * an ASCII space.
+   *
+   * @param space The whitespace inside the would-be media type.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {" ", "\u00a0", "\u2003", "\u3000", "\u2028"})
+  void testDataUriMediaTypeStopsAtUnicodeWhitespace(String space) {
+    final String text = "data:image/png" + space + "note;base64,"
+        + Base64.getEncoder().encodeToString(png(1, 1));
+    for (final EmbeddedAsset asset : detector.detect(text)) {
+      assertTrue(asset.span().getStart() > 0, "not a data URI: " + asset);
+      assertTrue(asset.mediaType().indexOf(space) < 0, asset.mediaType());
+    }
   }
 
   @Test
