@@ -3,6 +3,7 @@
   "reflection": [
     {"type": "opennlp.tools.chunker.ChunkerFactory", "methods": [{"name": "<init>", "parameterTypes": []}]},
     {"type": "opennlp.tools.chunker.ChunkerModel", "methods": [{"name": "<init>", "parameterTypes": ["java.io.InputStream"]}, {"name": "<init>", "parameterTypes": ["java.nio.file.Path"]}]},
+    {"type": "opennlp.tools.depparse.DependencyModel", "methods": [{"name": "<init>", "parameterTypes": ["java.io.InputStream"]}, {"name": "<init>", "parameterTypes": ["java.nio.file.Path"]}]},
     {"type": "opennlp.tools.doccat.BagOfWordsFeatureGenerator", "methods": [{"name": "<init>", "parameterTypes": []}]},
     {"type": "opennlp.tools.doccat.DoccatFactory", "methods": [{"name": "<init>", "parameterTypes": []}]},
     {"type": "opennlp.tools.doccat.DoccatModel", "methods": [{"name": "<init>", "parameterTypes": ["java.io.InputStream"]}, {"name": "<init>", "parameterTypes": ["java.nio.file.Path"]}]},
