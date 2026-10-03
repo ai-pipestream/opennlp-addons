@@ -4,6 +4,10 @@ Copyright 2021-2025 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+This product includes an English first-name gender table derived from the national
+baby-name data published by the United States Social Security Administration:
+https://www.ssa.gov/oact/babynames/
+
 ============================================================================
 List of third-party dependencies grouped by their license type.
 
