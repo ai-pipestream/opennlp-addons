@@ -36,10 +36,10 @@ import opennlp.tools.util.Span;
  *
  * <p>Recognized forms: percentages as {@code 50%}, {@code 3.5 %}, or {@code 50 percent}
  * (all reported with the unit {@code %}); unit quantities with the unit immediately
- * attached ({@code 2.5km}) or separated by one space ({@code 80 kg}); and an optional
- * leading minus. Digit grouping follows the shared strict rule. A number grouped in a
- * convention the scanner cannot parse, for example the Indian-grouped {@code 1,00,000},
- * is rejected entirely rather than truncated to a wrong value, and the
+ * attached ({@code 2.5km}) or separated by one whitespace character ({@code 80 kg});
+ * and an optional leading minus. Digit grouping follows the shared strict rule. A number
+ * grouped in a convention the scanner cannot parse, for example the Indian-grouped
+ * {@code 1,00,000}, is rejected entirely rather than truncated to a wrong value, and the
  * separator-adjoined tail of such a number never seeds a mention of its own. A bare
  * number without a percent marker or unit is never a quantity.</p>
  *
@@ -246,7 +246,7 @@ public class CursorQuantityExtractor implements QuantityExtractor {
 
   /**
    * Parses the percent marker or unit token after a number: immediately attached, or
-   * separated by exactly one space.
+   * separated by exactly one Unicode whitespace character.
    *
    * @param text The text being scanned.
    * @param numberEnd The exclusive offset behind the number.
@@ -257,7 +257,7 @@ public class CursorQuantityExtractor implements QuantityExtractor {
     if (immediate != null) {
       return immediate;
     }
-    if (NumberScan.charAt(text, numberEnd) == ' ') {
+    if (NumberScan.whitespaceAt(text, numberEnd)) {
       return unitAt(text, numberEnd + 1);
     }
     return null;

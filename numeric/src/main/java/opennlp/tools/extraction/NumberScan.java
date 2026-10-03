@@ -34,7 +34,8 @@ import opennlp.tools.util.StringUtil;
  * example the Indian-grouped {@code 1,00,000}, a repeated decimal separator, or a European
  * {@code 1.234,56} read in {@link NumberNotation#LATIN_US}. Nonbreaking and thin spaces,
  * apostrophes, and Arabic numeric separators between ASCII digits also reject the scan;
- * they are not converted to the selected notation. Ordinary spaces separate tokens.
+ * they are not converted to the selected notation. One Unicode whitespace character
+ * separates a number from a following scale word.
  * Scientific notation such as {@code 1e-3} is not supported and rejects the scan.
  * With scaling enabled, an immediate suffix ({@code k}, {@code m}, {@code b},
  * {@code bn}) or a following word ({@code thousand} to {@code trillion}) multiplies the
@@ -207,7 +208,7 @@ public final class NumberScan {
       }
       return new Result(value.multiply(BigDecimal.valueOf(scale)), suffixEnd);
     }
-    if (charAt(text, end) == ' ') {
+    if (whitespaceAt(text, end)) {
       final Result worded = parseScaleWord(text, end + 1, value);
       if (worded != null) {
         return worded;
@@ -372,6 +373,20 @@ public final class NumberScan {
    */
   public static boolean isAsciiDigit(int cp) {
     return cp >= '0' && cp <= '9';
+  }
+
+  /**
+   * Checks for the one-character gap between the parts of a mention: a code unit with the
+   * Unicode {@code White_Space} property, so a no-break, thin, or ideographic space or a
+   * tab separates like an ASCII space. Out of bounds counts as whitespace, matching the
+   * {@link #charAt(CharSequence, int)} sentinel; the following part then fails to scan.
+   *
+   * @param text The text. Must not be {@code null}.
+   * @param index The offset to read.
+   * @return {@code true} if the char at {@code index} is whitespace or out of bounds.
+   */
+  public static boolean whitespaceAt(CharSequence text, int index) {
+    return StringUtil.isUnicodeWhitespace(charAt(text, index));
   }
 
   /**
