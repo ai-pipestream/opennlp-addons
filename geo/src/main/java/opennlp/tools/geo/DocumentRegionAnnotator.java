@@ -280,14 +280,30 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
 
   /**
    * Normalizes a country name for the lookup: NFKC composition, folding the right
-   * single quotation mark to the ASCII apostrophe, and lowercasing.
+   * single quotation mark to the ASCII apostrophe, folding each run of Unicode
+   * whitespace to one space with none at the ends, and lowercasing.
    *
    * @param name The name to normalize. Must not be {@code null}.
    * @return The normalized name. Never {@code null}.
    */
   private static String normalize(String name) {
-    return StringUtil.toLowerCase(Normalizer.normalize(name, Normalizer.Form.NFKC)
-        .replace(RIGHT_SINGLE_QUOTATION_MARK, '\''));
+    final String composed = Normalizer.normalize(name, Normalizer.Form.NFKC)
+        .replace(RIGHT_SINGLE_QUOTATION_MARK, '\'');
+    final StringBuilder folded = new StringBuilder(composed.length());
+    boolean gap = false;
+    for (int i = 0; i < composed.length(); i++) {
+      final char c = composed.charAt(i);
+      if (StringUtil.isUnicodeWhitespace(c)) {
+        gap = folded.length() > 0;
+      } else {
+        if (gap) {
+          folded.append(' ');
+          gap = false;
+        }
+        folded.append(c);
+      }
+    }
+    return StringUtil.toLowerCase(folded);
   }
 
   /**
