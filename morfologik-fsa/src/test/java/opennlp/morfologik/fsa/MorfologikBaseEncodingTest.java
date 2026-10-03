@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.formats;
+package opennlp.morfologik.fsa;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import opennlp.tools.formats.MorfologikDictionaryReader.BaseFormEncoding;
+import opennlp.morfologik.fsa.MorfologikDictionaryReader.BaseFormEncoding;
 import opennlp.tools.lemmatizer.DictionaryLemmatizer;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
