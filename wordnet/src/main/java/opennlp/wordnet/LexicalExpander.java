@@ -57,6 +57,8 @@ import opennlp.tools.wordnet.WordNetRelation;
  */
 public final class LexicalExpander {
 
+  private static final String TERM_BLANK = "term must not be null or blank";
+
   /**
    * How an expansion relates to the input term.
    *
@@ -97,7 +99,7 @@ public final class LexicalExpander {
      */
     public Expansion {
       if (term == null || StringUtil.isBlank(term)) {
-        throw new IllegalArgumentException("term must not be null or blank");
+        throw new IllegalArgumentException(TERM_BLANK);
       }
       if (kind == null) {
         throw new IllegalArgumentException("kind must not be null");
@@ -199,7 +201,7 @@ public final class LexicalExpander {
    */
   private List<Expansion> collect(String term, List<WordNetPOS> poses) {
     if (term == null || StringUtil.isBlank(term)) {
-      throw new IllegalArgumentException("term must not be null or blank");
+      throw new IllegalArgumentException(TERM_BLANK);
     }
     final Map<String, Expansion> best = new HashMap<>();
     final Set<String> excluded = new HashSet<>();
