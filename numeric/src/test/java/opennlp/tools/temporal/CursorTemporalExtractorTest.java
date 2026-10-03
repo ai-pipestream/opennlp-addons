@@ -302,4 +302,25 @@ public class CursorTemporalExtractorTest {
     assertThrows(IllegalArgumentException.class,
         () -> extractor.extract("text", null));
   }
+
+  /**
+   * Verifies that the single gap between the parts of a date or relative expression may
+   * be any Unicode whitespace, such as a no-break, narrow no-break, thin, or ideographic
+   * space or a tab, and yields the same mention as an ASCII space.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u202F", "\u2009", "\u3000", "\t"})
+  void testUnicodeWhitespaceGapMatchesLikeASpace(String gap) {
+    for (final String shape : List.of("July 14, 2026", "Jul 14 2026", "14 July 2026",
+        "July 2026", "Q3 2024", "next month", "in 2 weeks", "3 days ago")) {
+      final List<TemporalExpression> expected = extractor.extract(shape, REFERENCE);
+      assertEquals(1, expected.size(), shape);
+      final String text = shape.replace(" ", gap);
+      final List<TemporalExpression> mentions = extractor.extract(text, REFERENCE);
+      assertEquals(1, mentions.size(), text);
+      assertEquals(expected.get(0).span(), mentions.get(0).span(), text);
+      assertEquals(expected.get(0).value(), mentions.get(0).value(), text);
+      assertEquals(expected.get(0).granularity(), mentions.get(0).granularity(), text);
+    }
+  }
 }
