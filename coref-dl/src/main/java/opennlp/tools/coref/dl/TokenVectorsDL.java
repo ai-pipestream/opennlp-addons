@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.dl.vectors;
+package opennlp.tools.coref.dl;
 
 import java.io.File;
 import java.io.IOException;

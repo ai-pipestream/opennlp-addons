@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.formats.conllu;
+package opennlp.tools.coref.formats;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +39,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import opennlp.dl.vectors.TokenVectorsDL;
 import opennlp.tools.chunker.ChunkerAnnotator;
 import opennlp.tools.chunker.ChunkerME;
 import opennlp.tools.chunker.ChunkerModel;
@@ -52,11 +51,13 @@ import opennlp.tools.coref.CorefScores.Score;
 import opennlp.tools.coref.CorefTrainer;
 import opennlp.tools.coref.TokenVectors;
 import opennlp.tools.coref.WordVectors;
+import opennlp.tools.coref.dl.TokenVectorsDL;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.Layers;
 import opennlp.tools.formats.CorefEvalSupport;
+import opennlp.tools.formats.conllu.ConlluTagset;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.parser.ParserAnnotator;
 import opennlp.tools.parser.ParserFactory;
