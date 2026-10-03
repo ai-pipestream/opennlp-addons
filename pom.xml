@@ -375,6 +375,11 @@
                         <configuration>
                             <excludes>
                                 <exclude>release.properties</exclude>
+                                <!-- Corpus checksum tables and invented interchange data. -->
+                                <exclude>dev/legal-corpus/bouvier-snapshots.tsv</exclude>
+                                <exclude>dev/legal-corpus/reporter-snapshots.tsv</exclude>
+                                <exclude>dev/legal-corpus/fixtures/mini-dictionary.tsv</exclude>
+                                <exclude>dev/legal-corpus/fixtures/mini-passages.jsonl</exclude>
                                 <!-- Original multilingual input data used by the embedding benchmark. -->
                                 <exclude>dev/embeddings/parity/sentences.txt</exclude>
                                 <exclude>.gitattributes</exclude>
