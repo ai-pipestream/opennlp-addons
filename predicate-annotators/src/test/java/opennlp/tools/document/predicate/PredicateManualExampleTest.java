@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.document;
+package opennlp.tools.document.predicate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +27,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import opennlp.tools.document.Annotation;
+import opennlp.tools.document.Document;
+import opennlp.tools.document.DocumentAnnotator;
+import opennlp.tools.document.LayerKey;
 import opennlp.tools.util.Span;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

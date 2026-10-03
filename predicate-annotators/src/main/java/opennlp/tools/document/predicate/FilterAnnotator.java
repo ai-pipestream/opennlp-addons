@@ -15,13 +15,19 @@
  * limitations under the License.
  */
 
-package opennlp.tools.document;
+package opennlp.tools.document.predicate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+
+import opennlp.tools.document.Annotation;
+import opennlp.tools.document.Document;
+import opennlp.tools.document.DocumentAnnotator;
+import opennlp.tools.document.DocumentAnnotators;
+import opennlp.tools.document.LayerKey;
 
 /**
  * Writes the annotations of one layer that pass a predicate to a second layer. A
