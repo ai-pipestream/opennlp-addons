@@ -200,7 +200,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
 The following applies to the bundled gazetteer data in
 geo/src/main/resources/opennlp/geo
 (naturalearth-populated-places.txt). This table is a derivation of the
