@@ -197,6 +197,9 @@ final class SentencePieceNormalizer implements Serializable {
       final int spTo = chunk.to;
       final byte[] spData = chunk.data;
 
+      // Only U+0020 counts as whitespace here, as in the reference SentencePiece normalizer. The
+      // model's rules (nmt_nfkc and its variants) already map other whitespace to U+0020; an
+      // identity model keeps it as ordinary text, and so does SentencePiece.
       // Removes leading spaces in the chunk if the preceding chunk ended with whitespace.
       while (isPrevSpace && spFrom < spTo && spData[spFrom] == ' ') {
         spFrom++;
