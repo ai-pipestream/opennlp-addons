@@ -51,7 +51,10 @@ final class MorfologikInputConversion {
   }
 
   /**
-   * Parses comma-separated pairs containing a single space between strings.
+   * Parses comma-separated pairs containing a single space between strings. The separators are
+   * ASCII on purpose: they follow Morfologik's own metadata parser ({@code ",\\s*"}, then
+   * {@code trim()} and a single space), so a dictionary decodes exactly as it does there, and a
+   * substitution may itself map a non-ASCII space such as U+00A0.
    *
    * @param value The property value after Java properties escaping.
    * @return The ordered substitutions.
