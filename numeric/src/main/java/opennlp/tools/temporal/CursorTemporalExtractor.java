@@ -72,9 +72,10 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>Not recognized: named weekdays such as {@code next Tuesday}, times of day (the
  * time part of a timestamp is not reported), years without a month, day-and-month
- * without a year, and numeric dates with slashes. Phrases use one ASCII space between
- * components. The extractor uses no regular expressions or mutable per-call fields
- * and can be shared between threads.</p>
+ * without a year, and numeric dates with slashes. Phrases use one Unicode whitespace
+ * character, such as a space, no-break space, or tab, between components. The
+ * extractor uses no regular expressions or mutable per-call fields and can be shared
+ * between threads.</p>
  *
  * @see DateTimeFormatter#ISO_LOCAL_DATE
  * @see DateTimeFormatter#ISO_WEEK_DATE
@@ -245,7 +246,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
       case "last":
       case "this":
       case "next": {
-        if (NumberScan.charAt(text, keyword.end()) != ' ') {
+        if (!NumberScan.whitespaceAt(text, keyword.end())) {
           return null;
         }
         final Word unit = word(text, keyword.end() + 1);
@@ -260,11 +261,11 @@ public class CursorTemporalExtractor implements TemporalExtractor {
         return shifted(start, unit.end(), unit.lower(), steps, reference);
       }
       case "in": {
-        if (NumberScan.charAt(text, keyword.end()) != ' ') {
+        if (!NumberScan.whitespaceAt(text, keyword.end())) {
           return null;
         }
         final NumberInText count = shortNumber(text, keyword.end() + 1);
-        if (count == null || NumberScan.charAt(text, count.end()) != ' ') {
+        if (count == null || !NumberScan.whitespaceAt(text, count.end())) {
           return null;
         }
         final Word unit = word(text, count.end() + 1);
@@ -289,11 +290,11 @@ public class CursorTemporalExtractor implements TemporalExtractor {
    */
   private TemporalExpression countAgo(CharSequence text, int start, LocalDate reference) {
     final NumberInText count = shortNumber(text, start);
-    if (count == null || NumberScan.charAt(text, count.end()) != ' ') {
+    if (count == null || !NumberScan.whitespaceAt(text, count.end())) {
       return null;
     }
     final Word unit = word(text, count.end() + 1);
-    if (unit == null || NumberScan.charAt(text, unit.end()) != ' ') {
+    if (unit == null || !NumberScan.whitespaceAt(text, unit.end())) {
       return null;
     }
     final Word ago = word(text, unit.end() + 1);
@@ -489,12 +490,12 @@ public class CursorTemporalExtractor implements TemporalExtractor {
       return null;
     }
     int i = skipOrdinal(text, day.end());
-    if (NumberScan.charAt(text, i) != ' ') {
+    if (!NumberScan.whitespaceAt(text, i)) {
       return null;
     }
     final Word month = word(text, i + 1);
     if (month == null || !MONTHS.containsKey(month.lower())
-        || NumberScan.charAt(text, month.end()) != ' ') {
+        || !NumberScan.whitespaceAt(text, month.end())) {
       return null;
     }
     final NumberInText year = yearAt(text, month.end() + 1);
@@ -514,7 +515,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
   private TemporalExpression monthFirst(CharSequence text, int start) {
     final Word month = word(text, start);
     if (month == null || !MONTHS.containsKey(month.lower())
-        || NumberScan.charAt(text, month.end()) != ' ') {
+        || !NumberScan.whitespaceAt(text, month.end())) {
       return null;
     }
     final int monthOfYear = MONTHS.get(month.lower());
@@ -532,7 +533,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
     if (NumberScan.charAt(text, i) == ',') {
       i++;
     }
-    if (NumberScan.charAt(text, i) != ' ') {
+    if (!NumberScan.whitespaceAt(text, i)) {
       return null;
     }
     final NumberInText dayYear = yearAt(text, i + 1);
@@ -551,7 +552,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
    */
   private TemporalExpression quarter(CharSequence text, int start) {
     final int number = NumberScan.charAt(text, start + 1) - '0';
-    if (number < 1 || number > 4 || NumberScan.charAt(text, start + 2) != ' ') {
+    if (number < 1 || number > 4 || !NumberScan.whitespaceAt(text, start + 2)) {
       return null;
     }
     final NumberInText year = yearAt(text, start + 3);
