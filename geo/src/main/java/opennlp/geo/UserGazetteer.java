@@ -95,6 +95,12 @@ public final class UserGazetteer implements Gazetteer {
   /** The number of edges in the bounding-box field. */
   private static final int BOX_EDGES = 4;
 
+  /** The failure for a missing table path. */
+  private static final String TABLE_REQUIRED = "table must not be null";
+
+  /** The failure for a missing input stream. */
+  private static final String IN_REQUIRED = "in must not be null";
+
   private final String source;
   private final GazetteerIndex index;
 
@@ -117,7 +123,7 @@ public final class UserGazetteer implements Gazetteer {
    */
   public static UserGazetteer load(Path table, String source) throws IOException {
     if (table == null) {
-      throw new IllegalArgumentException("table must not be null");
+      throw new IllegalArgumentException(TABLE_REQUIRED);
     }
     validateSource(source);
     try (InputStream in = Files.newInputStream(table)) {
@@ -140,7 +146,7 @@ public final class UserGazetteer implements Gazetteer {
    */
   public static UserGazetteer load(InputStream in, String source) throws IOException {
     if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
+      throw new IllegalArgumentException(IN_REQUIRED);
     }
     validateSource(source);
     final Set<String> seenIds = new HashSet<>();
@@ -169,7 +175,7 @@ public final class UserGazetteer implements Gazetteer {
    */
   public static List<Suppression> loadSuppressions(Path table) throws IOException {
     if (table == null) {
-      throw new IllegalArgumentException("table must not be null");
+      throw new IllegalArgumentException(TABLE_REQUIRED);
     }
     try (InputStream in = Files.newInputStream(table)) {
       return loadSuppressions(in);
@@ -189,7 +195,7 @@ public final class UserGazetteer implements Gazetteer {
    */
   public static List<Suppression> loadSuppressions(InputStream in) throws IOException {
     if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
+      throw new IllegalArgumentException(IN_REQUIRED);
     }
     final List<Suppression> rules = new ArrayList<>();
     final BufferedReader reader = GazetteerIndex.utf8Reader(in);
