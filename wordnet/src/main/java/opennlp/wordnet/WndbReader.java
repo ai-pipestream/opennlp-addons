@@ -547,7 +547,11 @@ public final class WndbReader {
     return "Malformed WNDB file " + fileName + " at line " + lineNumber + ": " + message;
   }
 
-  /** A cursor over one line's space-separated fields. */
+  /**
+   * A cursor over one line's space-separated fields. The ASCII space is deliberate: wndb(5WN)
+   * defines U+0020 as the field separator and gloss padding, and lemmas encode their own spaces
+   * as underscores, so other whitespace can only appear inside a gloss, which is kept verbatim.
+   */
   private static final class Tokenizer {
 
     private final String line;
