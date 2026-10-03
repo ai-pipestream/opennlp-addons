@@ -21,18 +21,25 @@
 			An application that uses the built-in OpenNLP components and loads its models from
 			files or streams can be compiled into a
 			<link xlink:href="https://www.graalvm.org/latest/reference-manual/native-image/">GraalVM native image</link>.
-			Core registers its tool factories, serializers, feature generators, trainers and model
-			loaders through <code>ExtensionRegistrar</code> services, so loading a model needs no
-			reflection. This add-on supplies the rest: reachability metadata for the bundled
-			resources that core reads by a name computed at run time, such as the stopword list of
-			a language. Add <code>org.apache.opennlp.addons:native-image</code> as a dependency and
-			the image builder picks the metadata up from the jar.
+			Add <code>org.apache.opennlp.addons:native-image</code> as a dependency; the image
+			builder picks up the reachability metadata in its jar. No other configuration is
+			needed.
 		</para>
 		<para>
-			This covers <code>opennlp-api</code>, <code>opennlp-runtime</code>, the
-			<code>opennlp-ml-*</code> modules, <code>opennlp-model-resolver</code> and
-			<code>opennlp-formats</code>. <code>ReachabilityMetadataTest</code> fails when the
-			runtime jar bundles a resource that no glob covers.
+			Core creates tool factories, artifact serializers, feature generator factories,
+			sequence codecs, string interners, trainers, model readers and writers by the class
+			name a model manifest, a feature descriptor or the training parameters give, and the
+			model resolver creates model classes by type. The metadata registers the constructors
+			these lookups use, the Snowball routines the Finnish and Indonesian stemmers find
+			through method handles, and the bundled resources core reads by a computed name, such
+			as the stopword list of a language. It covers <code>opennlp-api</code>,
+			<code>opennlp-runtime</code> and the <code>opennlp-ml-*</code> modules.
+		</para>
+		<para>
+			The metadata is generated from the core jars by
+			<code>ReachabilityMetadataGenerator</code>, and <code>ReachabilityMetadataTest</code>
+			fails when the shipped file no longer matches the core version the add-on builds
+			against, or when the runtime jar bundles a resource no glob covers.
 		</para>
 	</section>
 	<section xml:id="addons.native-image.usage">
@@ -61,13 +68,14 @@
 		<itemizedlist>
 			<listitem>
 				<para>
-					Class path scanning for models is not available in an image. The simple finder
-					logs a warning and returns an empty result. Load models from files or streams.
+					Class path scanning for models (<code>SimpleClassPathModelFinder</code>,
+					<code>ClassgraphModelFinder</code>) is not supported in an image. Load models
+					from files or streams.
 				</para>
 			</listitem>
 			<listitem>
 				<para>
-					Java serialization of models is not supported in an image; use the model's own
+					Java serialization of models is not supported in an image. Use the model's own
 					<code>serialize(OutputStream)</code> and <code>InputStream</code> constructor.
 				</para>
 			</listitem>
@@ -79,9 +87,9 @@
 			</listitem>
 			<listitem>
 				<para>
-					A custom extension named in a model must be registered through an
-					<code>ExtensionRegistrar</code>, because the image has no reflection metadata
-					for it. See the extension chapter of the OpenNLP manual.
+					A custom factory, serializer, feature generator or trainer that a model names
+					needs its no-argument constructor in the application's own reflection
+					metadata, the same way this add-on registers the built-in ones.
 				</para>
 			</listitem>
 		</itemizedlist>

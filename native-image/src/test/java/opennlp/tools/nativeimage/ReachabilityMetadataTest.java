@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.stopword.StopwordLists;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,8 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ReachabilityMetadataTest {
 
-  private static final String METADATA =
-      "META-INF/native-image/org.apache.opennlp.addons/native-image/reachability-metadata.json";
+  private static final String METADATA = ReachabilityMetadataGenerator.METADATA;
 
   private static final String GLOB_KEY = "\"glob\"";
 
@@ -103,6 +103,18 @@ public class ReachabilityMetadataTest {
     final Path path = Path.of(resource);
     assertTrue(globs.stream().anyMatch(g -> g.matches(path)),
         resource + " is not covered by a resource glob in " + METADATA);
+  }
+
+  @Test
+  void testShippedMetadataMatchesTheCoreJars() throws IOException, URISyntaxException {
+    final String shipped;
+    try (InputStream in = ReachabilityMetadataTest.class.getClassLoader()
+        .getResourceAsStream(METADATA)) {
+      assertNotNull(in, "expected " + METADATA + " on the class path");
+      shipped = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    assertEquals(ReachabilityMetadataGenerator.generate(), shipped,
+        "the metadata is out of date; run ReachabilityMetadataGenerator.main");
   }
 
   @Test
