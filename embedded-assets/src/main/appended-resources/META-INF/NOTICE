@@ -1,9 +1,3 @@
-Apache OpenNLP
-Copyright 2021-2025 The Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
 The file signature table in opennlp.tools.assets.KnownMagics is adapted from
 Apache Tika's tika-mimetypes.xml.
 Apache Tika: Copyright 2021 The Apache Software Foundation.
@@ -16,8 +10,3 @@ The catalog also includes definitions adapted from the PRONOM Technical
 Registry by The National Archives (https://www.nationalarchives.gov.uk/PRONOM/).
 Contains public sector information licensed under the Open Government Licence v3.0.
 https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
-
-============================================================================
-List of third-party dependencies grouped by their license type.
-
-  The project has no dependencies.
