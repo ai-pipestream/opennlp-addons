@@ -47,6 +47,8 @@ import opennlp.tools.util.InvalidFormatException;
  */
 public record TermCount(String term, long count, boolean fromDictionary) {
 
+  private static final String FILE_NULL = "file must not be null";
+
   private static final String SOURCE_DICTIONARY = "dictionary";
   private static final String SOURCE_CORPUS = "corpus";
 
@@ -87,7 +89,7 @@ public record TermCount(String term, long count, boolean fromDictionary) {
       throw new IllegalArgumentException("terms must not be null");
     }
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     for (TermCount term : terms) {
       if (term == null) {
@@ -119,7 +121,7 @@ public record TermCount(String term, long count, boolean fromDictionary) {
   public static List<TermCount> readTsv(Path file)
       throws IOException, InvalidFormatException {
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     final List<TermCount> terms = new ArrayList<>();
     try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {

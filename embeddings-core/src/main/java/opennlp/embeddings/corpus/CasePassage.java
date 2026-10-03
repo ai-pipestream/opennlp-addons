@@ -52,6 +52,8 @@ import opennlp.tools.util.InvalidFormatException;
 public record CasePassage(String id, String caseName, String cite, String date,
                           String volume, String text) {
 
+  private static final String FILE_NULL = "file must not be null";
+
   /**
    * Validates the passage.
    *
@@ -88,7 +90,7 @@ public record CasePassage(String id, String caseName, String cite, String date,
       throw new IllegalArgumentException("passages must not be null");
     }
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     for (CasePassage passage : passages) {
       if (passage == null) {
@@ -130,7 +132,7 @@ public record CasePassage(String id, String caseName, String cite, String date,
   public static List<CasePassage> readJsonl(Path file)
       throws IOException, InvalidFormatException {
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     final List<CasePassage> passages = new ArrayList<>();
     try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
