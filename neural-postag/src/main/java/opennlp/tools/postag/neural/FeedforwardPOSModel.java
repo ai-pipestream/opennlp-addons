@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag;
+package opennlp.tools.postag.neural;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

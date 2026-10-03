@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.postag;
+package opennlp.tools.postag.neural;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,6 +27,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import opennlp.tools.postag.POSSample;
 import opennlp.tools.util.ObjectStreamUtils;
 import opennlp.tools.util.Sequence;
 
