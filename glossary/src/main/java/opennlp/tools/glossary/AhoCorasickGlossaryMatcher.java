@@ -280,6 +280,8 @@ public final class AhoCorasickGlossaryMatcher implements GlossaryMatcher {
           start = normalizedStart;
           end = normalizedEnd;
         }
+        // The ASCII checks are only a fast path for the common case; any other whitespace or
+        // script falls through to the UAX #29 segmenter, which handles Unicode whitespace.
         final boolean spaceDelimited = isAsciiSpaceDelimited(text, start, end);
         final boolean obviousInterior = !spaceDelimited
             && (isObviousWordInterior(text, start) || isObviousWordInterior(text, end));
