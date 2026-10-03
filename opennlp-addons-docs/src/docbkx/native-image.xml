@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
+"http://docbook.org/xml/5.0/dtd/docbook.dtd"[
+]>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
+	license agreements. See the NOTICE file distributed with this work for additional
+	information regarding copyright ownership. The ASF licenses this file to
+	you under the Apache License, Version 2.0 (the "License"); you may not use
+	this file except in compliance with the License. You may obtain a copy of
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
+	by applicable law or agreed to in writing, software distributed under the
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+	OF ANY KIND, either express or implied. See the License for the specific
+	language governing permissions and limitations under the License. -->
+
+<chapter xml:id="addons.native-image" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title>GraalVM native image</title>
+	<section xml:id="addons.native-image.overview">
+		<title>Overview</title>
+		<para>
+			An application that uses the built-in OpenNLP components and loads its models from
+			files or streams can be compiled into a
+			<link xlink:href="https://www.graalvm.org/latest/reference-manual/native-image/">GraalVM native image</link>.
+			Core registers its tool factories, serializers, feature generators, trainers and model
+			loaders through <code>ExtensionRegistrar</code> services, so loading a model needs no
+			reflection. This add-on supplies the rest: reachability metadata for the bundled
+			resources that core reads by a name computed at run time, such as the stopword list of
+			a language. Add <code>org.apache.opennlp.addons:native-image</code> as a dependency and
+			the image builder picks the metadata up from the jar.
+		</para>
+		<para>
+			This covers <code>opennlp-api</code>, <code>opennlp-runtime</code>, the
+			<code>opennlp-ml-*</code> modules, <code>opennlp-model-resolver</code> and
+			<code>opennlp-formats</code>. <code>ReachabilityMetadataTest</code> fails when the
+			runtime jar bundles a resource that no glob covers.
+		</para>
+	</section>
+	<section xml:id="addons.native-image.usage">
+		<title>Building an image</title>
+		<para>
+			Build the image with the
+			<link xlink:href="https://graalvm.github.io/native-build-tools/latest/maven-plugin.html">GraalVM Maven plugin</link>
+			or with <code>native-image</code> directly, on a GraalVM JDK 25 or later. Load models
+			from files or streams:
+		</para>
+		<programlisting language="java"><![CDATA[try (InputStream in = Files.newInputStream(Path.of("opennlp-en-ud-ewt-tokens-1.3-2.5.4.bin"))) {
+  TokenizerModel model = new TokenizerModel(in);
+  Tokenizer tokenizer = new TokenizerME(model);
+  ...
+}]]>
+		</programlisting>
+		<para>
+			<code>NativeSmoke</code> in this add-on is a minimal native application. It loads the
+			sentence detector, tokenizer, POS tagger and person name finder models from a
+			directory and checks each result. The <code>native</code> profile builds and runs it:
+		</para>
+		<screen><![CDATA[mvn -Pnative -pl native-image -am verify -Dopennlp.native.models=/path/to/models]]></screen>
+	</section>
+	<section xml:id="addons.native-image.limitations">
+		<title>Limitations</title>
+		<itemizedlist>
+			<listitem>
+				<para>
+					Class path scanning for models is not available in an image. The simple finder
+					logs a warning and returns an empty result. Load models from files or streams.
+				</para>
+			</listitem>
+			<listitem>
+				<para>
+					Java serialization of models is not supported in an image; use the model's own
+					<code>serialize(OutputStream)</code> and <code>InputStream</code> constructor.
+				</para>
+			</listitem>
+			<listitem>
+				<para>
+					<code>opennlp-dl</code>, the ONNX Runtime and <code>opennlp-cli</code> are out of
+					scope.
+				</para>
+			</listitem>
+			<listitem>
+				<para>
+					A custom extension named in a model must be registered through an
+					<code>ExtensionRegistrar</code>, because the image has no reflection metadata
+					for it. See the extension chapter of the OpenNLP manual.
+				</para>
+			</listitem>
+		</itemizedlist>
+	</section>
+</chapter>
