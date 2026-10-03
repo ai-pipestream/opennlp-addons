@@ -28,6 +28,8 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
 import opennlp.tools.geo.DocumentRegionAnnotator;
 import opennlp.tools.geo.GeoResolution;
+import opennlp.tools.geo.GeoTestUtil;
+import opennlp.tools.geo.GeocodeAnnotator;
 import opennlp.tools.geo.Geocoder;
 import opennlp.tools.geo.RegionVote;
 import opennlp.tools.util.Span;
@@ -68,9 +70,9 @@ public class RegionCurrencyResolutionExampleTest {
             text.subSequence(mention.getStart(), mention.getEnd()).toString();
         switch (name) {
           case "Guadalajara" -> resolutions.add(
-              new GeoResolution(mention, RegionBallots.entry(name, "MX"), GUADALAJARA_CONFIDENCE));
+              new GeoResolution(mention, GeoTestUtil.entry(name, "MX"), GUADALAJARA_CONFIDENCE));
           case "Boston" -> resolutions.add(
-              new GeoResolution(mention, RegionBallots.entry(name, "US"), BOSTON_CONFIDENCE));
+              new GeoResolution(mention, GeoTestUtil.entry(name, "US"), BOSTON_CONFIDENCE));
           default -> throw new IllegalStateException("unexpected mention: " + name);
         }
       }
@@ -94,9 +96,10 @@ public class RegionCurrencyResolutionExampleTest {
   }
 
   /**
-   * Runs the example: the entity layer feeds the region ballot, and the ballot winner
-   * picks the symbol table for the money layer. Asserts the exact ranked shares, that
-   * every ballot row is span-less under the document-scoped key, and that the {@code $} amount is
+   * Runs the example: the entity layer is geocoded into a locations layer that feeds
+   * the region ballot, and the ballot winner picks the symbol table for the money
+   * layer. Asserts the exact ranked shares, that every ballot row is span-less under
+   * the document-scoped key, and that the {@code $} amount is
    * identified as {@code MXN} because Mexico wins the ballot.
    */
   @Test
@@ -105,7 +108,8 @@ public class RegionCurrencyResolutionExampleTest {
         List.of(locationEntity("Guadalajara"), locationEntity("Boston")));
 
     final Document document = new RegionAwareMoneyAnnotator().annotate(
-        new DocumentRegionAnnotator(exampleGeocoder()).annotate(withEntities));
+        new DocumentRegionAnnotator().annotate(
+            new GeocodeAnnotator(exampleGeocoder()).annotate(withEntities)));
 
     final List<Annotation<RegionVote>> ballot =
         document.get(DocumentRegionAnnotator.REGIONS);
@@ -133,9 +137,10 @@ public class RegionCurrencyResolutionExampleTest {
    */
   @Test
   void testReadingTheRankedBallotRows() {
-    final Document document = new DocumentRegionAnnotator(exampleGeocoder())
-        .annotate(Document.of(TEXT).with(Layers.ENTITIES,
-            List.of(locationEntity("Guadalajara"), locationEntity("Boston"))));
+    final Document document = new DocumentRegionAnnotator().annotate(
+        new GeocodeAnnotator(exampleGeocoder()).annotate(
+            Document.of(TEXT).with(Layers.ENTITIES,
+                List.of(locationEntity("Guadalajara"), locationEntity("Boston")))));
 
     final List<Annotation<RegionVote>> ballot =
         document.get(DocumentRegionAnnotator.REGIONS);
