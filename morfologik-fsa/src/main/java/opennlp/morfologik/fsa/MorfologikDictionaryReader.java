@@ -190,6 +190,7 @@ public final class MorfologikDictionaryReader {
     }
     final Charset charset = Charset.forName(required(properties, KEY_ENCODING));
     final BaseFormEncoding encoding =
+        // The encoder is an ASCII enum name from the .info properties format, as in Morfologik.
         BaseFormEncoding.valueOf(StringUtil.toUpperCase(required(properties, KEY_ENCODER).trim()));
     final byte separatorByte = separatorByte(separator, charset);
     final String inputConversion = properties.getProperty(MorfologikInputConversion.PROPERTY);
