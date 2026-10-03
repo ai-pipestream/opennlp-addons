@@ -43,7 +43,11 @@ final class JsonCursor {
     this.inputName = inputName;
   }
 
-  /** Advances the cursor past any run of whitespace. */
+  /**
+   * Advances the cursor past any run of whitespace. JSON (RFC 8259) defines insignificant
+   * whitespace as exactly space, tab, line feed and carriage return, so this scan is ASCII on
+   * purpose; other Unicode whitespace outside a string is malformed JSON.
+   */
   void skipWhitespace() {
     while (position < text.length()) {
       final char c = text.charAt(position);
