@@ -132,6 +132,10 @@
 						<configuration>
 							<imageName>${opennlp.native.image}</imageName>
 							<mainClass>opennlp.tools.nativeimage.NativeSmoke</mainClass>
+							<!-- The OpenNLP jars and this add-on carry all the metadata the image needs. -->
+							<metadataRepository>
+								<enabled>false</enabled>
+							</metadataRepository>
 						</configuration>
 					</plugin>
 					<plugin>
