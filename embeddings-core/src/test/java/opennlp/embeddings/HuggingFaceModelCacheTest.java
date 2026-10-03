@@ -266,6 +266,15 @@ class HuggingFaceModelCacheTest {
         Files.readString(cache.resolve(HuggingFaceModelCache.REVISION_FILE)).trim());
   }
 
+  /** A recorded revision surrounded by any Unicode whitespace still names its commit. */
+  @Test
+  void testARecordedRevisionIsReadAcrossUnicodeWhitespace(@TempDir Path cache) throws IOException {
+    Files.writeString(cache.resolve(HuggingFaceModelCache.REVISION_FILE),
+        "\u2003" + COMMIT + "\u3000\n", StandardCharsets.UTF_8);
+
+    assertEquals(COMMIT, HuggingFaceModelCache.pinnedRevision(cache));
+  }
+
   /**
    * The ref is resolved once and every file is then asked for by commit sha, so that a ref moving
    * mid-download cannot mix two revisions into one cache directory.
