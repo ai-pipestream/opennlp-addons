@@ -240,6 +240,16 @@ public class ConlluCorefDocumentStreamTest {
     }
   }
 
+  @Test
+  void testTrimsUnicodeWhitespaceAroundSpeakerLabels() throws IOException {
+    try (ConlluCorefDocumentStream stream = stream(
+        "# speaker = \u00A0Ann\u3000\n1\tAcme\t_\tPROPN\tNNP\t_\t0\troot\t_\t_\n",
+        ConlluTagset.X)) {
+      Assertions.assertEquals(List.of(new Annotation<>(new Span(0, 4), "Ann")),
+          stream.read().get(CorefAnnotator.SPEAKERS));
+    }
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {
       "word", "0", "01", "1.0", "01.1", "1.01", "1.1.1",
