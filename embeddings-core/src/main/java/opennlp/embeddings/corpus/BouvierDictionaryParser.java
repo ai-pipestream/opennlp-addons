@@ -113,7 +113,7 @@ public final class BouvierDictionaryParser {
         if (close < 0) {
           break;
         }
-        final String tag = StringUtil.toLowerCase(html.substring(i + 1, close).trim());
+        final String tag = StringUtil.toLowerCase(html.substring(i + 1, close).strip());
         final String name = tagName(tag);
         switch (name) {
           case "p" -> {
