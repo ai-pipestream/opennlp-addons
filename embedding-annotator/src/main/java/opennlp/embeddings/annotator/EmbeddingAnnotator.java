@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +27,7 @@ import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
+import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.util.Span;
 
 /**

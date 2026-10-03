@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.List;
 
@@ -26,6 +26,7 @@ import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;
 import opennlp.tools.document.Layers;
+import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import opennlp.tools.tokenize.TokenizerAnnotator;
 import opennlp.tools.util.Span;

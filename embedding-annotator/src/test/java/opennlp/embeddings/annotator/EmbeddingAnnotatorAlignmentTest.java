@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import opennlp.embeddings.annotator.EmbeddingAnnotatorTestSupport.RecordingEmbedder;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
-import opennlp.tools.embeddings.EmbeddingAnnotatorTestSupport.RecordingEmbedder;
 import opennlp.tools.util.Span;
 
 /** Tests original-text offsets, annotation order, and per-document batching. */

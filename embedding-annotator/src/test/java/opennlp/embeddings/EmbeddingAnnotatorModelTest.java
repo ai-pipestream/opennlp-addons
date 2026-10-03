@@ -28,11 +28,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import opennlp.embeddings.StaticEmbeddingModel.Normalization;
+import opennlp.embeddings.annotator.EmbeddingAnnotator;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;
 import opennlp.tools.document.Layers;
-import opennlp.tools.embeddings.EmbeddingAnnotator;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import opennlp.tools.tokenize.TokenizerAnnotator;
 import opennlp.tools.util.Span;
