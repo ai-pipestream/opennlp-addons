@@ -358,7 +358,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
   private MoneyAmount symbolFirst(CharSequence text, int start, int symbolIndex,
       String currency, boolean negative) {
     int i = symbolIndex + Character.charCount(NumberScan.codePointAt(text, symbolIndex));
-    if (NumberScan.charAt(text, i) == ' ') {
+    if (NumberScan.whitespaceAt(text, i)) {
       i++;
     }
     return mention(text, start, NumberScan.parse(text, i, true, notation), currency, negative);
@@ -374,7 +374,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
    */
   private MoneyAmount isoFirst(CharSequence text, int start, int codeIndex) {
     final String code = isoCodeAt(text, codeIndex);
-    if (code == null || NumberScan.charAt(text, codeIndex + 3) != ' ') {
+    if (code == null || !NumberScan.whitespaceAt(text, codeIndex + 3)) {
       return null;
     }
     return mention(text, start, NumberScan.parse(text, codeIndex + 4, true, notation),
@@ -404,7 +404,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
           number.end() + Character.charCount(cp));
       return mention(text, start, extended, currency, negative);
     }
-    if (cp == ' ') {
+    if (cp != NumberScan.NO_CODE_POINT && NumberScan.whitespaceAt(text, number.end())) {
       final String code = isoCodeAt(text, number.end() + 1);
       if (code != null) {
         return mention(text, start,
