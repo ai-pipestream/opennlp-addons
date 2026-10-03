@@ -106,8 +106,12 @@ class LabeledPiiExtractorTest {
       }
     }
     for (final String valueWithInvalidSeparators : List.of("046 454-286", "046-454 286",
-        "046  454 286", "046--454-286", "046\t454\t286", "046\u00a0454\u00a0286")) {
+        "046  454 286", "046--454-286", "046\t454\t286")) {
       cases.add(Arguments.of(valueWithInvalidSeparators, false));
+    }
+    for (final String valueWithUnicodeSpaces : List.of("046\u00a0454\u00a0286",
+        "046\u202f454\u202f286", "046\u00a0454 286")) {
+      cases.add(Arguments.of(valueWithUnicodeSpaces, true));
     }
     return cases.stream();
   }
@@ -123,6 +127,8 @@ class LabeledPiiExtractorTest {
     cases.add(value);
     cases.add("49-015420-3237518");
     cases.add("49015 42032 37518");
+    cases.add("49\u00a0015420\u00a03237518");
+    cases.add("49\u202f015420\u202f3237518");
     for (final String separator : List.of(" ", "-")) {
       for (int position = 1; position < value.length(); position++) {
         cases.add(value.substring(0, position) + separator + value.substring(position));
@@ -181,7 +187,7 @@ class LabeledPiiExtractorTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"49-015420 3237518", "49 015420-3237518", "49  015420 3237518",
-      "49--015420-3237518", "49\t015420\t3237518", "49\u00a0015420\u00a03237518"})
+      "49--015420-3237518", "49\t015420\t3237518"})
   void testInvalidImeiGrouping(String number) {
     assertNumericForm(Family.IMEI, number, false);
   }

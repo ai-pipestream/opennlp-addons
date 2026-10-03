@@ -132,7 +132,7 @@ class NationalIdentityPiiExtractorTest {
   }
 
   /**
-   * Checks that only a single ASCII space or hyphen separates numeric groups.
+   * Checks that only a single Unicode space separator or hyphen separates numeric groups.
    *
    * @param family The identifier family.
    * @param codePoint The proposed delimiter.
@@ -142,7 +142,8 @@ class NationalIdentityPiiExtractorTest {
   void testSeparator(Family family, int codePoint) {
     final String delimiter = new String(Character.toChars(codePoint));
     final String number = grouped(family, delimiter);
-    assertForm(family, number, codePoint == ' ' || codePoint == '-', "😀 ", ".");
+    assertForm(family, number, codePoint == '-'
+        || Character.getType(codePoint) == Character.SPACE_SEPARATOR, "😀 ", ".");
   }
 
   /**

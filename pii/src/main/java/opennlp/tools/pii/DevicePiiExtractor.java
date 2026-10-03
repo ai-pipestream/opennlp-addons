@@ -20,6 +20,8 @@ package opennlp.tools.pii;
 import java.util.ArrayList;
 import java.util.List;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Extracts labeled International Mobile Equipment Identity (IMEI) candidates.
  *
@@ -29,7 +31,7 @@ import java.util.List;
  * 15 ASCII digits and pass the Luhn check specified by
  * <a href="https://imeidb.gsma.com/imei/resources/documents/TS.06-v22.0.pdf">
  * GSMA TS.06</a>. Single spaces or hyphens may separate digit groups, but may not be
- * mixed.</p>
+ * mixed. Any Unicode space separator, such as a no-break space, counts as a space.</p>
  *
  * <p>This detector is opt-in. Format and checksum validation do not establish that an
  * identifier was assigned to a device. Normalization removes numeric separators.</p>
@@ -103,7 +105,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
     int p = start;
     char separator = 0;
     while (p < text.length() && normalized.length() < DIGITS) {
-      final char c = text.charAt(p);
+      final char c = Boundaries.separatorKind(text.charAt(p));
       if (Ascii.isDigit(c)) {
         normalized.append(c);
         p++;
@@ -121,7 +123,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
     if (normalized.length() != DIGITS || !Boundaries.onEnd(text, p)) {
       return -1;
     }
-    if (p + 1 < text.length() && (text.charAt(p) == '-' || text.charAt(p) == ' ')
+    if (p + 1 < text.length() && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))
         && Ascii.isDigit(text.charAt(p + 1))) {
       return -1;
     }
@@ -135,6 +137,6 @@ public final class DevicePiiExtractor implements PiiExtractor {
    * @return {@code true} for accepted label separators.
    */
   private boolean isLabelSeparator(char c) {
-    return Character.isWhitespace(c) || c == ':' || c == '#' || c == '=';
+    return StringUtil.isUnicodeWhitespace(c) || c == ':' || c == '#' || c == '=';
   }
 }

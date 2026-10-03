@@ -92,4 +92,28 @@ final class Boundaries {
     }
     return p == end || onEnd(text, p);
   }
+
+  /**
+   * Tests for a space that may separate digit groups: any Unicode space separator
+   * ({@code Zs}), such as the ASCII space, a no-break space, a narrow no-break space,
+   * a figure space or an ideographic space. Tabs and line breaks are not group
+   * separators, so they still end a candidate.
+   *
+   * @param c The character.
+   * @return {@code true} if {@code c} is a Unicode space separator.
+   */
+  static boolean isGroupSpace(char c) {
+    return Character.getType(c) == Character.SPACE_SEPARATOR;
+  }
+
+  /**
+   * Maps a group separator to the form used to check consistent separators, so that
+   * every {@link #isGroupSpace(char) group space} counts as the same separator.
+   *
+   * @param c The separator.
+   * @return The ASCII space for a group space, otherwise {@code c}.
+   */
+  static char separatorKind(char c) {
+    return isGroupSpace(c) ? ' ' : c;
+  }
 }

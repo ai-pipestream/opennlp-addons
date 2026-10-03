@@ -41,8 +41,9 @@ import java.util.Set;
  *   occurrences are prohibited.</li>
  * </ul>
  *
- * <p>Groups require matching single ASCII spaces or hyphens. Other separators, including
- * control characters, are rejected. Numeric grouping is checked before the compact form.</p>
+ * <p>Groups require matching single spaces or hyphens. Any Unicode space separator, such
+ * as a no-break space, counts as a space. Other separators, including tabs, line breaks
+ * and control characters, are rejected. Numeric grouping is checked before the compact form.</p>
  *
  * <p>Normalization removes separators. A match checks format and number rules, not
  * assignment to a person. Unrelated numeric identifiers can match these rules.</p>
@@ -178,7 +179,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
         if (p >= text.length()) {
           return -1;
         }
-        final char c = text.charAt(p);
+        final char c = Boundaries.separatorKind(text.charAt(p));
         if ((c != ' ' && c != '-') || (g > 1 && c != separator)) {
           return -1;
         }
@@ -328,7 +329,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
     if (end + 1 >= text.length()) {
       return true;
     }
-    final char next = text.charAt(end);
+    final char next = Boundaries.separatorKind(text.charAt(end));
     return (next != '.' && next != ',' && next != '-' && next != ' ')
         || !Ascii.isDigit(text.charAt(end + 1));
   }

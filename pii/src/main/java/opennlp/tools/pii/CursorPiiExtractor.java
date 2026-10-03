@@ -47,7 +47,8 @@ import java.util.Set;
  *   mod-97 check. The country code must be in the ISO 13616 registry and the candidate
  *   must match the length assigned by that registry entry, so a checksum-passing run
  *   with an unregistered country or invalid length is rejected.</li>
- *   <li>Card: 13 to 19 digits, optionally separated by single spaces or hyphens,
+ *   <li>Card: 13 to 19 digits, optionally separated by single spaces or hyphens
+ *   (any Unicode space separator counts as a space),
  *   validated with the <a href="https://en.wikipedia.org/wiki/Luhn_algorithm">Luhn</a>
  *   check and required to start with a digit between 2 and 6 or with
  *   <a href="https://www.unionpayintl.com/en/mediaCenter/brandCenter/brandEmbodiment/">
@@ -281,7 +282,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
         if (Ascii.isUpper(c) || Ascii.isDigit(c)) {
           compact.append(c);
           p++;
-        } else if (c == ' ' && p + 1 < text.length()
+        } else if (Boundaries.isGroupSpace(c) && p + 1 < text.length()
             && (Ascii.isUpper(text.charAt(p + 1)) || Ascii.isDigit(text.charAt(p + 1)))) {
           groupEnds.add(new int[] {p, compact.length()});
           p++;
@@ -336,7 +337,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
           lastDigit = p;
           previousSeparator = false;
           p++;
-        } else if ((c == ' ' || c == '-') && !previousSeparator) {
+        } else if ((Boundaries.isGroupSpace(c) || c == '-') && !previousSeparator) {
           groupEnds.add(new int[] {lastDigit + 1, digits.length()});
           previousSeparator = true;
           p++;
@@ -404,7 +405,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
           candidateEnd = p + 1;
           previousSeparator = false;
           p++;
-        } else if ((ch == ' ' || ch == '-') && !previousSeparator) {
+        } else if ((Boundaries.isGroupSpace(ch) || ch == '-') && !previousSeparator) {
           groups.add(new int[] {candidateEnd, digits, separated ? 1 : 0, open, close});
           previousSeparator = true;
           p++;
