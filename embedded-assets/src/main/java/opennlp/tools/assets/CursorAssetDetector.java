@@ -27,6 +27,7 @@ import java.util.Base64;
 import java.util.List;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Detects base64 content in {@code data:} URIs, bare payload runs,
@@ -242,9 +243,11 @@ public final class CursorAssetDetector implements AssetDetector {
     final int length = text.length();
     while (i < length && !matches(text, i, BASE64_MARKER)) {
       final char c = text.charAt(i);
-      // A media type with optional parameters; anything else means this is not a
-      // base64 data URI and the scheme text is left to ordinary scanning.
-      if (c <= ' ' || c == '"' || c == '\'' || i - mediaTypeStart > 127) {
+      // A media type with optional parameters; anything else, including any Unicode
+      // whitespace, means this is not a base64 data URI and the scheme text is left to
+      // ordinary scanning.
+      if (c <= ' ' || StringUtil.isUnicodeWhitespace(c) || c == '"' || c == '\''
+          || i - mediaTypeStart > 127) {
         return start;
       }
       i++;
