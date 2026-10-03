@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.List;
 import java.util.Set;
@@ -28,6 +28,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
+import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.util.Span;
 
 /** Tests input validation and malformed embedding batches. */

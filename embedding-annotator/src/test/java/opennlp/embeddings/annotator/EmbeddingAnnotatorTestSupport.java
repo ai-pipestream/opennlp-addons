@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +23,7 @@ import java.util.List;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
+import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.util.Span;
 
 /** Shared documents and batch recording for embedding-annotator tests. */

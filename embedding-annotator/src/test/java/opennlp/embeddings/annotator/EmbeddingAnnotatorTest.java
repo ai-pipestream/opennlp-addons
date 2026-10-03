@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.embeddings;
+package opennlp.embeddings.annotator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +28,12 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import opennlp.embeddings.annotator.EmbeddingAnnotatorTestSupport.RecordingEmbedder;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
-import opennlp.tools.embeddings.EmbeddingAnnotatorTestSupport.RecordingEmbedder;
+import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.util.Span;
 
 public class EmbeddingAnnotatorTest {
