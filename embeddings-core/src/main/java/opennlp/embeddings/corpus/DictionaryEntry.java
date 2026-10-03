@@ -46,6 +46,8 @@ import opennlp.tools.util.InvalidFormatException;
  */
 public record DictionaryEntry(String headword, String definition) {
 
+  private static final String FILE_NULL = "file must not be null";
+
   /**
    * Validates the entry.
    *
@@ -72,7 +74,7 @@ public record DictionaryEntry(String headword, String definition) {
       throw new IllegalArgumentException("entries must not be null");
     }
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     for (DictionaryEntry entry : entries) {
       if (entry == null) {
@@ -101,7 +103,7 @@ public record DictionaryEntry(String headword, String definition) {
   public static List<DictionaryEntry> readTsv(Path file)
       throws IOException, InvalidFormatException {
     if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
+      throw new IllegalArgumentException(FILE_NULL);
     }
     final List<DictionaryEntry> entries = new ArrayList<>();
     try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {

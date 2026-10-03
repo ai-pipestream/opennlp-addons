@@ -55,6 +55,9 @@ import opennlp.tools.util.java.Experimental;
 @Experimental
 public final class SearchEvaluator {
 
+  private static final String BITS_OUT_OF_RANGE = "bits must be between "
+      + QuantizedEmbeddingMatrix.MIN_BITS + " and " + QuantizedEmbeddingMatrix.MAX_BITS + ": ";
+
   private static final String EXACT_INDEX_NAME = "exact";
   private static final String QUANTIZED_INDEX_NAME = "turboquant";
 
@@ -169,9 +172,7 @@ public final class SearchEvaluator {
       requireNonNegative(termCount, "termCount");
       if (bits < QuantizedEmbeddingMatrix.MIN_BITS
           || bits > QuantizedEmbeddingMatrix.MAX_BITS) {
-        throw new IllegalArgumentException("bits must be between "
-            + QuantizedEmbeddingMatrix.MIN_BITS + " and "
-            + QuantizedEmbeddingMatrix.MAX_BITS + ": " + bits);
+        throw new IllegalArgumentException(BITS_OUT_OF_RANGE + bits);
       }
       requirePositive(topK, "topK");
       requireNonNegative(embedMillis, "embedMillis");
@@ -350,9 +351,7 @@ public final class SearchEvaluator {
     }
     if (bits < QuantizedEmbeddingMatrix.MIN_BITS
         || bits > QuantizedEmbeddingMatrix.MAX_BITS) {
-      throw new IllegalArgumentException("bits must be between "
-          + QuantizedEmbeddingMatrix.MIN_BITS + " and "
-          + QuantizedEmbeddingMatrix.MAX_BITS + ": " + bits);
+      throw new IllegalArgumentException(BITS_OUT_OF_RANGE + bits);
     }
     if (topK < 1) {
       throw new IllegalArgumentException("topK must be at least 1: " + topK);
