@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
@@ -307,5 +308,25 @@ public class DocumentRegionAnnotatorTest {
   void testRegionVoteAcceptsTheShareBounds() {
     assertEquals(1.0, new RegionVote("AU", 1.0).share(), 0.0);
     assertEquals(Double.MIN_VALUE, new RegionVote("AU", Double.MIN_VALUE).share(), 0.0);
+  }
+
+  /**
+   * Verifies that a country-name mention whose words are separated by other Unicode
+   * whitespace than a space, as when a line break or tab falls inside the mention,
+   * still votes for its country.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\n", "\t", "\r\n", "\u2028", "  "})
+  void testCountryNameMentionToleratesAnyWhitespaceBetweenWords(String gap) {
+    final Geocoder geocoder = GeoTestUtil.tableGeocoder(Map.of());
+    final String mention = "New" + gap + "Zealand";
+    final String text = "exports from " + mention + " rose";
+    final Document document = new DocumentRegionAnnotator(geocoder)
+        .annotate(GeoTestUtil.withLocations(text, mention));
+
+    final List<Annotation<RegionVote>> ballot =
+        document.get(DocumentRegionAnnotator.REGIONS);
+    assertEquals(1, ballot.size());
+    assertEquals("NZ", ballot.get(0).value().countryCode());
   }
 }
