@@ -14,11 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package opennlp.tools.util.normalizer;
+package opennlp.tools.dehyphenation;
 
 import java.io.Serial;
 
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.normalizer.AlignedText;
+import opennlp.tools.util.normalizer.Alignment;
+import opennlp.tools.util.normalizer.CodePointSet;
+import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
+import opennlp.tools.util.normalizer.UnicodeWhitespace;
 
 /**
  * Joins words split by a hyphen and a line break, such as
@@ -37,7 +42,7 @@ import opennlp.tools.util.StringUtil;
  * <p>No dictionary is used: {@code "well-\nknown"} becomes {@code "wellknown"}.
  * Text without a matching break is returned without copying. Aligned normalization
  * maps joined-word spans back to the original text, including the deleted break.
- * Use {@link opennlp.tools.termvector.RetokenizingTermVectorAnnotator} to build
+ * Use {@link opennlp.tools.dehyphenation.RetokenizingTermVectorAnnotator} to build
  * term vectors from the joined words.</p>
  *
  * @since 3.0.0

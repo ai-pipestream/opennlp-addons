@@ -35,7 +35,7 @@
 			<code>"well-\nknown"</code>, becomes <code>"wellknown"</code>.
 		</para>
 		<para>
-			<code>opennlp.tools.termvector.RetokenizingTermVectorAnnotator</code>
+			<code>opennlp.tools.dehyphenation.RetokenizingTermVectorAnnotator</code>
 			tokenizes normalized text and groups terms in tokenizer output order.
 			Unlike <code>TermVectorAnnotator</code>, it does not use an existing token
 			layer, so a joined word can become a single term. Existing layers and

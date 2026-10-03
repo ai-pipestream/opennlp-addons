@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.termvector;
+package opennlp.tools.dehyphenation;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +27,8 @@ import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
+import opennlp.tools.termvector.TermVector;
+import opennlp.tools.termvector.TermVectorAnnotator;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.AlignedText;
