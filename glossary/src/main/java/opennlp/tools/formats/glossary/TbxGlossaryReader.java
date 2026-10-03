@@ -182,7 +182,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
             xml.getAttributeValue(XMLConstants.XML_NS_URI, "lang"))) {
           skipElement(xml);
         } else if (child == Scope.TERM) {
-          final String term = collectText(xml).trim();
+          final String term = StringUtil.trimUnicodeWhitespace(collectText(xml));
           if (StringUtil.isBlank(term)) {
             throw new InvalidFormatException("blank term in entry \"" + entryId + "\"");
           }
