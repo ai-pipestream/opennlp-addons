@@ -91,6 +91,7 @@ public final class MorfologikDictionaryReader {
   /** Removal count for replacement of the complete surface form. */
   private static final int REPLACE_FORM = 255;
 
+  private static final String DICTIONARY_NULL = "dictionary must not be null";
   private static final String KEY_SEPARATOR = "fsa.dict.separator";
   private static final String KEY_ENCODING = "fsa.dict.encoding";
   private static final String KEY_ENCODER = "fsa.dict.encoder";
@@ -118,7 +119,7 @@ public final class MorfologikDictionaryReader {
   public static DictionaryLemmatizer read(InputStream dictionary, byte separator,
       BaseFormEncoding encoding, Charset charset) throws IOException {
     if (dictionary == null) {
-      throw new IllegalArgumentException("dictionary must not be null");
+      throw new IllegalArgumentException(DICTIONARY_NULL);
     }
     if (encoding == null) {
       throw new IllegalArgumentException("encoding must not be null");
@@ -176,7 +177,7 @@ public final class MorfologikDictionaryReader {
   public static DictionaryLemmatizer read(InputStream dictionary, InputStream info)
       throws IOException {
     if (dictionary == null) {
-      throw new IllegalArgumentException("dictionary must not be null");
+      throw new IllegalArgumentException(DICTIONARY_NULL);
     }
     if (info == null) {
       throw new IllegalArgumentException("info must not be null");
