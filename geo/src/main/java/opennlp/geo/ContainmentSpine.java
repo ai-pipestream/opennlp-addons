@@ -67,6 +67,12 @@ public final class ContainmentSpine implements PlaceHierarchy {
    */
   private static final int NO_PENDING = -2;
 
+  /** The prefix of the failure naming a malformed containment table line. */
+  private static final String MALFORMED_LINE = "malformed containment line ";
+
+  /** The prefix of the failure naming an invalid Who's On First parent identifier. */
+  private static final String INVALID_PARENT = "parent_id must be a signed decimal integer: ";
+
   /** One indexed place: its parent identifier ({@code null} for a root), name, and type. */
   private record Node(String parentId, String name, String type) {
   }
@@ -187,7 +193,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
         }
         final List<String> fields = splitOn(line, '\t');
         if (fields.size() != 4) {
-          throw new InvalidFormatException("malformed containment line " + lineNumber
+          throw new InvalidFormatException(MALFORMED_LINE + lineNumber
               + " in " + table);
         }
         final String parent = StringUtil.trimUnicodeWhitespace(fields.get(1));
@@ -196,7 +202,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
               StringUtil.trimUnicodeWhitespace(fields.get(2)),
               StringUtil.trimUnicodeWhitespace(fields.get(3)));
         } catch (IllegalArgumentException e) {
-          throw new InvalidFormatException("malformed containment line " + lineNumber
+          throw new InvalidFormatException(MALFORMED_LINE + lineNumber
               + " in " + table + ": " + e.getMessage(), e);
         }
       }
@@ -269,14 +275,13 @@ public final class ContainmentSpine implements PlaceHierarchy {
         digit++;
       }
       if (digit == parent.length()) {
-        throw new IllegalArgumentException("parent_id must be a signed decimal integer: " + parent);
+        throw new IllegalArgumentException(INVALID_PARENT + parent);
       }
       boolean nonZero = false;
       for (; digit < parent.length(); digit++) {
         final char c = parent.charAt(digit);
         if (c < '0' || c > '9') {
-          throw new IllegalArgumentException(
-              "parent_id must be a signed decimal integer: " + parent);
+          throw new IllegalArgumentException(INVALID_PARENT + parent);
         }
         nonZero |= c != '0';
       }
