@@ -102,8 +102,8 @@
     </mailingLists>
 
     <issueManagement>
-        <system>jira</system>
-        <url>https://issues.apache.org/jira/browse/OPENNLP</url>
+        <system>GitHub Issues</system>
+        <url>https://github.com/apache/opennlp-addons/issues</url>
     </issueManagement>
 
     <modules>
