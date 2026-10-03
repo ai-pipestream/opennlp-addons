@@ -250,6 +250,8 @@ public class EcbFxRates implements FxRates {
     int start = 0;
     for (int i = 0; i <= line.length(); i++) {
       if (i == line.length() || line.charAt(i) == FIELD_SEPARATOR) {
+        // The ECB file is machine-written ASCII CSV that pads fields with ASCII spaces, so
+        // String.trim() covers its padding; the cells are codes, dates, and numbers, not prose.
         fields.add(line.substring(start, i).trim());
         start = i + 1;
       } else {
