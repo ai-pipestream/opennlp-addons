@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package opennlp.tools.depparse;
+package opennlp.tools.relation;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,17 +29,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import opennlp.tools.depparse.DependencyArc;
+import opennlp.tools.depparse.FeedforwardDependencyModel;
+import opennlp.tools.depparse.FeedforwardDependencyParser;
+import opennlp.tools.depparse.FeedforwardDependencyTrainer;
 import opennlp.tools.depparse.annotation.DependencyAnnotator;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
-import opennlp.tools.relation.RelationAnnotator;
-import opennlp.tools.relation.RelationMention;
-import opennlp.tools.relation.RelationPattern;
 import opennlp.tools.util.ObjectStreamUtils;
 import opennlp.tools.util.Span;
 
-import static opennlp.tools.depparse.DependencyTestSamples.corpus;
+import static opennlp.tools.relation.DependencyTestSamples.corpus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
