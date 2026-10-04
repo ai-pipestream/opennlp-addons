@@ -27,6 +27,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -80,6 +82,22 @@ public class BouvierDictionaryParserTest {
     assertEquals(1, entries.size());
     // The C1 range maps through Windows-1252, so &#150; is an en dash.
     assertEquals("a \u2013 b \u2014 c \u2013 d, with padding to pass the filter.",
+        entries.get(0).definition());
+  }
+
+  /**
+   * Tag names, headwords and definitions are split, trimmed and collapsed on Unicode
+   * White_Space: a no-break space, an ideographic space and a line separator behave like a space.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testWhitespaceHandlingIsUnicode(String space) {
+    final List<DictionaryEntry> entries = BouvierDictionaryParser.parse(
+        "<p" + space + "class=\"entry\"><b>" + space + "HEAD" + space + "</b>, a" + space + space
+            + "definition long enough to pass the length filter here.</p>");
+    assertEquals(1, entries.size());
+    assertEquals("HEAD", entries.get(0).headword());
+    assertEquals("a definition long enough to pass the length filter here.",
         entries.get(0).definition());
   }
 

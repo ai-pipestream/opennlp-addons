@@ -27,6 +27,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.InvalidFormatException;
 
@@ -109,6 +111,25 @@ public class CapVolumeReaderTest {
     assertEquals(2, passages.size());
     assertTrue(passages.get(0).length() < CapVolumeReader.HARD_MAX_CHARS);
     assertTrue(passages.get(0).endsWith("word"));
+  }
+
+  /**
+   * Paragraph trimming, blank-paragraph skipping and the soft cut all follow the Unicode
+   * White_Space property: a no-break space, an ideographic space and a line separator count.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testParagraphsAreTrimmedAndCutAtUnicodeWhitespace(String space) {
+    assertTrue(CapVolumeReader.passagesOf(space + "\n" + space + space).isEmpty());
+    assertEquals(List.of("word"), CapVolumeReader.passagesOf(space + "word" + space));
+
+    final String paragraph = ("word" + space).repeat(600);
+    final List<String> passages = CapVolumeReader.passagesOf(paragraph);
+    assertEquals(2, passages.size());
+    assertTrue(passages.get(0).length() < CapVolumeReader.HARD_MAX_CHARS);
+    assertTrue(passages.get(0).endsWith("word"));
+    assertTrue(passages.get(1).startsWith("word"));
+    assertTrue(passages.get(1).endsWith("word"));
   }
 
   @Test

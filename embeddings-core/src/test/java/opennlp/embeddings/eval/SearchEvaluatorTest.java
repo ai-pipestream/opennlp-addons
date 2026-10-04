@@ -24,6 +24,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.embeddings.StaticEmbeddingModel;
 import opennlp.embeddings.corpus.CasePassage;
@@ -292,6 +294,18 @@ class SearchEvaluatorTest {
   void testFirstHalfCutsAtUnicodeWhitespace() {
     assertEquals("one two", SearchEvaluator.firstHalf("one two three four"));
     assertEquals("one\u2003two", SearchEvaluator.firstHalf("one\u2003two\u2003three\u2003four"));
+  }
+
+  /** The half cut and the metric names follow Unicode White_Space, not only ASCII space. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testFirstHalfAndMetricNamesUseUnicodeWhitespace(String space) {
+    assertEquals("one" + space + "two",
+        SearchEvaluator.firstHalf("one" + space + "two" + space + "three" + space + "four"));
+    assertThrows(IllegalArgumentException.class,
+        () -> new SearchEvaluator.IndexMetrics(space, 1, 8.0, 0, 1.0));
+    assertThrows(IllegalArgumentException.class,
+        () -> new SearchEvaluator.RetrievalMetrics(space, 1, 1.0, 1.0, 1.0));
   }
 
   @Test

@@ -27,6 +27,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.InvalidFormatException;
 
@@ -208,6 +210,36 @@ public class InterchangeFilesTest {
     assertThrows(InvalidFormatException.class, () -> DictionaryEntry.readTsv(file));
     assertThrows(InvalidFormatException.class, () -> CasePassage.readJsonl(file));
     assertThrows(InvalidFormatException.class, () -> TermCount.readTsv(file));
+  }
+
+  /**
+   * A value made of Unicode whitespace only (no-break space, ideographic space, line separator)
+   * is blank for the records, and a line made of it only is skipped by the readers, exactly as
+   * an ASCII space is.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testUnicodeBlankValuesAreBlank(String blank, @TempDir Path dir) throws IOException {
+    assertThrows(IllegalArgumentException.class, () -> new DictionaryEntry(blank, "x def"));
+    assertThrows(IllegalArgumentException.class, () -> new DictionaryEntry("X", blank));
+    assertThrows(IllegalArgumentException.class, () -> new TermCount(blank, 1, true));
+    assertThrows(IllegalArgumentException.class,
+        () -> new CasePassage(blank, "c", "", "", "1", "text"));
+    assertThrows(IllegalArgumentException.class,
+        () -> new CasePassage("1", "c", "", "", "1", blank));
+
+    final Path dictionary = dir.resolve("dictionary.tsv");
+    Files.writeString(dictionary, "X\tx def\n" + blank + "\n");
+    assertEquals(1, DictionaryEntry.readTsv(dictionary).size());
+    final Path vocabulary = dir.resolve("vocabulary.tsv");
+    Files.writeString(vocabulary, "x\t3\tcorpus\n" + blank + "\n");
+    assertEquals(1, TermCount.readTsv(vocabulary).size());
+    final Path passages = dir.resolve("passages.jsonl");
+    Files.writeString(passages,
+        "{\"id\": \"1\", \"case\": \"Alder v. Birch\", \"cite\": \"1 Fict. 1\", "
+            + "\"date\": \"1904-01-01\", \"vol\": \"1\", \"text\": \"Opinion text.\"}\n"
+            + blank + "\n");
+    assertEquals(1, CasePassage.readJsonl(passages).size());
   }
 
   @Test
