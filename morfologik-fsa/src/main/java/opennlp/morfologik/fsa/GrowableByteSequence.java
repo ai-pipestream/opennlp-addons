@@ -33,13 +33,6 @@ final class GrowableByteSequence {
   private int length;
 
   /**
-   * @return The number of bytes currently on the stack.
-   */
-  int length() {
-    return length;
-  }
-
-  /**
    * Appends {@code value}, doubling the backing array if it is full.
    *
    * @param value The byte to append.

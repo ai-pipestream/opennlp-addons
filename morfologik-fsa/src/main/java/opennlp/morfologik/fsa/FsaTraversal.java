@@ -43,7 +43,7 @@ final class FsaTraversal {
    * @param destination Access to an arc's target, or zero for a terminal arc.
    * @param label Access to an arc's unsigned label byte.
    * @param accepting Tests whether an arc accepts a sequence.
-   * @throws IllegalArgumentException If a cycle exists or encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if a cycle exists or encoded data is invalid.
    */
   FsaTraversal(int root, int dataLength, IntUnaryOperator firstArc,
       IntUnaryOperator nextArc, IntUnaryOperator destination,
@@ -61,7 +61,7 @@ final class FsaTraversal {
    * Checks byte ranges and cycles once per reachable node.
    *
    * @param dataLength The encoded data length.
-   * @throws IllegalArgumentException If the automaton is malformed.
+   * @throws IllegalArgumentException Thrown if the automaton is malformed.
    */
   private void validate(int dataLength) {
     if (root == 0) {
@@ -101,7 +101,7 @@ final class FsaTraversal {
    * @param node The node offset.
    * @param dataLength The encoded data length.
    * @param active Nodes on the current path.
-   * @throws IllegalArgumentException If the node is outside the data.
+   * @throws IllegalArgumentException Thrown if the node is outside the data.
    */
   private void pushNode(Stack stack, int node, int dataLength, BitSet active) {
     requireRange(node, 1, dataLength);
@@ -116,7 +116,7 @@ final class FsaTraversal {
    * @param offset The starting offset.
    * @param length The required byte count.
    * @param limit The data length.
-   * @throws IllegalArgumentException If the range is outside the data.
+   * @throws IllegalArgumentException Thrown if the range is outside the data.
    */
   static void requireRange(int offset, int length, int limit) {
     if (offset < 0 || length < 0 || offset > limit - length) {

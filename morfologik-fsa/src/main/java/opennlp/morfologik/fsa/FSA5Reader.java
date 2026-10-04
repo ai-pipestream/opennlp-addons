@@ -57,7 +57,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    * @param arcs           The arc block, the automaton bytes after the header.
    * @param gotoLength     The width in bytes of an arc's flags and goto address field.
    * @param nodeDataLength The width in bytes of the optional data preceding a node's arcs.
-   * @throws IllegalArgumentException If the encoded automaton is malformed.
+   * @throws IllegalArgumentException Thrown if the encoded automaton is malformed.
    */
   private FSA5Reader(byte[] arcs, int gotoLength, int nodeDataLength) {
     this.arcs = arcs;
@@ -78,7 +78,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    *           {@code null}.
    * @return A reader over the automaton.
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
-   * @throws IOException If reading fails or the encoded automaton is malformed.
+   * @throws IOException Thrown if reading fails or the encoded automaton is malformed.
    */
   public static FSA5Reader read(InputStream in) throws IOException {
     if (in == null) {
@@ -92,7 +92,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    *
    * @param bytes The whole automaton, magic header included.
    * @return A reader over the automaton.
-   * @throws IllegalArgumentException If {@code bytes} is null.
+   * @throws IllegalArgumentException Thrown if {@code bytes} is null.
    * @throws IOException Thrown if {@code bytes} is not an FSA5 automaton, its header is
    *                     truncated, or reachable nodes or arcs are malformed.
    */
@@ -160,7 +160,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    *
    * @param node The offset of a node.
    * @return The offset of that node's first arc, skipping the per-node data the header declares.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int firstArc(int node) {
     FsaTraversal.requireRange(node, nodeDataLength + 1, arcs.length);
@@ -173,7 +173,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    * @param arc The offset of an arc.
    * @return The offset of the following arc of the same node, or {@value #NO_ARC} if {@code arc}
    *         is the last one.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int nextArc(int arc) {
     final int end = skipArc(arc);
@@ -187,7 +187,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    * @return The offset of the node the arc points at, which is either the node laid out directly
    *         after the arc or the goto address stored in the arc, whose low three bits carry the
    *         arc flags; {@value #TERMINAL_NODE} if the arc ends a word without continuing.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int destinationNode(int arc) {
     final int end = skipArc(arc);
@@ -209,7 +209,7 @@ public final class FSA5Reader implements FsaSequenceReader {
    *
    * @param arc The offset of an arc.
    * @return The offset just past that arc, that is, the start of whatever follows it.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int skipArc(int arc) {
     FsaTraversal.requireRange(arc, ADDRESS_OFFSET + 1, arcs.length);

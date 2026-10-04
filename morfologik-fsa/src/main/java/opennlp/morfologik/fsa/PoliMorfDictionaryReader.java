@@ -63,7 +63,7 @@ public final class PoliMorfDictionaryReader {
    *                   {@code null}.
    * @return A {@link DictionaryLemmatizer} over the adapted entries.
    * @throws IllegalArgumentException Thrown if {@code dictionary} is {@code null}.
-   * @throws IOException On IO errors, missing tab-separated fields or invalid character data.
+   * @throws IOException Thrown on IO errors, missing tab-separated fields or invalid character data.
    */
   public static DictionaryLemmatizer read(InputStream dictionary) throws IOException {
     return read(dictionary, StandardCharsets.UTF_8);
@@ -80,7 +80,7 @@ public final class PoliMorfDictionaryReader {
    * @return A {@link DictionaryLemmatizer} over the adapted entries.
    * @throws IllegalArgumentException Thrown if {@code dictionary} or {@code charset} is
    *                                  {@code null}.
-   * @throws IOException On IO errors, missing tab-separated fields or invalid character data.
+   * @throws IOException Thrown on IO errors, missing tab-separated fields or invalid character data.
    */
   public static DictionaryLemmatizer read(InputStream dictionary, Charset charset)
       throws IOException {

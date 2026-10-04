@@ -58,7 +58,7 @@ final class MorfologikInputConversion {
    *
    * @param value The property value after Java properties escaping.
    * @return The ordered substitutions.
-   * @throws IllegalArgumentException If a substitution is malformed or repeats an input string.
+   * @throws IllegalArgumentException Thrown if a substitution is malformed or repeats an input string.
    */
   static MorfologikInputConversion parse(String value) {
     final List<String> pairs = new ArrayList<>();
@@ -127,7 +127,7 @@ final class MorfologikInputConversion {
    * Creates an empty lemmatizer that applies these substitutions to query tokens.
    *
    * @return The lemmatizer.
-   * @throws IOException If initialization fails.
+   * @throws IOException Thrown if initialization fails.
    */
   DictionaryLemmatizer newLemmatizer() throws IOException {
     return new ConvertedLemmatizer();
@@ -183,7 +183,7 @@ final class MorfologikInputConversion {
     /**
      * Initializes an empty dictionary.
      *
-     * @throws IOException If initialization fails.
+     * @throws IOException Thrown if initialization fails.
      */
     private ConvertedLemmatizer() throws IOException {
       super(InputStream.nullInputStream());
