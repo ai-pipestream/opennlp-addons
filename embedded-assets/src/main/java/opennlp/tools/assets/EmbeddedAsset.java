@@ -144,10 +144,10 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
     if (payload.getStart() < span.getStart() || payload.getEnd() > span.getEnd()) {
       throw new IllegalArgumentException("payload must lie inside the span");
     }
-    if (format == null || StringUtil.isBlank(format)) {
+    if (StringUtil.isUnicodeBlank(format)) {
       throw new IllegalArgumentException("format must not be null or blank");
     }
-    if (mediaType == null || StringUtil.isBlank(mediaType)) {
+    if (StringUtil.isUnicodeBlank(mediaType)) {
       throw new IllegalArgumentException("mediaType must not be null or blank");
     }
     if (decodedLength < 0) {
