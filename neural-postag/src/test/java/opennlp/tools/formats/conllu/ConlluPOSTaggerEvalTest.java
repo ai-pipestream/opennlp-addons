@@ -47,6 +47,7 @@ import opennlp.tools.postag.neural.FeedforwardPOSModel;
 import opennlp.tools.postag.neural.FeedforwardPOSTagger;
 import opennlp.tools.postag.neural.FeedforwardPOSTrainer;
 import opennlp.tools.util.ObjectStream;
+import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.wordvector.Glove;
 import opennlp.tools.util.wordvector.WordVector;
 import opennlp.tools.util.wordvector.WordVectorTable;
@@ -431,7 +432,7 @@ public class ConlluPOSTaggerEvalTest {
           emit(tokens, tags);
           continue;
         }
-        final String[] fields = line.split("\t");
+        final String[] fields = StringUtil.split(line, '\t');
         if (fields.length < 4 || fields[0].contains("-") || fields[0].contains(".")) {
           continue;
         }
@@ -501,7 +502,7 @@ public class ConlluPOSTaggerEvalTest {
           emit(tokens, tags, xpos, feats);
           continue;
         }
-        final String[] fields = line.split("\t");
+        final String[] fields = StringUtil.split(line, '\t');
         if (fields.length < 6 || fields[0].contains("-") || fields[0].contains(".")) {
           continue;
         }
