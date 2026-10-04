@@ -105,8 +105,8 @@ public final class OvertureGazetteer implements Gazetteer {
    * Loads a derived division table from a stream.
    *
    * @param in The tab-separated content. Must not be {@code null}. The stream is read
-   *           fully but not closed. Lines starting with {@code #} carry the derivation
-   *           record and are skipped.
+   *           fully but not closed, and a leading byte order mark is ignored. Lines
+   *           starting with {@code #} carry the derivation record and are skipped.
    * @return A loaded {@link OvertureGazetteer}. Never {@code null}.
    * @throws IOException Thrown if reading fails.
    * @throws InvalidFormatException Thrown if the content has no rows or a row is not in

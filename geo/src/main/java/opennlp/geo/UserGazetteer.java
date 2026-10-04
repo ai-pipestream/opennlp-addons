@@ -70,7 +70,8 @@ import opennlp.tools.util.StringUtil;
  * location becomes the box's {@link GeoBoundingBox#center() center}. Free-text metadata such as
  * a postal address belongs in an attribute column; it is stored as provided and is not parsed or
  * matched. Lines whose first character is {@code #} and blank lines are skipped. The file is
- * read as UTF-8. Names containing a tab or {@code |} are not representable in this format.</p>
+ * read as UTF-8, ignoring a leading byte order mark. Names containing a tab or {@code |} are not
+ * representable in this format.</p>
  *
  * <p>Lookup matches the canonical and alternate names case-insensitively and without further
  * folding; candidates are ranked like the other loaders of this module, by population descending
@@ -135,7 +136,7 @@ public final class UserGazetteer implements Gazetteer {
    * Loads a user gazetteer from a stream.
    *
    * @param in     The tab-separated content. Must not be {@code null}. The stream is read fully
-   *               but not closed.
+   *               but not closed, and a leading byte order mark is ignored.
    * @param source The dataset identifier the loaded records are scoped to, for example
    *               {@code customer}. Must not be {@code null} or blank.
    * @return A loaded {@link UserGazetteer}. Never {@code null}.
@@ -165,7 +166,8 @@ public final class UserGazetteer implements Gazetteer {
    * Loads {@link Suppression} rules from a file: one rule per line with up to three
    * tab-separated columns, name, country code, and feature class, where trailing columns may be
    * omitted and an empty column means the filter is absent. Comment and blank lines are skipped
-   * like in the entry format, and the file is read as UTF-8. An empty file holds no rules.
+   * like in the entry format, and the file is read as UTF-8, ignoring a leading byte order mark.
+   * An empty file holds no rules.
    *
    * @param table The tab-separated rules. Must not be {@code null}.
    * @return The rules in file order. Never {@code null}; possibly empty.
@@ -203,6 +205,9 @@ public final class UserGazetteer implements Gazetteer {
     int lineNumber = 0;
     while ((line = reader.readLine()) != null) {
       lineNumber++;
+      if (lineNumber == 1) {
+        line = StringUtil.stripByteOrderMark(line);
+      }
       if (StringUtil.isUnicodeBlank(line) || line.charAt(0) == '#') {
         continue;
       }

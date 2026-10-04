@@ -99,7 +99,7 @@ public final class GeoNamesGazetteer implements Gazetteer {
    * Loads a GeoNames main-format table from a stream.
    *
    * @param in The tab-separated content. Must not be {@code null}. The stream is read
-   *           fully but not closed.
+   *           fully but not closed, and a leading byte order mark is ignored.
    * @return A loaded {@link GeoNamesGazetteer}. Never {@code null}.
    * @throws IOException Thrown if reading fails.
    * @throws InvalidFormatException Thrown if the content is empty or a row is not in
