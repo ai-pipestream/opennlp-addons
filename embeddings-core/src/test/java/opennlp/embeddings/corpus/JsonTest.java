@@ -40,6 +40,18 @@ class JsonTest {
     assertThrows(InvalidFormatException.class, () -> Json.parse(text, "test input"));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"\"\\u+041\"", "\"\\u-041\"", "\"\\u\uFF10\uFF10\uFF14\uFF11\"",
+      "\"\\u 041\"", "\"\\u004\""})
+  void testRejectsUnicodeEscapesWithoutFourAsciiHexDigits(String text) {
+    assertThrows(InvalidFormatException.class, () -> Json.parse(text, "test input"));
+  }
+
+  @Test
+  void testAcceptsUnicodeEscapes() throws InvalidFormatException {
+    assertEquals("A\u00e9\uD83D\uDE00", Json.parse("\"\\u0041\\u00E9\\ud83d\\uDE00\"", "test input"));
+  }
+
   @Test
   void testRejectsDuplicateObjectMembers() {
     assertThrows(InvalidFormatException.class,
