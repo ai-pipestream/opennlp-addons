@@ -74,4 +74,6 @@
   <xi:include href="dependency-annotations.xml" />
   <xi:include href="relation.xml" />
   <xi:include href="artifacts.xml" />
+  <xi:include href="assets.xml" />
+  <xi:include href="noise.xml" />
 </book>

@@ -130,6 +130,8 @@
         <module>dependency-annotations</module>
         <module>relation-extraction</module>
         <module>text-artifacts</module>
+        <module>embedded-assets</module>
+        <module>noise</module>
     </modules>
 
     <properties>
