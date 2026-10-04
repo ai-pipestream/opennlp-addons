@@ -301,6 +301,32 @@ public class ContainmentSpineTest {
         spine.ancestors("999"));
   }
 
+  /**
+   * Verifies that a byte order mark at the start of either table format is not read as
+   * part of the first line, where it would hide a comment marker or the header's first
+   * column name.
+   */
+  @Test
+  void testLeadingByteOrderMarkIsIgnored(@TempDir Path dir) throws IOException {
+    final Path table = dir.resolve("containment.tsv");
+    Files.write(table, String.join("\n",
+        "\uFEFF# containment of New York",
+        "Q60\tQ1384\tNew York City\tcity",
+        "Q1384\t\tNew York\tstate",
+        "").getBytes(StandardCharsets.UTF_8));
+    Assertions.assertEquals(List.of(new PlaceAncestor("Q1384", "New York", "state")),
+        ContainmentSpine.builder().addTable(table).build().ancestors("Q60"));
+
+    final Path meta = dir.resolve("wof-locality-latest.csv");
+    Files.write(meta, String.join("\n",
+        "\uFEFFid,parent_id,name,placetype",
+        "85977539,85688543,Brooklyn,borough",
+        "85688543,-1,New York,locality",
+        "").getBytes(StandardCharsets.UTF_8));
+    Assertions.assertEquals(List.of(new PlaceAncestor("85688543", "New York", "locality")),
+        ContainmentSpine.builder().addWofMeta(meta).build().ancestors("85977539"));
+  }
+
   /** Verifies the RFC 4180 doubled-quote escape. */
   @Test
   void testDoubledQuoteReadsAsOneLiteralQuote(@TempDir Path dir) throws IOException {
