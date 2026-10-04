@@ -37,6 +37,15 @@ public final class EvalRuns {
   /** The data locator of this JVM. */
   public static final EvalData DATA = EvalData.fromEnvironment();
 
+  /** The threshold of a metric that is recorded in the report but not gated. */
+  public static final double RECORDED = 0.0;
+
+  /** The prefix of every skip message, so a surefire report shows the reason at a glance. */
+  public static final String SKIPPED = "skipped: ";
+
+  /** The report directory when the pom does not set {@link #OUT_PROPERTY}. */
+  private static final String DEFAULT_OUT = "target/eval-reports";
+
   private EvalRuns() {
   }
 
@@ -48,7 +57,7 @@ public final class EvalRuns {
    */
   public static Path assumeDirectory(Path directory) {
     assumeTrue(Files.isDirectory(directory),
-        "skipped: eval data directory not found: " + directory + " (set -D"
+        SKIPPED + "eval data directory not found: " + directory + " (set -D"
             + EvalData.DIRECTORY_PROPERTY + " or " + EvalData.DIRECTORY_VARIABLE + ")");
     return directory;
   }
@@ -60,7 +69,7 @@ public final class EvalRuns {
    * @return The file, for chaining.
    */
   public static Path assumeFile(Path file) {
-    assumeTrue(Files.isRegularFile(file), "skipped: eval file not found: " + file);
+    assumeTrue(Files.isRegularFile(file), SKIPPED + "eval file not found: " + file);
     return file;
   }
 
@@ -72,7 +81,7 @@ public final class EvalRuns {
   public static void assumeModels(String... fileNames) {
     for (final String fileName : fileNames) {
       final Path model = DATA.model(fileName);
-      assumeTrue(Files.isRegularFile(model), "skipped: model not found: " + model
+      assumeTrue(Files.isRegularFile(model), SKIPPED + "model not found: " + model
           + " (download it into " + DATA.models() + ")");
     }
   }
@@ -86,7 +95,7 @@ public final class EvalRuns {
    * @throws IOException Thrown if the report cannot be written.
    */
   public static void finish(String evaluation, List<EvalReport> reports) throws IOException {
-    final Path out = Path.of(System.getProperty(OUT_PROPERTY, "target/eval-reports"))
+    final Path out = Path.of(System.getProperty(OUT_PROPERTY, DEFAULT_OUT))
         .resolve(evaluation + ".tsv");
     EvalReport.write(out, reports);
     final List<String> failed = new ArrayList<>();

@@ -64,10 +64,16 @@ final class CorefEvalModels {
 
     private final List<NameFinderME> finders;
 
+    /**
+     * Initializes the composite.
+     *
+     * @param finders The finders to run, in precedence order.
+     */
     CompositeNameFinder(List<NameFinderME> finders) {
       this.finders = finders;
     }
 
+    /** {@inheritDoc} Spans of a later finder that overlap an earlier one's are dropped. */
     @Override
     public Span[] find(String[] tokens) {
       final List<Span> found = new ArrayList<>();
@@ -82,6 +88,7 @@ final class CorefEvalModels {
       return found.toArray(new Span[0]);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void clearAdaptiveData() {
       for (final NameFinderME finder : finders) {

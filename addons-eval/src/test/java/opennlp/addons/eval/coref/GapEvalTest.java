@@ -77,8 +77,8 @@ class GapEvalTest {
   /** The F1 floor; the chapter's ranker figure is 0.461 on this split. */
   static final double MIN_F1 = 0.30;
 
-  /** The number of tab-separated columns a GAP row has, including the URL. */
-  static final int COLUMNS = 11;
+  /** The columns a GAP row must have: ID through B-coref; the trailing URL may be absent. */
+  static final int REQUIRED_COLUMNS = 10;
 
   /** True positive, false positive and false negative counts of one group. */
   static final class Counts {
@@ -86,6 +86,12 @@ class GapEvalTest {
     int fp;
     int fn;
 
+    /**
+     * Counts one label.
+     *
+     * @param gold Whether the name is coreferent with the pronoun.
+     * @param predicted Whether the resolver linked them.
+     */
     void add(boolean gold, boolean predicted) {
       if (gold && predicted) {
         tp++;
@@ -96,6 +102,7 @@ class GapEvalTest {
       }
     }
 
+    /** {@return the F1 of the counts, {@code 0} when there is nothing to score} */
     double f1() {
       final double p = tp + fp == 0 ? 0 : (double) tp / (tp + fp);
       final double r = tp + fn == 0 ? 0 : (double) tp / (tp + fn);
@@ -128,7 +135,7 @@ class GapEvalTest {
     int snippets = 0;
     for (final String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
       final String[] fields = StringUtil.split(line, '\t');
-      if (fields.length < COLUMNS - 1 || "ID".equals(fields[0])) {
+      if (fields.length < REQUIRED_COLUMNS || "ID".equals(fields[0])) {
         continue;
       }
       final String text = fields[1];
@@ -158,9 +165,9 @@ class GapEvalTest {
     final String model = "rules + en-ud-ewt + en-pos-maxent + en-ner + en-chunker";
     EvalRuns.finish(DATASET, List.of(
         EvalReport.atLeast("f1", DATASET, model, all.f1(), MIN_F1),
-        EvalReport.atLeast("f1.masculine", DATASET, model, masculine.f1(), 0.0),
-        EvalReport.atLeast("f1.feminine", DATASET, model, feminine.f1(), 0.0),
-        EvalReport.atLeast("bias.feminine.over.masculine", DATASET, model, bias, 0.0),
+        EvalReport.atLeast("f1.masculine", DATASET, model, masculine.f1(), EvalRuns.RECORDED),
+        EvalReport.atLeast("f1.feminine", DATASET, model, feminine.f1(), EvalRuns.RECORDED),
+        EvalReport.atLeast("bias.feminine.over.masculine", DATASET, model, bias, EvalRuns.RECORDED),
         EvalReport.atLeast("snippets", DATASET, model, snippets, 1.0)));
   }
 

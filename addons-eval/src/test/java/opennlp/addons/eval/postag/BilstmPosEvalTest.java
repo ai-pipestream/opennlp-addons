@@ -84,7 +84,7 @@ class BilstmPosEvalTest {
         EvalReport.atLeast("upos.accuracy", DATASET, modelName,
             evaluator.getWordAccuracy(), MIN_ACCURACY),
         EvalReport.atLeast("test.words", DATASET, modelName, evaluator.getWordCount(), 1.0),
-        EvalReport.atLeast("train.seconds", DATASET, modelName, trainSeconds, 0.0)));
+        EvalReport.atLeast("train.seconds", DATASET, modelName, trainSeconds, EvalRuns.RECORDED)));
   }
 
   /**
