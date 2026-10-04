@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Provides exchange rates for a requested date and converts {@link MoneyAmount} values.
  *
@@ -65,7 +67,7 @@ public interface FxRates {
     if (money == null) {
       throw new IllegalArgumentException("money must not be null");
     }
-    if (to == null || to.isBlank()) {
+    if (StringUtil.isUnicodeBlank(to)) {
       throw new IllegalArgumentException("to must not be null or blank");
     }
     if (asOf == null) {

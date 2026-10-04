@@ -40,6 +40,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Loads euro foreign exchange reference rates from an uncompressed, UTF-8 ECB history
  * CSV file. OpenNLP does not download or bundle the data.
@@ -143,6 +145,8 @@ public class EcbFxRates implements FxRates {
     final TreeMap<LocalDate, Map<String, BigDecimal>> table = new TreeMap<>();
     String line;
     while ((line = reader.readLine()) != null) {
+      // ASCII CSV decision, see fields(): the JDK blank test keeps a line of information
+      // separators (0x1C to 0x1F) blank, which the padding tests pin.
       if (line.isBlank()) {
         continue;
       }
@@ -256,6 +260,8 @@ public class EcbFxRates implements FxRates {
         start = i + 1;
       } else {
         final char value = line.charAt(i);
+        // Same ASCII CSV decision: only bytes below 0x20 are inspected, and the JDK definition
+        // keeps the information separators 0x1C to 0x1F as padding, which the padding tests pin.
         if (value < ' ' && !Character.isWhitespace(value)) {
           throw new IllegalArgumentException("invalid control character at CSV offset " + i);
         }
@@ -271,10 +277,10 @@ public class EcbFxRates implements FxRates {
    */
   @Override
   public Optional<BigDecimal> rate(String from, String to, LocalDate asOf) {
-    if (from == null || from.isBlank()) {
+    if (StringUtil.isUnicodeBlank(from)) {
       throw new IllegalArgumentException("from must not be null or blank");
     }
-    if (to == null || to.isBlank()) {
+    if (StringUtil.isUnicodeBlank(to)) {
       throw new IllegalArgumentException(TO_REQUIRED);
     }
     if (asOf == null) {
@@ -308,7 +314,7 @@ public class EcbFxRates implements FxRates {
     if (money == null) {
       throw new IllegalArgumentException("money must not be null");
     }
-    if (to == null || to.isBlank()) {
+    if (StringUtil.isUnicodeBlank(to)) {
       throw new IllegalArgumentException(TO_REQUIRED);
     }
     if (asOf == null) {

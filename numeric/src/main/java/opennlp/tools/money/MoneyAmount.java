@@ -20,6 +20,7 @@ package opennlp.tools.money;
 import java.math.BigDecimal;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /**
  * One monetary mention in a text: the {@link Span} it covers in the original text, the
@@ -53,7 +54,7 @@ public record MoneyAmount(Span span, BigDecimal amount, String currency) {
     if (amount == null) {
       throw new IllegalArgumentException("amount must not be null");
     }
-    if (currency == null || currency.isBlank()) {
+    if (StringUtil.isUnicodeBlank(currency)) {
       throw new IllegalArgumentException("currency must not be null or blank");
     }
   }
