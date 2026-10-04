@@ -20,10 +20,10 @@ package opennlp.tools.normalizer.url;
 import opennlp.tools.util.normalizer.CodePointSet;
 
 /**
- * Finds email addresses in text for the URL normalizers. An address is a maximal run of the
- * local-part set {@code [-+_.0-9A-Za-z]} with a left neighbor outside that set, an
- * {@code @}, and a domain run out of {@code [-.0-9A-Za-z]} that does not start with a dot
- * and spans at least two chars.
+ * Finds email addresses in text for {@link BoundedUrlCharSequenceNormalizer}. An address is a
+ * maximal run of the local-part set {@code [-+_.0-9A-Za-z]} with a left neighbor outside that
+ * set, an {@code @}, and a domain run out of {@code [-.0-9A-Za-z]} that does not start with a
+ * dot and spans at least two chars.
  */
 final class MailAddressScan {
 
@@ -46,34 +46,6 @@ final class MailAddressScan {
   private static final int MIN_DOMAIN_LENGTH = 2;
 
   private MailAddressScan() {
-  }
-
-  /**
-   * Replaces each email address with one space.
-   *
-   * @param text The text to scan. Must not be {@code null}.
-   * @return The input itself when no address matched, otherwise the normalized copy.
-   */
-  static CharSequence removeAll(CharSequence text) {
-    final int length = text.length();
-    StringBuilder out = null;
-    int i = 0;
-    while (i < length) {
-      final int end = matchEnd(text, i);
-      if (end > i) {
-        if (out == null) {
-          out = new StringBuilder(length).append(text, 0, i);
-        }
-        out.append(' ');
-        i = end;
-      } else {
-        if (out != null) {
-          out.append(text.charAt(i));
-        }
-        i++;
-      }
-    }
-    return out == null ? text : out.toString();
   }
 
   /**
