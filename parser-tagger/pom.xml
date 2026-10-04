@@ -32,6 +32,10 @@
 	<description>Bottom-up parsers that use a caller-supplied POS tagger and chunker.</description>
 	<packaging>jar</packaging>
 
+	<properties>
+		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.opennlp</groupId>

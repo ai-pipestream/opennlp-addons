@@ -32,6 +32,8 @@ import opennlp.tools.postag.POSTagger;
  * <p>Each parser is a subclass of the core parser for the model's {@link ParserType}. The
  * core constructor still builds its default tagger and chunker from the model; they are
  * replaced before the parser is returned, so they are never used.</p>
+ *
+ * @since 3.0.0
  */
 public final class CustomTaggerParsers {
 
@@ -50,6 +52,7 @@ public final class CustomTaggerParsers {
    * @param tagger The {@link POSTagger} used to tag. Must not be {@code null}.
    * @return A parser that uses {@code tagger}.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}.
+   * @throws IllegalStateException Thrown if the model's {@link ParserType} is not supported.
    */
   public static AbstractBottomUpParser create(ParserModel model, POSTagger tagger) {
     return create(model, tagger, AbstractBottomUpParser.defaultBeamSize,
@@ -67,6 +70,7 @@ public final class CustomTaggerParsers {
    *                          must represent.
    * @return A parser that uses {@code tagger}.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}.
+   * @throws IllegalStateException Thrown if the model's {@link ParserType} is not supported.
    */
   public static AbstractBottomUpParser create(ParserModel model, POSTagger tagger,
                                               int beamSize, double advancePercentage) {
@@ -86,6 +90,7 @@ public final class CustomTaggerParsers {
    *                          must represent.
    * @return A parser that uses {@code tagger} and {@code chunker}.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}.
+   * @throws IllegalStateException Thrown if the model's {@link ParserType} is not supported.
    */
   public static AbstractBottomUpParser create(ParserModel model, POSTagger tagger,
                                               Chunker chunker, int beamSize,
@@ -95,6 +100,20 @@ public final class CustomTaggerParsers {
     return build(model, tagger, chunker, beamSize, advancePercentage);
   }
 
+  /**
+   * Creates the parser for the model's type with the supplied components.
+   *
+   * @param model             The {@link ParserModel}. Must not be {@code null}.
+   * @param tagger            The {@link POSTagger} used to tag. Never {@code null} here.
+   * @param chunker           The {@link Chunker} used to chunk, or {@code null} to keep the
+   *                          model's chunker.
+   * @param beamSize          The number of different parses kept during parsing.
+   * @param advancePercentage The minimal amount of probability mass which advanced outcomes
+   *                          must represent.
+   * @return A parser that uses {@code tagger}, and {@code chunker} if given.
+   * @throws IllegalArgumentException Thrown if {@code model} is {@code null}.
+   * @throws IllegalStateException Thrown if the model's {@link ParserType} is not supported.
+   */
   private static AbstractBottomUpParser build(ParserModel model, POSTagger tagger,
                                               Chunker chunker, int beamSize,
                                               double advancePercentage) {
@@ -108,6 +127,13 @@ public final class CustomTaggerParsers {
     throw new IllegalStateException("Unsupported parser type: " + type);
   }
 
+  /**
+   * Rejects a {@code null} argument.
+   *
+   * @param value   The argument to check.
+   * @param message The exception message.
+   * @throws IllegalArgumentException Thrown if {@code value} is {@code null}.
+   */
   private static void requireNonNull(Object value, String message) {
     if (value == null) {
       throw new IllegalArgumentException(message);
@@ -117,6 +143,17 @@ public final class CustomTaggerParsers {
   /** The chunking parser with the tagger, and the chunker if given, replaced. */
   private static final class ChunkingParser extends opennlp.tools.parser.chunking.Parser {
 
+    /**
+     * Builds the core parser from the model and replaces its tagger, and its chunker if
+     * {@code chunker} is not {@code null}.
+     *
+     * @param model             The {@link ParserModel}.
+     * @param tagger            The {@link POSTagger} used to tag.
+     * @param chunker           The {@link Chunker} used to chunk, or {@code null}.
+     * @param beamSize          The number of different parses kept during parsing.
+     * @param advancePercentage The minimal amount of probability mass which advanced outcomes
+     *                          must represent.
+     */
     ChunkingParser(ParserModel model, POSTagger tagger, Chunker chunker, int beamSize,
                    double advancePercentage) {
       super(model, beamSize, advancePercentage);
@@ -130,6 +167,17 @@ public final class CustomTaggerParsers {
   /** The tree insert parser with the tagger, and the chunker if given, replaced. */
   private static final class TreeInsertParser extends opennlp.tools.parser.treeinsert.Parser {
 
+    /**
+     * Builds the core parser from the model and replaces its tagger, and its chunker if
+     * {@code chunker} is not {@code null}.
+     *
+     * @param model             The {@link ParserModel}.
+     * @param tagger            The {@link POSTagger} used to tag.
+     * @param chunker           The {@link Chunker} used to chunk, or {@code null}.
+     * @param beamSize          The number of different parses kept during parsing.
+     * @param advancePercentage The minimal amount of probability mass which advanced outcomes
+     *                          must represent.
+     */
     TreeInsertParser(ParserModel model, POSTagger tagger, Chunker chunker, int beamSize,
                      double advancePercentage) {
       super(model, beamSize, advancePercentage);
