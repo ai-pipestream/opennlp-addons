@@ -91,7 +91,8 @@ final class GazetteerIndex {
   /**
    * Reads a table into a frozen index: every line is passed to {@code parser} with its
    * one-based line number, except blank lines and, when {@code skipComments} is set,
-   * lines starting with {@code #}.
+   * lines starting with {@code #}. A byte order mark at the start of the content is not
+   * part of the first line.
    *
    * @param in           The table content, read fully as UTF-8 but not closed.
    * @param skipComments Whether lines starting with {@code #} are skipped.
@@ -109,6 +110,9 @@ final class GazetteerIndex {
     int lineNumber = 0;
     while ((line = reader.readLine()) != null) {
       lineNumber++;
+      if (lineNumber == 1) {
+        line = StringUtil.stripByteOrderMark(line);
+      }
       if (StringUtil.isUnicodeBlank(line) || (skipComments && line.charAt(0) == '#')) {
         continue;
       }
