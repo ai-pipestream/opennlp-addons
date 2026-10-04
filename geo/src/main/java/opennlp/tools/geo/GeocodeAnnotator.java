@@ -94,7 +94,7 @@ public class GeocodeAnnotator implements DocumentAnnotator {
     }
     final Set<String> lowered = new HashSet<>(locationTypes.size());
     for (final String type : locationTypes) {
-      if (type == null || StringUtil.isBlank(type)) {
+      if (StringUtil.isUnicodeBlank(type)) {
         throw new IllegalArgumentException("locationTypes must not contain blank entries");
       }
       lowered.add(StringUtil.toLowerCase(type));
