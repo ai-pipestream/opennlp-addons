@@ -300,18 +300,15 @@ final class HuggingFaceModelCache {
    * directory is not a complete cached snapshot of a hub revision}
    *
    * @param teacherDirectory The directory to read; need not exist.
+   * @throws IOException Thrown if the revision file exists but cannot be read.
    */
-  static String pinnedRevision(Path teacherDirectory) {
+  static String pinnedRevision(Path teacherDirectory) throws IOException {
     final Path file = teacherDirectory.resolve(REVISION_FILE);
     if (!Files.isRegularFile(file)) {
       return null;
     }
-    try {
-      final String recorded = Files.readString(file, StandardCharsets.UTF_8).strip();
-      return isCommitSha(recorded) ? recorded : null;
-    } catch (IOException e) {
-      return null;
-    }
+    final String recorded = Files.readString(file, StandardCharsets.UTF_8).strip();
+    return isCommitSha(recorded) ? recorded : null;
   }
 
   /** {@return the directory the per-teacher cache directories live in} */
