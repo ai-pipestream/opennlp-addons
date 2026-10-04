@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
@@ -154,6 +156,23 @@ public class MoneyConversionAnnotatorTest {
         () -> CursorMoneyExtractor.forRegion(null));
     assertThrows(IllegalArgumentException.class,
         () -> CursorMoneyExtractor.forRegion(Locale.of("en")));
+  }
+
+  /**
+   * A target code made only of Unicode whitespace is blank in both constructors.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   * @throws IOException Thrown if the rates cannot be loaded.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testAnnotatorRejectsUnicodeBlankTarget(int codePoint) throws IOException {
+    final EcbFxRates rates = rates();
+    final String target = Character.toString(codePoint);
+    assertThrows(IllegalArgumentException.class,
+        () -> new MoneyConversionAnnotator(rates, target, REFERENCE_DATE));
+    assertThrows(IllegalArgumentException.class,
+        () -> new MoneyConversionAnnotator(rates, target));
   }
 
   @Test

@@ -44,7 +44,7 @@ class FxRatesContractTest {
    */
   @ParameterizedTest
   @NullAndEmptySource
-  @ValueSource(strings = {" ", "\t"})
+  @ValueSource(strings = {" ", "\t", "\u00A0", "\u3000", "\u2028"})
   void testInvalidTarget(String target) {
     final AtomicInteger calls = new AtomicInteger();
     final FxRates provider = (from, to, date) -> {

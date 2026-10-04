@@ -284,6 +284,19 @@ public class CursorQuantityExtractorTest {
         () -> new Quantity(new Span(0, 1), BigDecimal.ONE, " "));
   }
 
+  /**
+   * A unit made only of Unicode whitespace is blank, like an ASCII space.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testQuantityRejectsUnicodeBlankUnit(int codePoint) {
+    final String unit = Character.toString(codePoint);
+    assertThrows(IllegalArgumentException.class,
+        () -> new Quantity(new Span(0, 1), BigDecimal.ONE, unit));
+  }
+
   @Test
   void testAnnotatorProvidesTheQuantityLayer() {
     final Document document = DocumentAnalyzer.builder()
