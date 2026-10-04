@@ -59,4 +59,5 @@
   <xi:include href="light-stemmers.xml" />
   <xi:include href="geo.xml" />
   <xi:include href="numeric.xml" />
+  <xi:include href="wordnet.xml" />
 </book>
