@@ -199,6 +199,11 @@ public final class CapVolumeReader {
           int cut = lastWhitespace(paragraph, HARD_MAX_CHARS - 1);
           if (cut <= 0) {
             cut = HARD_MAX_CHARS;
+            if (Character.isHighSurrogate(paragraph.charAt(cut - 1))
+                && Character.isLowSurrogate(paragraph.charAt(cut))) {
+              // Keep a supplementary character whole; the passage ends one char earlier.
+              cut--;
+            }
           }
           result.add(paragraph.substring(0, cut));
           paragraph = paragraph.substring(cut).strip();
