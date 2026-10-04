@@ -128,10 +128,11 @@ public final class PlaceProfiles {
   }
 
   /**
-   * Loads a UTF-8 table from a stream. Lines may end with LF, CRLF, or CR. Blank lines
-   * and lines starting with {@code #} after surrounding whitespace is removed are
-   * ignored, including before the header. The first data line must contain {@code id}
-   * and at least one metric name, separated by tabs.
+   * Loads a UTF-8 table from a stream. Lines may end with LF, CRLF, or CR, and a byte order
+   * mark at the start of the content is ignored. Blank lines and lines starting with
+   * {@code #} after surrounding whitespace is removed are ignored, including before the
+   * header. The first data line must contain {@code id} and at least one metric name,
+   * separated by tabs.
    *
    * <p>Cells are stripped of surrounding toolkit-defined whitespace. Place identifiers
    * and metric names must be non-empty and unique. Data lines must contain one finite
@@ -172,6 +173,9 @@ public final class PlaceProfiles {
       row++;
       if (line == null) {
         throw new InvalidFormatException("the profile table has no header");
+      }
+      if (row == 1) {
+        line = StringUtil.stripByteOrderMark(line);
       }
     } while (isIgnored(line));
     final String[] header = GazetteerIndex.split(line, '\t');
