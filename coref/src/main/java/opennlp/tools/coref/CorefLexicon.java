@@ -31,6 +31,7 @@ import opennlp.tools.coref.Mention.Animacy;
 import opennlp.tools.coref.Mention.Gender;
 import opennlp.tools.coref.Mention.Number;
 import opennlp.tools.coref.Mention.Person;
+import opennlp.tools.util.StringUtil;
 
 /**
  * The English word knowledge the mention detector and sieves consult: the pronoun
@@ -294,7 +295,7 @@ final class CorefLexicon {
     final Map<String, Gender> names = new HashMap<>();
     String line;
     while ((line = reader.readLine()) != null) {
-      if (line.isEmpty() || line.charAt(0) == '#') {
+      if (StringUtil.isUnicodeBlank(line) || line.charAt(0) == '#') {
         continue;
       }
       final int tab = line.indexOf('\t');

@@ -193,7 +193,7 @@ public class CorefModel extends BaseModel {
    *         blank.
    */
   static String requireLanguageCode(String languageCode) {
-    if (languageCode == null || StringUtil.isBlank(languageCode)) {
+    if (StringUtil.isUnicodeBlank(languageCode)) {
       throw new IllegalArgumentException("languageCode must not be null or blank");
     }
     return languageCode;

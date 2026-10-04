@@ -660,7 +660,7 @@ final class MentionDetector {
     final List<String> words = new ArrayList<>();
     int start = -1;
     for (int i = 0; i < normalized.length(); i++) {
-      if (StringUtil.isWhitespace(normalized.charAt(i))) {
+      if (StringUtil.isUnicodeWhitespace(normalized.charAt(i))) {
         if (start >= 0) {
           words.add(normalized.substring(start, i));
           start = -1;

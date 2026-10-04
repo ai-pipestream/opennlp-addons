@@ -174,7 +174,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
       if (line.charAt(0) == '#') {
         if (line.startsWith(SPEAKER)) {
           speaker = StringUtil.trimUnicodeWhitespace(line.substring(SPEAKER.length()));
-          if (StringUtil.isBlank(speaker)) {
+          if (StringUtil.isUnicodeBlank(speaker)) {
             throw new InvalidFormatException("speaker label must not be blank");
           }
         }
@@ -185,7 +185,7 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
         throw new InvalidFormatException("expected 10 columns: " + line);
       }
       for (int f = 0; f < fields.length; f++) {
-        if (StringUtil.isBlank(fields[f])) {
+        if (StringUtil.isUnicodeBlank(fields[f])) {
           throw new InvalidFormatException(
               "column " + (f + 1) + " must not be blank: " + line);
         }
