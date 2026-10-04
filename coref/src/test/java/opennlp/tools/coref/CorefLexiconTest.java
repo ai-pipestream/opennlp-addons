@@ -48,6 +48,14 @@ class CorefLexiconTest {
     Assertions.assertEquals(Gender.UNKNOWN, CorefLexicon.firstNameGender("acme"));
   }
 
+  /** A line made of Unicode whitespace only is skipped like an empty line, not parsed. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testSkipsUnicodeBlankLines(String blank) throws IOException {
+    Assertions.assertEquals(Map.of("alice", Gender.FEMALE),
+        parse("alice\tf\n" + blank + "\n" + blank + blank + "\n"));
+  }
+
   /** A gender letter other than {@code m} or {@code f} is a corrupt table, not a woman. */
   @ParameterizedTest
   @ValueSource(strings = {"alice\tx", "alice\tM", "alice\tfemale", "alice\t", "\tf", "alice f"})

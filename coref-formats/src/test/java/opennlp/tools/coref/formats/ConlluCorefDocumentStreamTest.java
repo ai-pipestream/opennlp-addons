@@ -35,6 +35,7 @@ import opennlp.tools.document.Layers;
 import opennlp.tools.formats.conllu.ConlluTagset;
 import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 public class ConlluCorefDocumentStreamTest {
 
@@ -257,6 +258,23 @@ public class ConlluCorefDocumentStreamTest {
         "# speaker =   \n1\tAcme\t_\tPROPN\tNNP\t_\t0\troot\t_\t_\n",
         ConlluTagset.X)) {
       Assertions.assertThrows(InvalidFormatException.class, emptySpeaker::read);
+    }
+  }
+
+  /**
+   * A column made of Unicode whitespace only is blank whatever {@link WhitespaceMode} the
+   * process runs in; U+0085 has the White_Space property but is neither a JDK whitespace nor a
+   * space separator, so it only fails under the legacy mode when the check is mode-independent.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028", "\u0085"})
+  void testRejectsUnicodeBlankColumnsInEveryWhitespaceMode(String blank) throws IOException {
+    WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+    try (ConlluCorefDocumentStream blankForm = stream(
+        "1\t" + blank + "\t_\tPROPN\tNNP\t_\t0\troot\t_\t_\n", ConlluTagset.X)) {
+      Assertions.assertThrows(InvalidFormatException.class, blankForm::read);
+    } finally {
+      WhitespaceMode.reset();
     }
   }
 
