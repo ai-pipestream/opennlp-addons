@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.chunker.ChunkerAnnotator;
 import opennlp.tools.document.Annotation;
@@ -37,6 +38,7 @@ import opennlp.tools.namefind.NameFinderAnnotator;
 import opennlp.tools.parser.ParserAnnotator;
 import opennlp.tools.parser.ParserAnnotator.Phrase;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 public class CorefAnnotatorTest {
 
@@ -383,6 +385,27 @@ public class CorefAnnotatorTest {
   void testInvalidMentionComponentsAreRejected(int chain, String kind, int entity) {
     Assertions.assertThrows(IllegalArgumentException.class,
         () -> new CorefMention(chain, kind, entity));
+  }
+
+  /**
+   * Blank checks follow the Unicode White_Space property whatever {@link WhitespaceMode} the
+   * process runs in. U+0085 is the probe: it has the property but is neither a JDK whitespace
+   * nor a space separator, so only a mode-independent check rejects it under the legacy mode.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028", "\u0085"})
+  void testBlankChecksDoNotDependOnTheWhitespaceMode(String blank) {
+    WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+    try {
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new CorefMention(0, blank, 0));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new CorefAnnotator(Set.of(blank), Set.of("organization")));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> CorefModel.requireLanguageCode(blank));
+    } finally {
+      WhitespaceMode.reset();
+    }
   }
 
   private static Stream<LayerKey<String>> requiredLayers() {
