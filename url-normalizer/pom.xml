@@ -32,6 +32,10 @@
 	<description>A character sequence normalizer that removes whole HTTP and HTTPS URLs and email addresses from running text.</description>
 	<packaging>jar</packaging>
 
+	<properties>
+		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.opennlp</groupId>
