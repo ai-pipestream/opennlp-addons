@@ -213,10 +213,10 @@ public final class CsvGlossaryReader implements GlossaryReader {
       }
       final String id = fields.get(0);
       final String term = fields.get(1);
-      if (StringUtil.isBlank(id)) {
+      if (StringUtil.isUnicodeBlank(id)) {
         throw new InvalidFormatException("blank id on line " + recordLine);
       }
-      if (StringUtil.isBlank(term)) {
+      if (StringUtil.isUnicodeBlank(term)) {
         throw new InvalidFormatException("blank term on line " + recordLine);
       }
       entries.add(new GlossaryEntry(id, term));

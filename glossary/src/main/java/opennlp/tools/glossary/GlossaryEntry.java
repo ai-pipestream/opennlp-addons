@@ -40,10 +40,10 @@ public record GlossaryEntry(String id, String term) {
    *         {@code null} or blank.
    */
   public GlossaryEntry {
-    if (id == null || StringUtil.isBlank(id)) {
+    if (StringUtil.isUnicodeBlank(id)) {
       throw new IllegalArgumentException("id must not be null or blank");
     }
-    if (term == null || StringUtil.isBlank(term)) {
+    if (StringUtil.isUnicodeBlank(term)) {
       throw new IllegalArgumentException("term must not be null or blank");
     }
   }

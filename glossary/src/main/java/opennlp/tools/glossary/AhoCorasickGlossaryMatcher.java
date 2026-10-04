@@ -310,7 +310,7 @@ public final class AhoCorasickGlossaryMatcher implements GlossaryMatcher {
     final String pattern = normalizer == null
         ? term
         : normalizer.normalize(term).toString();
-    if (StringUtil.isBlank(pattern)) {
+    if (StringUtil.isUnicodeBlank(pattern)) {
       throw new IllegalArgumentException(
           "glossary term must not normalize to blank: \"" + term + "\"");
     }
