@@ -49,10 +49,3 @@ mvn -pl native-image test-compile
 java -cp "$(mvn -q -pl native-image dependency:build-classpath -Dmdep.outputFile=/dev/stdout):native-image/target/test-classes" \
     opennlp.tools.nativeimage.ReachabilityMetadataGenerator native-image/src/main/resources
 ```
-
-## Source
-
-Started from [ai-pipestream/opennlp OPENNLP-1954-native-prep](https://github.com/ai-pipestream/opennlp/tree/49152b6eb):
-the smoke application, the resource metadata, the CI job and the manual chapter. That branch
-removed reflection from core with an extension registry; this add-on registers the reflective
-constructors in GraalVM metadata instead, so core stays as it is.
