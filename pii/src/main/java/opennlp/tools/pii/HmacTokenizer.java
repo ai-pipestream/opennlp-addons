@@ -24,6 +24,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import opennlp.tools.document.Document;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Replaces PII mentions with HMAC tokens that are stable across documents for a given key.
@@ -134,7 +135,7 @@ public final class HmacTokenizer {
    *         {@code value} is {@code null} or empty, or either contains an unpaired surrogate.
    */
   public String token(String type, String value) {
-    if (type == null || type.isBlank()) {
+    if (StringUtil.isUnicodeBlank(type)) {
       throw new IllegalArgumentException("type must not be null or blank");
     }
     if (value == null || value.isEmpty()) {

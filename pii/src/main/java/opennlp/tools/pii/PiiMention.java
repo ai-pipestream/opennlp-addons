@@ -18,6 +18,7 @@
 package opennlp.tools.pii;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /**
  * A mention of personally identifiable information: an original-text {@link Span},
@@ -155,10 +156,10 @@ public record PiiMention(Span span, String type, String normalized) {
     if (span == null) {
       throw new IllegalArgumentException("span must not be null");
     }
-    if (type == null || type.isBlank()) {
+    if (StringUtil.isUnicodeBlank(type)) {
       throw new IllegalArgumentException("type must not be null or blank");
     }
-    if (normalized == null || normalized.isBlank()) {
+    if (StringUtil.isUnicodeBlank(normalized)) {
       throw new IllegalArgumentException("normalized must not be null or blank");
     }
   }
