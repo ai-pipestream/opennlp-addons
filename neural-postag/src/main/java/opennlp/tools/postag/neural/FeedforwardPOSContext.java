@@ -117,14 +117,18 @@ final class FeedforwardPOSContext {
   }
 
   /**
-   * Takes the trailing characters of a word.
+   * Takes the trailing code points of a word.
    *
    * @param word The lowercased word.
-   * @param length The suffix length.
+   * @param length The suffix length in code points.
    * @return The suffix, or the whole word when it is shorter. Never {@code null}.
    */
   static String suffix(String word, int length) {
-    return word.length() <= length ? word : word.substring(word.length() - length);
+    final int codePoints = word.codePointCount(0, word.length());
+    if (codePoints <= length) {
+      return word;
+    }
+    return word.substring(word.offsetByCodePoints(word.length(), -length));
   }
 
   /**
@@ -138,8 +142,9 @@ final class FeedforwardPOSContext {
     boolean digit = false;
     boolean upper = false;
     boolean lower = false;
-    for (int i = 0; i < word.length(); i++) {
-      final char c = word.charAt(i);
+    for (int i = 0; i < word.length(); ) {
+      final int c = word.codePointAt(i);
+      i += Character.charCount(c);
       if (Character.isDigit(c)) {
         digit = true;
       } else if (Character.isLetter(c)) {
@@ -163,7 +168,7 @@ final class FeedforwardPOSContext {
     if (upper && !lower) {
       return SHAPE_ALLCAPS;
     }
-    if (Character.isUpperCase(word.charAt(0))) {
+    if (Character.isUpperCase(word.codePointAt(0))) {
       return SHAPE_CAP;
     }
     return SHAPE_LOWER;
