@@ -209,6 +209,19 @@ public class HmacTokenizerTest {
     Assertions.assertEquals(before, tokenizer.token(PiiMention.TYPE_EMAIL, "a@b.com"));
   }
 
+  /**
+   * A type made only of Unicode whitespace is blank, like an ASCII space.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testRejectsAUnicodeBlankType(int codePoint) {
+    final String type = Character.toString(codePoint);
+    Assertions.assertThrows(IllegalArgumentException.class,
+        () -> TOKENIZER.token(type, "value"));
+  }
+
   @Test
   void testRejectsAMissingTypeOrValue() {
     Assertions.assertThrows(IllegalArgumentException.class,
