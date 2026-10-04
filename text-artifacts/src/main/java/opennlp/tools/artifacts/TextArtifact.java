@@ -85,7 +85,7 @@ public record TextArtifact(Span span, String type) {
     if (span == null) {
       throw new IllegalArgumentException("span must not be null");
     }
-    if (type == null || StringUtil.isBlank(type)) {
+    if (StringUtil.isUnicodeBlank(type)) {
       throw new IllegalArgumentException("type must not be null or blank");
     }
   }
