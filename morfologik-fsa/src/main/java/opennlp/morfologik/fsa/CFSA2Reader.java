@@ -62,7 +62,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    * @param arcs         The arc block, the automaton bytes after the header and label table.
    * @param labelMapping The label table indexed by an arc's label index.
    * @param hasNumbers   Whether each node is prefixed with a perfect-hash number to skip.
-   * @throws IllegalArgumentException If the encoded automaton is malformed.
+   * @throws IllegalArgumentException Thrown if the encoded automaton is malformed.
    */
   private CFSA2Reader(byte[] arcs, byte[] labelMapping, boolean hasNumbers) {
     this.arcs = arcs;
@@ -80,7 +80,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *           {@code null}.
    * @return A reader over the automaton.
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
-   * @throws IOException If reading fails or the encoded automaton is malformed.
+   * @throws IOException Thrown if reading fails or the encoded automaton is malformed.
    */
   public static CFSA2Reader read(InputStream in) throws IOException {
     if (in == null) {
@@ -94,7 +94,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *
    * @param bytes The whole automaton, magic header included.
    * @return A reader over the automaton.
-   * @throws IllegalArgumentException If {@code bytes} is null.
+   * @throws IllegalArgumentException Thrown if {@code bytes} is null.
    * @throws IOException Thrown if {@code bytes} is not a CFSA2 automaton or its header is
    *                     truncated, or reachable nodes or arcs are malformed.
    */
@@ -154,7 +154,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    * @param node The offset of a node.
    * @return The offset of that node's first arc, skipping the entry count if the automaton
    *         carries one.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int firstArc(int node) {
     final int first = hasNumbers ? skipVInt(node) : node;
@@ -168,7 +168,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    * @param arc The offset of an arc.
    * @return The offset of the following arc of the same node, or {@value #NO_ARC} if {@code arc}
    *         is the last one.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int nextArc(int arc) {
     final int end = skipArc(arc);
@@ -181,7 +181,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    * @param arc The offset of an arc.
    * @return The arc's label, taken from the header's label table when the flags byte indexes it,
    *         otherwise stored inline after the flags byte.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int arcLabel(int arc) {
     final int index = flags(arc) & LABEL_INDEX_MASK;
@@ -200,7 +200,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    * @return The offset of the node the arc points at, which is either the node laid out directly
    *         after the arc's own node or an explicit variable-length address;
    *         {@value #TERMINAL_NODE} if the arc ends a word without continuing.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int destinationNode(int arc) {
     if ((flags(arc) & BIT_TARGET_NEXT) != 0) {
@@ -218,7 +218,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *
    * @param offset The offset of an arc.
    * @return The offset just past that arc, that is, the start of whatever follows it.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int skipArc(int offset) {
     final int flag = flags(offset);
@@ -237,7 +237,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *
    * @param offset The offset of the first byte of the integer.
    * @return The decoded value.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int readVInt(int offset) {
     final int end = skipVInt(offset);
@@ -256,7 +256,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *
    * @param offset The offset of the first byte of a variable-length integer.
    * @return The offset just past that integer.
-   * @throws IllegalArgumentException If the encoded data is invalid.
+   * @throws IllegalArgumentException Thrown if the encoded data is invalid.
    */
   private int skipVInt(int offset) {
     for (int i = 0; i < MAX_VINT_BYTES; i++) {
@@ -277,7 +277,7 @@ public final class CFSA2Reader implements FsaSequenceReader {
    *
    * @param arc The arc offset.
    * @return The unsigned flags byte.
-   * @throws IllegalArgumentException If the offset is outside the data.
+   * @throws IllegalArgumentException Thrown if the offset is outside the data.
    */
   private int flags(int arc) {
     FsaTraversal.requireRange(arc, 1, arcs.length);

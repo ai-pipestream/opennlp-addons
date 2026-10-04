@@ -139,7 +139,7 @@ public final class MorfologikDictionaryReader {
    * @param encoding The base-form encoder.
    * @param charset The dictionary charset.
    * @return The collected entries.
-   * @throws IOException If the dictionary cannot be read or contains invalid entries.
+   * @throws IOException Thrown if the dictionary cannot be read or contains invalid entries.
    */
   private static LemmatizerEntries readEntries(InputStream dictionary, byte separator,
       BaseFormEncoding encoding, Charset charset) throws IOException {
@@ -212,7 +212,7 @@ public final class MorfologikDictionaryReader {
    * @param separator The single separator character.
    * @param charset The dictionary encoding.
    * @return The separator byte.
-   * @throws IllegalArgumentException If the separator cannot encode as a single byte.
+   * @throws IllegalArgumentException Thrown if the separator cannot encode as a single byte.
    */
   private static byte separatorByte(String separator, Charset charset) {
     try {
@@ -370,7 +370,7 @@ public final class MorfologikDictionaryReader {
    *
    * @param start The start of the retained range.
    * @param end The end of the retained range.
-   * @throws IllegalArgumentException If {@code start} exceeds {@code end}.
+   * @throws IllegalArgumentException Thrown if {@code start} exceeds {@code end}.
    */
   private static void requireOrdered(int start, int end) {
     if (start > end) {

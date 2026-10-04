@@ -51,7 +51,7 @@ final class LemmatizerEntries {
    * Builds a lemmatizer with separate form, tag and lemma fields.
    *
    * @return A lemmatizer containing a copy of the collected entries.
-   * @throws IOException If the empty dictionary cannot be initialized.
+   * @throws IOException Thrown if the empty dictionary cannot be initialized.
    */
   DictionaryLemmatizer toLemmatizer() throws IOException {
     final DictionaryLemmatizer dictionary =
