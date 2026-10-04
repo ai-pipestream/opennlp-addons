@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.apache.opennlp.addons</groupId>
+		<artifactId>opennlp-addons</artifactId>
+		<version>3.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>native-image</artifactId>
+	<name>Apache OpenNLP native-image</name>
+	<description>
+		GraalVM native image support for OpenNLP: reachability metadata for the resources the core
+		jars read by a computed name, and a smoke application that loads models from files and runs
+		sentence detection, tokenization, POS tagging and name finding. The "native" profile builds
+		and runs the image and needs a GraalVM JDK 25 or later; without it the module builds as a
+		plain jar.
+	</description>
+	<packaging>jar</packaging>
+
+	<properties>
+		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
+		<!-- Directory holding the models the smoke test loads, see NativeSmoke for the file names. -->
+		<opennlp.native.models>${user.home}/.opennlp</opennlp.native.models>
+		<opennlp.native.image>opennlp-native-smoke</opennlp.native.image>
+		<native.maven.plugin>1.1.13</native.maven.plugin>
+		<exec.maven.plugin>3.6.4</exec.maven.plugin>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-runtime</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-ml-maxent</artifactId>
+			<version>${opennlp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-ml-perceptron</artifactId>
+			<version>${opennlp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-ml-bayes</artifactId>
+			<version>${opennlp.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.rat</groupId>
+				<artifactId>apache-rat-plugin</artifactId>
+				<executions><execution><id>default-cli</id><configuration>
+					<!-- JSON has no comment syntax for a license header. -->
+					<excludes>
+						<exclude>src/main/resources/META-INF/native-image/**/reachability-metadata.json</exclude>
+					</excludes>
+				</configuration></execution></executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>native</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-simple</artifactId>
+					<version>${slf4j.version}</version>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>${native.maven.plugin}</version>
+						<executions>
+							<execution>
+								<id>build-native-smoke</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+						<configuration>
+							<imageName>${opennlp.native.image}</imageName>
+							<mainClass>opennlp.tools.nativeimage.NativeSmoke</mainClass>
+							<!-- The OpenNLP jars and this add-on carry all the metadata the image needs. -->
+							<metadataRepository>
+								<enabled>false</enabled>
+							</metadataRepository>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>${exec.maven.plugin}</version>
+						<executions>
+							<execution>
+								<id>run-native-smoke</id>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<phase>verify</phase>
+								<configuration>
+									<executable>${project.build.directory}/${opennlp.native.image}</executable>
+									<arguments>
+										<argument>${opennlp.native.models}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
