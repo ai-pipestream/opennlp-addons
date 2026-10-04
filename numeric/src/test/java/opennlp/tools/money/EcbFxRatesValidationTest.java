@@ -51,7 +51,7 @@ class EcbFxRatesValidationTest {
    */
   @ParameterizedTest
   @NullAndEmptySource
-  @ValueSource(strings = {" ", "\t"})
+  @ValueSource(strings = {" ", "\t", "\u00A0", "\u3000", "\u2028"})
   void testInvalidLookupCode(String code) throws IOException {
     final EcbFxRates rates = load("Date,USD\n2026-07-14,1.25\n");
     final MoneyAmount source = new MoneyAmount(new Span(0, 1), BigDecimal.ONE, "EUR");

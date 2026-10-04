@@ -527,6 +527,19 @@ public class CursorMoneyExtractorTest {
   }
 
   /**
+   * A currency made only of Unicode whitespace is blank, like an ASCII space.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testMoneyAmountRejectsUnicodeBlankCurrency(int codePoint) {
+    final String currency = Character.toString(codePoint);
+    assertThrows(IllegalArgumentException.class,
+        () -> new MoneyAmount(new Span(0, 1), BigDecimal.ONE, currency));
+  }
+
+  /**
    * Verifies that the single gap the shapes allow between their parts may be any Unicode
    * whitespace, such as a no-break, narrow no-break, thin, or ideographic space or a tab,
    * and yields the same mention as an ASCII space.
