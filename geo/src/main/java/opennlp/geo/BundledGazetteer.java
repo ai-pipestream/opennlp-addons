@@ -35,6 +35,7 @@ import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.normalizer.Term;
 import opennlp.tools.util.normalizer.TermAnalyzer;
 
@@ -222,7 +223,7 @@ public final class BundledGazetteer implements Gazetteer {
       int lineNumber = 0;
       while ((line = reader.readLine()) != null) {
         lineNumber++;
-        if (line.isEmpty() || line.charAt(0) == '#') {
+        if (StringUtil.isUnicodeBlank(line) || line.charAt(0) == '#') {
           continue;
         }
         entries.add(parseRow(line, resourceName, lineNumber));
