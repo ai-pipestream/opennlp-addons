@@ -23,12 +23,14 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -251,6 +253,28 @@ public class StructuralNoiseScorerTest {
     assertEquals(1, found.size());
     assertEquals(NoiseSpan.SEVERITY_GIBBERISH, found.get(0).severity());
     assertEquals(text, found.get(0).span().getCoveredText(text).toString());
+  }
+
+  /**
+   * Tokens are split and findings are merged by the Unicode White_Space property whatever
+   * the active {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the
+   * legacy definition, but it still separates two tokens and still lets their findings
+   * merge, instead of forming one non-ASCII token that is never scored.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testWhitespaceSplittingIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      final String text = "xxxxxxxx\u0085c0mput3r";
+      final List<NoiseSpan> found = scorer.score(text, List.of());
+      assertEquals(1, found.size());
+      assertEquals(NoiseSpan.SEVERITY_GIBBERISH, found.get(0).severity());
+      assertEquals(text, found.get(0).span().getCoveredText(text).toString());
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /**

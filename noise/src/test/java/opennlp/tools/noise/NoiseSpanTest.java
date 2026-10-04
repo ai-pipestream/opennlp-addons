@@ -21,11 +21,13 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -69,6 +71,24 @@ public class NoiseSpanTest {
   @Test
   void testCustomSeverityIsAccepted() {
     assertEquals("ocr:suspect", new NoiseSpan(new Span(0, 1), "ocr:suspect", 0.5).severity());
+  }
+
+  /**
+   * The blank check follows the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a severity made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankSeverityCheckIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class,
+          () -> new NoiseSpan(new Span(0, 1), "\u0085", 0.5));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** @return Invalid record arguments and their expected validation messages. */
