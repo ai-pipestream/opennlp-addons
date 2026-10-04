@@ -14,7 +14,7 @@
 	language governing permissions and limitations under the License. -->
 
 <chapter xml:id="addons.symbol-joiner" xmlns:xlink="http://www.w3.org/1999/xlink">
-<title>symbol-joiner</title>
+<title>Symbol joiner</title>
 	<section xml:id="tools.normalizer.symboltokens">
 		<title>Normalizing symbol tokens</title>
 		<para>
