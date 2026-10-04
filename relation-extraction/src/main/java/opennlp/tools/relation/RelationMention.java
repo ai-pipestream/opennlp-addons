@@ -41,7 +41,7 @@ public record RelationMention(String type, int subject, int object) {
    *         an index is negative, or {@code subject} equals {@code object}.
    */
   public RelationMention {
-    if (type == null || StringUtil.isBlank(type)) {
+    if (StringUtil.isUnicodeBlank(type)) {
       throw new IllegalArgumentException("type must not be null or blank");
     }
     if (subject < 0 || object < 0) {
