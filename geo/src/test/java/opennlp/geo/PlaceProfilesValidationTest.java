@@ -55,7 +55,9 @@ class PlaceProfilesValidationTest {
   }
 
   /**
-   * A loaded identifier remains usable after the active whitespace mode changes.
+   * Identifiers are stripped by the Unicode White_Space property in every whitespace mode,
+   * so U+001C (an information separator, whitespace only to the JDK) survives as an
+   * identifier, and the loaded identifier remains usable after the active mode changes.
    *
    * @param mode The table whitespace mode.
    * @throws IOException Thrown if the table cannot be loaded.
@@ -67,12 +69,34 @@ class PlaceProfilesValidationTest {
     final WhitespaceMode previous = WhitespaceMode.current();
     try {
       WhitespaceMode.setActive(mode);
-      final String id = mode == WhitespaceMode.LEGACY ? "\u0085" : "\u001C";
+      final String id = "\u001C";
       final PlaceProfiles profiles = load("id\tv\n" + id + "\t1\nordinary\t2\n");
       assertEquals(1.0, profiles.similarity(id, id));
       WhitespaceMode.setActive(mode == WhitespaceMode.LEGACY
           ? WhitespaceMode.UNICODE : WhitespaceMode.LEGACY);
       assertEquals(id, profiles.mostSimilar("ordinary", 1).getFirst().id());
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
+  }
+
+  /**
+   * Cells are stripped by the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but it is still padding around an identifier and still an empty cell.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testStripIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      final InvalidFormatException duplicate = assertThrows(InvalidFormatException.class,
+          () -> load("id\tvalue\na\t1\n\u0085a\u0085\t2\n"));
+      assertEquals("duplicate id in row 3: a", duplicate.getMessage());
+      final IOException empty = assertThrows(IOException.class,
+          () -> load("id\tv\n\u0085\t1\n"));
+      assertEquals("empty id in row 2", empty.getMessage());
     } finally {
       WhitespaceMode.setActive(previous);
     }
