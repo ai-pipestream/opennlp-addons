@@ -214,14 +214,64 @@ public class PseudonymizerTest {
         () -> PSEUDONYMIZER.rewrite("short", mentions));
   }
 
+  /**
+   * Verifies the rewrite of what the widest pack reports: the grouped IBAN also carries a
+   * ten digit phone candidate in its last three groups, and only the IBAN is replaced.
+   */
   @Test
-  void testRejectsOverlappingMentions() {
+  void testResolvesTheOverlapsAnExtractorReports() {
+    final Document document = new PiiAnnotator(PiiPacks.allStructured())
+        .annotate(Document.of("IBAN DE89 3704 0044 0532 0130 00 received"));
+    Assertions.assertEquals(2, document.get(PiiAnnotator.PII).size());
+
+    final PiiRewrite rewrite = PSEUDONYMIZER.rewrite(document);
+
+    Assertions.assertEquals("IBAN IBAN-1 received", rewrite.text());
+    Assertions.assertEquals(List.of(PiiMention.TYPE_IBAN),
+        rewrite.mentions().stream().map(PiiMention::type).toList());
+  }
+
+  @Test
+  void testKeepsTheLongerOfTwoOverlappingMentions() {
+    final List<PiiMention> mentions = List.of(
+        new PiiMention(new Span(5, 12), PiiMention.TYPE_EMAIL, "a@b.com"),
+        new PiiMention(new Span(0, 10), PiiMention.TYPE_PHONE, "5551234567"));
+
+    Assertions.assertEquals("PHONE-1xy",
+        PSEUDONYMIZER.rewrite("0123456789xy", mentions).text());
+  }
+
+  @Test
+  void testKeepsTheOuterOfNestedMentions() {
+    final List<PiiMention> mentions = List.of(
+        new PiiMention(new Span(2, 6), PiiMention.TYPE_PHONE, "5551234567"),
+        new PiiMention(new Span(0, 10), PiiMention.TYPE_EMAIL, "a@b.com"));
+
+    Assertions.assertEquals("EMAIL-1xy",
+        PSEUDONYMIZER.rewrite("0123456789xy", mentions).text());
+  }
+
+  @Test
+  void testBreaksATieOnIdenticalSpansByTypePriority() {
+    final List<PiiMention> mentions = List.of(
+        new PiiMention(new Span(0, 10), PiiMention.TYPE_PHONE, "5551234567"),
+        new PiiMention(new Span(0, 10), PiiMention.TYPE_CARD, "5551234567"));
+
+    final PiiRewrite rewrite = PSEUDONYMIZER.rewrite("0123456789", mentions);
+
+    Assertions.assertEquals("CARD-1", rewrite.text());
+    Assertions.assertEquals(1, rewrite.mentions().size());
+  }
+
+  @Test
+  void testAnOverlapDoesNotHideALaterSeparateMention() {
     final List<PiiMention> mentions = List.of(
         new PiiMention(new Span(0, 10), PiiMention.TYPE_EMAIL, "a@b.com"),
-        new PiiMention(new Span(5, 15), PiiMention.TYPE_PHONE, "5551234567"));
+        new PiiMention(new Span(5, 15), PiiMention.TYPE_PHONE, "5551234567"),
+        new PiiMention(new Span(15, 19), PiiMention.TYPE_PHONE, "5559876543"));
 
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> PSEUDONYMIZER.rewrite("0123456789012345678", mentions));
+    Assertions.assertEquals("EMAIL-101234PHONE-1",
+        PSEUDONYMIZER.rewrite("0123456789012345678", mentions).text());
   }
 
   @Test
