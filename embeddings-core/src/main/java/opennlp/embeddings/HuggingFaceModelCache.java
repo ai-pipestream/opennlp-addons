@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Downloads the files needed to distill a Hugging Face model and keeps a verified local cache.
  * Each ref is resolved to one commit, and each downloaded file must match the digest reported by
@@ -307,7 +309,8 @@ final class HuggingFaceModelCache {
     if (!Files.isRegularFile(file)) {
       return null;
     }
-    final String recorded = Files.readString(file, StandardCharsets.UTF_8).strip();
+    final String recorded =
+        StringUtil.trimUnicodeWhitespace(Files.readString(file, StandardCharsets.UTF_8));
     return isCommitSha(recorded) ? recorded : null;
   }
 
@@ -531,6 +534,8 @@ final class HuggingFaceModelCache {
           + modelId + ": the hub sent no " + ETAG_HEADER
           + " header, so the file cannot be verified");
     }
+    // A field value is ASCII with optional SP/HTAB whitespace around it (RFC 9110, section 5.5),
+    // so the JDK strip is the right tool here rather than a Unicode trim.
     String hex = header.strip();
     if (hex.length() >= 2 && hex.charAt(0) == '"' && hex.charAt(hex.length() - 1) == '"') {
       hex = hex.substring(1, hex.length() - 1);
