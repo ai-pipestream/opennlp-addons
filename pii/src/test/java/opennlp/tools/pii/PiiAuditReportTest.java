@@ -175,7 +175,7 @@ public class PiiAuditReportTest {
 
   @Test
   void testFormatsOneLinePerType() {
-    final String[] lines = report(TEXT).toString().split(System.lineSeparator());
+    final String[] lines = report(TEXT).toString().lines().toArray(String[]::new);
 
     Assertions.assertEquals(3, lines.length);
     Assertions.assertTrue(lines[1].startsWith("email: 3 mentions, 2 distinct"), lines[1]);
