@@ -87,7 +87,7 @@ public class HierarchyAnnotator implements DocumentAnnotator {
     if (hierarchy == null) {
       throw new IllegalArgumentException("hierarchy must not be null");
     }
-    if (attributeKey == null || StringUtil.isBlank(attributeKey)) {
+    if (StringUtil.isUnicodeBlank(attributeKey)) {
       throw new IllegalArgumentException("attributeKey must not be null or blank");
     }
     this.hierarchy = hierarchy;
