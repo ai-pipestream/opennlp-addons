@@ -274,7 +274,7 @@ public class CorefAnnotator implements DocumentAnnotator {
     }
     final Set<String> lowered = new HashSet<>(types.size());
     for (final String type : types) {
-      if (type == null || StringUtil.isBlank(type)) {
+      if (StringUtil.isUnicodeBlank(type)) {
         throw new IllegalArgumentException(name + " must not contain blank entries");
       }
       lowered.add(StringUtil.toLowerCase(type));
@@ -381,12 +381,12 @@ public class CorefAnnotator implements DocumentAnnotator {
       final Annotation<String> annotation = entities.get(e);
       final Span entity = annotation.span();
       if (entity.length() == 0
-          || StringUtil.isBlank(document.text().subSequence(
+          || StringUtil.isUnicodeBlank(document.text().subSequence(
               entity.getStart(), entity.getEnd()))) {
         throw new IllegalArgumentException(
             "entity at index " + e + " must cover non-blank text");
       }
-      if (StringUtil.isBlank(annotation.value())) {
+      if (StringUtil.isUnicodeBlank(annotation.value())) {
         throw new IllegalArgumentException(
             "entity at index " + e + " must have a non-blank type");
       }
@@ -466,7 +466,7 @@ public class CorefAnnotator implements DocumentAnnotator {
     }
     for (int c = 0; c < chunks.size(); c++) {
       final Annotation<String> chunk = chunks.get(c);
-      if (StringUtil.isBlank(chunk.value())) {
+      if (StringUtil.isUnicodeBlank(chunk.value())) {
         throw new IllegalArgumentException(
             "chunk at index " + c + " must have a non-blank type");
       }
@@ -524,7 +524,7 @@ public class CorefAnnotator implements DocumentAnnotator {
     }
     for (int s = 0; s < speakers.size(); s++) {
       final Annotation<String> speaker = speakers.get(s);
-      if (speaker.span().length() == 0 || StringUtil.isBlank(speaker.value())) {
+      if (speaker.span().length() == 0 || StringUtil.isUnicodeBlank(speaker.value())) {
         throw new IllegalArgumentException(
             "speaker at index " + s + " must cover text and have a non-blank label");
       }

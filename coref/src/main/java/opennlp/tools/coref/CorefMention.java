@@ -65,7 +65,7 @@ public record CorefMention(int chain, String kind, int entity) {
     if (chain < 0) {
       throw new IllegalArgumentException("chain must not be negative: " + chain);
     }
-    if (kind == null || StringUtil.isBlank(kind)) {
+    if (StringUtil.isUnicodeBlank(kind)) {
       throw new IllegalArgumentException("kind must not be null or blank");
     }
     if (entity < NO_ENTITY) {
