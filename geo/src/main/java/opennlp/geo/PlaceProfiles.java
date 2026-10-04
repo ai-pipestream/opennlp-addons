@@ -295,21 +295,15 @@ public final class PlaceProfiles {
   }
 
   /**
-   * Removes leading and trailing whitespace using the toolkit's definition.
+   * Removes leading and trailing whitespace by the Unicode White_Space property, whatever
+   * the active whitespace mode, so padding with a no-break or ideographic space is removed
+   * like ASCII padding.
    *
    * @param text The text to strip.
    * @return The text without surrounding whitespace. Never {@code null}.
    */
   private static String strip(String text) {
-    int start = 0;
-    int end = text.length();
-    while (start < end && StringUtil.isWhitespace(text.charAt(start))) {
-      start++;
-    }
-    while (end > start && StringUtil.isWhitespace(text.charAt(end - 1))) {
-      end--;
-    }
-    return text.substring(start, end);
+    return StringUtil.trimUnicodeWhitespace(text);
   }
 
   /**
