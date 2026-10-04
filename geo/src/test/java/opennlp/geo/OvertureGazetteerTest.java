@@ -113,6 +113,17 @@ public class OvertureGazetteerTest {
     assertEquals(Set.of(OvertureGazetteer.SOURCE), gazetteer.sources());
   }
 
+  /**
+   * Verifies that a byte order mark at the start of the table does not hide the comment
+   * marker of the derivation record on the first line.
+   */
+  @Test
+  void testLeadingByteOrderMarkIsIgnored() throws IOException {
+    final OvertureGazetteer gazetteer = OvertureGazetteer.load(
+        new ByteArrayInputStream(("\uFEFF" + FIXTURE).getBytes(StandardCharsets.UTF_8)));
+    assertEquals("Sydney", gazetteer.byId(OvertureGazetteer.SOURCE, "d3").orElseThrow().name());
+  }
+
   @Test
   void testByRegionUnknownCodeReturnsEmpty() throws IOException {
     // well-formed but absent from the fixture

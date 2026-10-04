@@ -114,6 +114,19 @@ public class GeoNamesGazetteerTest {
     assertEquals(Set.of(GeoNamesGazetteer.SOURCE), gazetteer.sources());
   }
 
+  /**
+   * Verifies that a byte order mark at the start of the table does not become part of the
+   * first record id, which would make that record unreachable by {@code byId}.
+   */
+  @Test
+  void testLeadingByteOrderMarkIsIgnored() throws IOException {
+    final GeoNamesGazetteer gazetteer = GeoNamesGazetteer.load(
+        new ByteArrayInputStream(("\uFEFF" + FIXTURE).getBytes(StandardCharsets.UTF_8)));
+    assertEquals("M\u00fcnchen", gazetteer.byId(GeoNamesGazetteer.SOURCE, "1").orElseThrow().name());
+    assertEquals(4, gazetteer.lookup("Paris").size() + gazetteer.lookup("Texas").size()
+        + gazetteer.lookup("Munich").size());
+  }
+
   @Test
   void testByRegionUnknownCodeReturnsEmpty() throws IOException {
     // well-formed but absent from the fixture

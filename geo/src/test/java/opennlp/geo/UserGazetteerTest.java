@@ -108,6 +108,24 @@ public class UserGazetteerTest {
     assertEquals(Set.of("customer"), gazetteer.sources());
   }
 
+  /**
+   * Verifies that a byte order mark, which spreadsheet exports often prepend to a UTF-8 file,
+   * does not hide the comment marker of the first line or leak into the first record.
+   */
+  @Test
+  void testLeadingByteOrderMarkIsIgnored() throws IOException {
+    final UserGazetteer gazetteer = load("\uFEFF" + FIXTURE);
+    assertEquals("plant-3", gazetteer.lookup("Acme Plant 3").get(0).recordId());
+    assertEquals("Acme Plant 3", gazetteer.byId("customer", "plant-3").orElseThrow().name());
+
+    final UserGazetteer uncommented = load("\uFEFFhq\tAcme HQ\t\t48.86\t2.35\tFR\tPOI\t12\n");
+    assertEquals("hq", uncommented.byId("customer", "hq").orElseThrow().recordId());
+
+    final List<Suppression> rules = UserGazetteer.loadSuppressions(new ByteArrayInputStream(
+        "\uFEFF# rules\nMobile\tUS\n".getBytes(StandardCharsets.UTF_8)));
+    assertEquals(List.of(new Suppression("Mobile", "US", null)), rules);
+  }
+
   @Test
   void testByRegionFindsTheMostPopulousEntry() throws IOException {
     assertEquals("hq", gazetteer().byRegion("fr").orElseThrow().recordId());
