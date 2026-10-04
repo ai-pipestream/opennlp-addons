@@ -24,7 +24,8 @@
 	<title>Dependency annotation</title>
 	<para>The <code>org.apache.opennlp.addons:dependency-annotations</code> artifact
 		adds the dependency layer to documents. It requires the core dependency parser API
-		from OPENNLP-547. Parser implementations, training and corpus readers remain in core.
+		in <code>opennlp.tools.depparse</code>. Parser implementations, training and corpus
+		readers remain in core.
 	</para>
 	<section xml:id="tools.dependency.annotator">
 		<title>DependencyAnnotator</title>
