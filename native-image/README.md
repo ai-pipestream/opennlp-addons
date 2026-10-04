@@ -25,8 +25,8 @@ picks up its reachability metadata: the constructors core creates by class name 
 factories, serializers, feature generator factories, sequence codecs, trainers, model readers
 and writers, model classes), the Snowball routines found through method handles, and the
 resources core reads by a computed name (stopword lists, UAX 29 and normalizer tables,
-default feature descriptors, the version file). No core change is needed; it works with the
-released 3.0.0-M6.
+default feature descriptors, the version file). Like the other add-ons, the module tracks the
+core 3.0.0-SNAPSHOT, and the metadata is regenerated when core changes.
 
 `NativeSmoke` is a minimal native OpenNLP application and the smoke test for the image.
 
