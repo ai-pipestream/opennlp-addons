@@ -239,16 +239,34 @@ final class Json {
             throw malformed("Truncated unicode escape");
           }
           final String hex = text.substring(position, position + 4);
-          try {
-            value.append((char) Integer.parseInt(hex, 16));
-          } catch (NumberFormatException e) {
-            throw malformed("Invalid unicode escape '\\u" + hex + "'");
+          int codeUnit = 0;
+          for (int i = 0; i < hex.length(); i++) {
+            final int digit = hexadecimalValue(hex.charAt(i));
+            if (digit < 0) {
+              throw malformed("Invalid unicode escape '\\u" + hex + "'");
+            }
+            codeUnit = (codeUnit << 4) | digit;
           }
+          value.append((char) codeUnit);
           position += 4;
         }
         default -> throw malformed("Invalid escape '\\" + escaped + "'");
       }
     }
+  }
+
+  /** {@return the value of an ASCII hexadecimal digit, or {@code -1} for another character} */
+  private static int hexadecimalValue(char c) {
+    if (c >= '0' && c <= '9') {
+      return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+      return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F') {
+      return c - 'A' + 10;
+    }
+    return -1;
   }
 
   /**
