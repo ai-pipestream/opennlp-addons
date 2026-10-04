@@ -122,4 +122,19 @@ public class SpatialCoherenceGeocoderTest {
 
     assertEquals("first", resolutions.get(0).entry().recordId());
   }
+
+  /** A document repeating one mention asks the gazetteer for that name once. */
+  @Test
+  void testRepeatedMentionsAreLookedUpOnce() throws IOException {
+    final CountingGazetteer counting = new CountingGazetteer(GAZETTEER);
+    final String text = "Paris and Dallas, Paris and Houston, Paris again.";
+    final List<Span> mentions = List.of(new Span(0, 5), new Span(10, 16), new Span(18, 23),
+        new Span(28, 35), new Span(37, 42));
+
+    final List<GeoResolution> resolutions =
+        new SpatialCoherenceGeocoder(counting).resolve(text, mentions);
+
+    assertEquals(5, resolutions.size());
+    assertEquals(3, counting.lookups(), "one lookup per distinct mention text");
+  }
 }

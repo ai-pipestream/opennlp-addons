@@ -302,4 +302,19 @@ public class PopulationPriorGeocoderTest {
         () -> geocoder.resolve("abc", List.of(new Span(0, 4))));
     assertTrue(outOfBounds.getMessage().contains("outside the text"), outOfBounds.getMessage());
   }
+
+  /** A document repeating one mention asks the gazetteer for that name once. */
+  @Test
+  void testRepeatedMentionsAreLookedUpOnce() throws IOException {
+    final CountingGazetteer counting = new CountingGazetteer(fixtureGazetteer());
+    final String text = "Solo, then Solo again, then Solo and Springfield.";
+    final List<Span> mentions = List.of(new Span(0, 4), new Span(11, 15), new Span(28, 32),
+        mentionOf(text, "Springfield"));
+
+    final List<GeoResolution> resolutions =
+        new PopulationPriorGeocoder(counting).resolve(text, mentions);
+
+    assertEquals(4, resolutions.size());
+    assertEquals(2, counting.lookups(), "one lookup per distinct mention text");
+  }
 }
