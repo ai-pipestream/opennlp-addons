@@ -135,6 +135,7 @@
         <module>coref</module>
         <module>coref-dl</module>
         <module>coref-formats</module>
+        <module>addons-eval</module>
     </modules>
 
     <properties>
