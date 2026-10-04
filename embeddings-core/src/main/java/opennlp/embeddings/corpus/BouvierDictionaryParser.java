@@ -113,7 +113,8 @@ public final class BouvierDictionaryParser {
         if (close < 0) {
           break;
         }
-        final String tag = StringUtil.toLowerCase(html.substring(i + 1, close).strip());
+        final String tag = StringUtil.toLowerCase(
+            StringUtil.trimUnicodeWhitespace(html.substring(i + 1, close)));
         final String name = tagName(tag);
         switch (name) {
           case "p" -> {
@@ -142,9 +143,9 @@ public final class BouvierDictionaryParser {
       final int nextTag = html.indexOf('<', i);
       final String data = decodeEntities(
           html.substring(i, nextTag < 0 ? length : nextTag));
-      if (inParagraph && !data.isBlank()) {
+      if (inParagraph && !StringUtil.isUnicodeBlank(data)) {
         if (inBold && paragraphBold == null && !sawTextBeforeBold) {
-          paragraphBold = data.strip();
+          paragraphBold = StringUtil.trimUnicodeWhitespace(data);
         } else {
           if (paragraphBold == null) {
             sawTextBeforeBold = true;
@@ -175,7 +176,7 @@ public final class BouvierDictionaryParser {
    */
   private static String tagName(String tag) {
     for (int i = 0; i < tag.length(); i++) {
-      if (Character.isWhitespace(tag.charAt(i))) {
+      if (StringUtil.isUnicodeWhitespace(tag.charAt(i))) {
         return tag.substring(0, i);
       }
     }
@@ -193,13 +194,13 @@ public final class BouvierDictionaryParser {
   private static void flushParagraph(List<String[]> raw, String bold, StringBuilder text) {
     String body = collapseWhitespace(text.toString());
     while (!body.isEmpty() && isLeadingPunctuation(body.charAt(0))) {
-      body = body.substring(1).strip();
+      body = StringUtil.trimUnicodeWhitespace(body.substring(1));
     }
     if (bold != null && isPlausibleHeadword(bold)) {
       raw.add(new String[] {bold, body});
     } else if (!raw.isEmpty() && !body.isEmpty()) {
       final String[] last = raw.get(raw.size() - 1);
-      last[1] = (last[1] + " " + body).strip();
+      last[1] = StringUtil.trimUnicodeWhitespace(last[1] + " " + body);
     }
   }
 
@@ -220,7 +221,7 @@ public final class BouvierDictionaryParser {
    * @return {@code true} when the text can be a headword.
    */
   private static boolean isPlausibleHeadword(String word) {
-    final String candidate = word.strip();
+    final String candidate = StringUtil.trimUnicodeWhitespace(word);
     if (candidate.isEmpty() || candidate.length() > MAX_HEADWORD_LENGTH) {
       return false;
     }
@@ -252,7 +253,7 @@ public final class BouvierDictionaryParser {
     int i = 0;
     while (i < length) {
       final int c = text.codePointAt(i);
-      if (Character.isWhitespace(c)) {
+      if (StringUtil.isUnicodeWhitespace(c)) {
         pendingSpace = collapsed.length() > 0;
       } else {
         if (pendingSpace) {
