@@ -58,7 +58,7 @@ public class FeedforwardPOSTagger implements POSTagger {
    * {@inheritDoc}
    *
    * @throws IllegalArgumentException Thrown if {@code sentence} is {@code null}.
-   * @throws IllegalStateException If the model produces a non-finite score.
+   * @throws IllegalStateException Thrown if the model produces a non-finite score.
    */
   @Override
   public String[] tag(String[] sentence) {
@@ -70,7 +70,7 @@ public class FeedforwardPOSTagger implements POSTagger {
    * The {@code additionalContext} is ignored.
    *
    * @throws IllegalArgumentException Thrown if {@code sentence} is {@code null}.
-   * @throws IllegalStateException If the model produces a non-finite score.
+   * @throws IllegalStateException Thrown if the model produces a non-finite score.
    */
   @Override
   public String[] tag(String[] sentence, Object[] additionalContext) {
@@ -82,7 +82,7 @@ public class FeedforwardPOSTagger implements POSTagger {
    * Returns the greedy sequence with per-token probabilities.
    *
    * @throws IllegalArgumentException Thrown if {@code sentence} is {@code null}.
-   * @throws IllegalStateException If the model produces a non-finite score.
+   * @throws IllegalStateException Thrown if the model produces a non-finite score.
    */
   @Override
   public Sequence[] topKSequences(String[] sentence) {
@@ -97,7 +97,7 @@ public class FeedforwardPOSTagger implements POSTagger {
    * {@link #topKSequences(String[])}; the {@code additionalContext} is ignored.
    *
    * @throws IllegalArgumentException Thrown if {@code sentence} is {@code null}.
-   * @throws IllegalStateException If the model produces a non-finite score.
+   * @throws IllegalStateException Thrown if the model produces a non-finite score.
    */
   @Override
   public Sequence[] topKSequences(String[] sentence, Object[] additionalContext) {
@@ -113,7 +113,7 @@ public class FeedforwardPOSTagger implements POSTagger {
    *                  tags are wanted.
    * @return One pos tag per token of {@code sentence}. Never {@code null}.
    * @throws IllegalArgumentException Thrown if {@code sentence} is {@code null}.
-   * @throws IllegalStateException If the model produces a non-finite score.
+   * @throws IllegalStateException Thrown if the model produces a non-finite score.
    */
   private String[] decode(String[] sentence, Sequence collected) {
     if (sentence == null) {
