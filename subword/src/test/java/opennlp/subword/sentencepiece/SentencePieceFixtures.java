@@ -117,7 +117,7 @@ final class SentencePieceFixtures {
     final List<Fixture> fixtures = new ArrayList<>();
     String line;
     while ((line = reader.readLine()) != null) {
-      final String[] cols = line.split("\t", -1);
+      final String[] cols = tabSeparated(line);
       final String input = unescape(cols[0]);
       final int count = Integer.parseInt(cols[1]);
       final List<SubwordPiece> pieces = new ArrayList<>(count);
@@ -129,6 +129,26 @@ final class SentencePieceFixtures {
       fixtures.add(new Fixture(input, pieces, unescape(cols[2 + count * 4])));
     }
     return fixtures;
+  }
+
+  /**
+   * Splits a fixture line at every tab, keeping empty cells so that an empty piece or an
+   * empty normalized form keeps its column.
+   *
+   * @param line The fixture line; must not be null.
+   * @return The cells in order, one more than the number of tabs.
+   */
+  private static String[] tabSeparated(String line) {
+    final List<String> cells = new ArrayList<>();
+    int start = 0;
+    int tab = line.indexOf('\t');
+    while (tab >= 0) {
+      cells.add(line.substring(start, tab));
+      start = tab + 1;
+      tab = line.indexOf('\t', start);
+    }
+    cells.add(line.substring(start));
+    return cells.toArray(new String[0]);
   }
 
   /**
