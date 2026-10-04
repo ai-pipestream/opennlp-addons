@@ -270,6 +270,51 @@ final class CorefLexicon {
   /** Tokens that close a quotation. */
   private static final Set<String> CLOSING_QUOTES = Set.of("\"", "\u201d", "''", "\u00bb");
 
+  /** The bundled first-name gender table, one {@code name<TAB>m|f} row per line. */
+  private static final String FIRST_NAMES_RESOURCE = "first-names-en.txt";
+
+  /** The gender letter of a male first name in {@link #FIRST_NAMES_RESOURCE}. */
+  private static final char MALE_LETTER = 'm';
+
+  /** The gender letter of a female first name in {@link #FIRST_NAMES_RESOURCE}. */
+  private static final char FEMALE_LETTER = 'f';
+
+  /**
+   * Parses a first-name gender table. Each row holds a lowercase name, a tab and a single
+   * gender letter, {@code m} or {@code f}. Empty rows and rows starting with {@code #} are
+   * skipped.
+   *
+   * @param reader The table rows.
+   * @return The genders by name. Never {@code null}.
+   * @throws IOException Thrown if the rows cannot be read.
+   * @throws IllegalStateException Thrown if a row is malformed or carries an unknown gender
+   *                               letter.
+   */
+  static Map<String, Gender> parseFirstNames(BufferedReader reader) throws IOException {
+    final Map<String, Gender> names = new HashMap<>();
+    String line;
+    while ((line = reader.readLine()) != null) {
+      if (line.isEmpty() || line.charAt(0) == '#') {
+        continue;
+      }
+      final int tab = line.indexOf('\t');
+      if (tab <= 0 || tab + 2 != line.length()) {
+        throw new IllegalStateException("malformed first name entry: " + line);
+      }
+      final char letter = line.charAt(tab + 1);
+      final Gender gender;
+      if (letter == MALE_LETTER) {
+        gender = Gender.MALE;
+      } else if (letter == FEMALE_LETTER) {
+        gender = Gender.FEMALE;
+      } else {
+        throw new IllegalStateException("unknown gender letter in first name entry: " + line);
+      }
+      names.put(line.substring(0, tab), gender);
+    }
+    return Map.copyOf(names);
+  }
+
   /** Lazily loads the first-name gender list on first use. */
   private static final class FirstNames {
 
@@ -288,29 +333,15 @@ final class CorefLexicon {
      * @throws UncheckedIOException Thrown if the resource cannot be read.
      */
     private static Map<String, Gender> load() {
-      final Map<String, Gender> names = new HashMap<>();
-      try (InputStream in = CorefLexicon.class.getResourceAsStream("first-names-en.txt")) {
+      try (InputStream in = CorefLexicon.class.getResourceAsStream(FIRST_NAMES_RESOURCE)) {
         if (in == null) {
-          throw new IllegalStateException("first-names-en.txt is missing");
+          throw new IllegalStateException(FIRST_NAMES_RESOURCE + " is missing");
         }
-        final BufferedReader reader =
-            new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-        String line;
-        while ((line = reader.readLine()) != null) {
-          if (line.isEmpty() || line.charAt(0) == '#') {
-            continue;
-          }
-          final int tab = line.indexOf('\t');
-          if (tab <= 0 || tab + 1 >= line.length()) {
-            throw new IllegalStateException("malformed first name entry: " + line);
-          }
-          names.put(line.substring(0, tab),
-              line.charAt(tab + 1) == 'm' ? Gender.MALE : Gender.FEMALE);
-        }
+        return parseFirstNames(
+            new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
-      return Map.copyOf(names);
     }
   }
 
