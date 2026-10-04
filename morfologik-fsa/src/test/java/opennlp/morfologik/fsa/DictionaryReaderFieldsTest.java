@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.morfologik.fsa.MorfologikDictionaryReader.BaseFormEncoding;
 import opennlp.tools.lemmatizer.DictionaryLemmatizer;
+import opennlp.tools.util.WhitespaceMode;
 
 /** Checks preservation of dictionary field contents. */
 class DictionaryReaderFieldsTest {
@@ -176,6 +177,28 @@ class DictionaryReaderFieldsTest {
     final DictionaryLemmatizer dictionary = PoliMorfDictionaryReader.read(text(row));
     Assertions.assertEquals(List.of(List.of("lemma")),
         dictionary.lemmatize(List.of("Token"), List.of("")));
+  }
+
+  /**
+   * A line made of Unicode whitespace only is blank whatever {@link WhitespaceMode} the process
+   * runs in. U+0085 has the White_Space property but is neither a JDK whitespace nor a space
+   * separator, so under the legacy mode only a mode-independent check skips it.
+   *
+   * @param blank The whitespace-only line.
+   * @throws IOException If loading fails.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028", "\u0085"})
+  void testTextSkipsUnicodeBlankLinesInEveryWhitespaceMode(String blank) throws IOException {
+    WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+    try {
+      final DictionaryLemmatizer dictionary =
+          PoliMorfDictionaryReader.read(text("Token\tlemma\tNN\n" + blank + "\n" + blank + blank));
+      Assertions.assertArrayEquals(new String[] {"lemma"},
+          dictionary.lemmatize(new String[] {"token"}, new String[] {"NN"}));
+    } finally {
+      WhitespaceMode.reset();
+    }
   }
 
   /**
