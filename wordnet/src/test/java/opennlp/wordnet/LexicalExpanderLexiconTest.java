@@ -28,6 +28,7 @@ import opennlp.wordnet.LexicalExpander.Kind;
 import static opennlp.wordnet.ExpansionAssertions.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /** Exercises expansion and Morphy lemmatization over the WN-LMF and WNDB fixtures. */
 public class LexicalExpanderLexiconTest {
@@ -89,12 +90,14 @@ public class LexicalExpanderLexiconTest {
         .build();
 
     // A regular inflection resolves by rule, an irregular one by the exception list.
+    // The lemma is the input in another form, so it is excluded like the input itself.
     final List<Expansion> dogs = expander.expand("dogs", WordNetPOS.NOUN);
-    assertEquals(Kind.SYNONYM, find(dogs, "dog").kind());
+    assertNull(find(dogs, "dog"), "got " + dogs);
+    assertEquals(Kind.SYNONYM, find(dogs, "domestic dog").kind());
     assertNotNull(find(dogs, "canid"), "got " + dogs);
 
     final List<Expansion> mice = expander.expand("mice", WordNetPOS.NOUN);
-    assertEquals(Kind.SYNONYM, find(mice, "mouse").kind());
+    assertNull(find(mice, "mouse"), "got " + mice);
     assertNotNull(find(mice, "rodent"), "got " + mice);
   }
 }
