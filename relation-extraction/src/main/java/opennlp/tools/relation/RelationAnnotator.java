@@ -274,8 +274,14 @@ public final class RelationAnnotator implements DocumentAnnotator {
     return Math.max(entity.getStart(), token.getStart()) < Math.min(entity.getEnd(), token.getEnd());
   }
 
-  /** Rejects a cycle in the document dependency forest. */
-  private static void checkAcyclic(int[] heads) {
+  /**
+   * Rejects a cycle in the document dependency forest.
+   *
+   * @param heads The dependency head of each token, indexed by dependent token.
+   * @throws IllegalArgumentException Thrown if a head chain returns to a token on that
+   *         same chain.
+   */
+  private void checkAcyclic(int[] heads) {
     final byte[] states = new byte[heads.length];
     for (int start = 0; start < heads.length; start++) {
       int current = start;
@@ -302,7 +308,7 @@ public final class RelationAnnotator implements DocumentAnnotator {
    * @param heads The dependency head of each token, indexed by dependent token.
    * @return The chain including {@code start} and ending at the root token.
    */
-  private static int[] chainToRoot(int start, int[] heads) {
+  private int[] chainToRoot(int start, int[] heads) {
     int length = 0;
     for (int current = start; current != DependencyArc.ROOT_HEAD; current = heads[current]) {
       length++;
