@@ -282,13 +282,50 @@ public class LexicalExpanderTest {
         .build();
 
     final List<Expansion> expansions = expander.expand("dogs", WordNetPOS.NOUN);
-    // The lemma itself surfaces as a synonym, along with the rest of its synsets.
+    // The lemma is the input in another form, so it is excluded like the input itself.
+    assertNull(find(expansions, "dog"));
+    assertNull(find(expansions, "dogs"));
+    final Expansion domesticDog = find(expansions, "domestic dog");
+    assertEquals(Kind.SYNONYM, domesticDog.kind());
+    assertEquals(1.0, domesticDog.weight());
+    assertNotNull(find(expansions, "canid"));
+
+    assertEquals(List.of(), expander.expand("cats", WordNetPOS.NOUN));
+  }
+
+  @Test
+  void testLemmatizerFallbackExcludesTheLemmaRegardlessOfCase() {
+    final LexicalExpander expander = LexicalExpander.builder(lexicon())
+        .lemmatizer(new Lemmatizer() {
+          @Override
+          public String[] lemmatize(String[] tokens, String[] tags) {
+            final String[] lemmas = new String[tokens.length];
+            for (int i = 0; i < tokens.length; i++) {
+              lemmas[i] = "dogs".equals(LemmaFolding.fold(tokens[i])) ? "Dog" : "O";
+            }
+            return lemmas;
+          }
+
+          @Override
+          public List<List<String>> lemmatize(List<String> tokens, List<String> tags) {
+            throw new UnsupportedOperationException();
+          }
+        })
+        .build();
+
+    final List<Expansion> expansions = expander.expand("DOGS", WordNetPOS.NOUN);
+    assertNull(find(expansions, "dog"));
+    assertNotNull(find(expansions, "domestic dog"));
+  }
+
+  @Test
+  void testWithoutLemmatizerTheInputTermIsTheOnlyExclusion() {
+    final List<Expansion> expansions =
+        LexicalExpander.builder(lexicon()).build().expand("domestic dog", WordNetPOS.NOUN);
+    assertNull(find(expansions, "domestic dog"));
     final Expansion dog = find(expansions, "dog");
     assertEquals(Kind.SYNONYM, dog.kind());
     assertEquals(1.0, dog.weight());
-    assertNotNull(find(expansions, "domestic dog"));
-
-    assertEquals(List.of(), expander.expand("cats", WordNetPOS.NOUN));
   }
 
   /**
