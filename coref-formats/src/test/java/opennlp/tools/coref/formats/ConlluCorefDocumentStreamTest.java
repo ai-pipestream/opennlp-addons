@@ -176,6 +176,26 @@ public class ConlluCorefDocumentStreamTest {
     }
   }
 
+  /**
+   * The chain numbers follow the first mention of each entity in span order, longest
+   * first at the same start, even when the source lists a shorter bracket before the
+   * one that encloses it. CorefTrainer rejects a layer numbered any other way.
+   */
+  @Test
+  void testChainsAreNumberedInSpanOrderNotBracketOrder() throws IOException {
+    final String nested = "1\tThe\tthe\tDET\tDT\t_\t2\tdet\t_\tEntity=(inner)(outer\n"
+        + "2\tcompany\tcompany\tNOUN\tNN\t_\t3\tnsubj\t_\tEntity=outer)\n"
+        + "3\tgrew\tgrow\tVERB\tVBD\t_\t0\troot\t_\tEntity=(inner)\n";
+    try (ConlluCorefDocumentStream stream = stream(nested, ConlluTagset.X)) {
+      final List<Annotation<CorefMention>> chains =
+          stream.read().get(CorefAnnotator.GOLD_CHAINS);
+      Assertions.assertEquals(List.of(new Span(0, 11), new Span(0, 3), new Span(12, 16)),
+          chains.stream().map(Annotation::span).toList());
+      Assertions.assertEquals(List.of(0, 1, 1),
+          chains.stream().map(a -> a.value().chain()).toList());
+    }
+  }
+
   @Test
   void testSkipsDocumentBlockWithoutTokens() throws IOException {
     final String withEmptyBlock = "# newdoc id = metadata-only\n"
