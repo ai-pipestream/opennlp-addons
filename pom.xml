@@ -132,6 +132,9 @@
         <module>text-artifacts</module>
         <module>embedded-assets</module>
         <module>noise</module>
+        <module>coref</module>
+        <module>coref-dl</module>
+        <module>coref-formats</module>
     </modules>
 
     <properties>

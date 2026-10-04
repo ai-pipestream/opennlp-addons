@@ -76,4 +76,5 @@
   <xi:include href="artifacts.xml" />
   <xi:include href="assets.xml" />
   <xi:include href="noise.xml" />
+  <xi:include href="coref.xml" />
 </book>
