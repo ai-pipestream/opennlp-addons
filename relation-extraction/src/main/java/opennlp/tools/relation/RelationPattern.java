@@ -26,7 +26,7 @@ import opennlp.tools.util.StringUtil;
  * An extraction rule with a dependency path, output relation type, and optional trigger.
  *
  * <p>The path is a whitespace-separated sequence of steps. Each character that
- * {@link StringUtil#isWhitespace(char)} accepts separates steps, so no-break spaces and
+ * {@link StringUtil#isUnicodeWhitespace(char)} accepts separates steps, so no-break spaces and
  * other Unicode space separators act like ASCII blanks. A step
  * {@code <label} walks up from the subject's head token over an arc with that relation
  * label; a step {@code >label} walks down toward the object's head token. All up steps
@@ -67,10 +67,10 @@ public record RelationPattern(String type, String path, String trigger) {
    *         {@link StringUtil#toLowerCase(CharSequence)}.
    */
   public RelationPattern {
-    if (type == null || StringUtil.isBlank(type)) {
+    if (StringUtil.isUnicodeBlank(type)) {
       throw new IllegalArgumentException("type must not be null or blank");
     }
-    if (path == null || StringUtil.isBlank(path)) {
+    if (StringUtil.isUnicodeBlank(path)) {
       throw new IllegalArgumentException("path must not be null or blank");
     }
     if (trigger != null) {
@@ -79,7 +79,7 @@ public record RelationPattern(String type, String path, String trigger) {
       }
       for (int i = 0; i < trigger.length(); ) {
         final int cp = trigger.codePointAt(i);
-        if (StringUtil.isWhitespace(cp)) {
+        if (StringUtil.isUnicodeWhitespace(cp)) {
           throw new IllegalArgumentException("trigger must not contain whitespace,"
               + " since it is matched against a single token: " + trigger);
         }
@@ -126,7 +126,7 @@ public record RelationPattern(String type, String path, String trigger) {
   }
 
   /**
-   * Splits a path on every character {@link StringUtil#isWhitespace(char)} accepts. Runs
+   * Splits a path on every character {@link StringUtil#isUnicodeWhitespace(char)} accepts. Runs
    * of consecutive separators never produce empty steps.
    *
    * @param path The path to split. Must not be {@code null}.
@@ -136,7 +136,7 @@ public record RelationPattern(String type, String path, String trigger) {
     final List<String> steps = new ArrayList<>();
     int start = -1;
     for (int i = 0; i <= path.length(); i++) {
-      if (i == path.length() || StringUtil.isWhitespace(path.charAt(i))) {
+      if (i == path.length() || StringUtil.isUnicodeWhitespace(path.charAt(i))) {
         if (start >= 0) {
           steps.add(path.substring(start, i));
           start = -1;
