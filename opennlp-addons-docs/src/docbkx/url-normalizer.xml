@@ -24,8 +24,8 @@
 			runs to the next Unicode whitespace, control character, typographic quotation mark,
 			or one of <code>&lt; &gt; "</code>, so ports, user information, percent escapes,
 			bracketed IPv6 hosts, and non-ASCII host names and paths are removed with it.
-			Trailing sentence punctuation and closing brackets without an opening bracket in the
-			URL are kept. A scheme must start the text or follow a character other than a letter,
+			Trailing sentence punctuation, a trailing apostrophe and closing brackets without an
+			opening bracket in the URL are kept. A scheme must start the text or follow a character other than a letter,
 			digit, underscore, plus, hyphen, period, or colon, so <code>git+https://</code> and
 			<code>see:http://</code> are not HTTP URLs. URLs with other schemes are kept, and no
 			email address is matched inside them. The normalizer is stateless and safe for

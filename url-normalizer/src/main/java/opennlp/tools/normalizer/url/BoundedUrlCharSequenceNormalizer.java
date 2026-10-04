@@ -33,9 +33,9 @@ import opennlp.tools.util.normalizer.UrlCharSequenceNormalizer;
  * or {@code blob:https://} is not a URL of its own. The body runs to the end of the text or
  * to the first Unicode whitespace, control character, unpaired surrogate, typographic
  * quotation mark, or one of {@code < > "}; it therefore includes a port, userinfo, percent
- * escapes, a bracketed IPv6 host, and non-ASCII host names and paths. Trailing sentence punctuation
- * ({@code . , ; : ! ?}) and a closing bracket without its opening bracket inside the body
- * are not part of the URL. A URL with another scheme is kept as it is, and no email address
+ * escapes, a bracketed IPv6 host, and non-ASCII host names and paths. Trailing sentence
+ * punctuation ({@code . , ; : ! ?}), a trailing apostrophe, and a closing bracket without its
+ * opening bracket inside the body are not part of the URL. A URL with another scheme is kept as it is, and no email address
  * is matched inside it. This differs from {@link UrlCharSequenceNormalizer}, the normalizer
  * existing language detector models were trained with; a model trained with one normalizer
  * must be decoded with the same one.
@@ -62,9 +62,9 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
   /** Delimiters that end a URL body besides whitespace and control characters. */
   private static final CodePointSet BODY_DELIMITERS = CodePointSet.of('<', '>', '"');
 
-  /** Sentence punctuation given back when it trails a URL. */
+  /** Punctuation given back when it trails a URL. */
   private static final CodePointSet TRAILING_PUNCTUATION =
-      CodePointSet.of('.', ',', ';', ':', '!', '?');
+      CodePointSet.of('.', ',', ';', ':', '!', '?', '\'');
 
   private static final BoundedUrlCharSequenceNormalizer INSTANCE =
       new BoundedUrlCharSequenceNormalizer();
@@ -198,8 +198,8 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
   }
 
   /**
-   * Gives back trailing sentence punctuation and closing brackets that have no opening
-   * bracket inside the body.
+   * Gives back trailing punctuation and closing brackets that have no opening bracket inside
+   * the body.
    *
    * @param text The text. Must not be {@code null}.
    * @param bodyStart The index the body starts at.
