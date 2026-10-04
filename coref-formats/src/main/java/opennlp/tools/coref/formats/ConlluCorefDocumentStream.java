@@ -243,21 +243,26 @@ public class ConlluCorefDocumentStream implements ObjectStream<Document> {
    * Converts source entity groups to the gold-chain layer.
    *
    * @param entities The mention spans grouped by source entity id.
-   * @return The gold chain layer in text order, numbered by first mention.
+   * @return The gold chain layer in text order. Chains are numbered by the order of their
+   *         first mention in that layer, so enclosing mentions number before inner ones.
    */
   private List<Annotation<CorefMention>> chains(Map<String, List<Span>> entities) {
-    final List<Annotation<CorefMention>> layer = new ArrayList<>();
-    int chain = 0;
-    for (final List<Span> mentions : entities.values()) {
-      for (final Span mention : mentions) {
-        layer.add(new Annotation<>(mention,
-            new CorefMention(chain, CorefMention.KIND_GOLD, CorefMention.NO_ENTITY)));
+    final List<Map.Entry<String, Span>> mentions = new ArrayList<>();
+    for (final Map.Entry<String, List<Span>> entity : entities.entrySet()) {
+      for (final Span mention : entity.getValue()) {
+        mentions.add(Map.entry(entity.getKey(), mention));
       }
-      chain++;
     }
-    layer.sort((a, b) -> a.span().getStart() != b.span().getStart()
-        ? Integer.compare(a.span().getStart(), b.span().getStart())
-        : Integer.compare(b.span().getEnd(), a.span().getEnd()));
+    mentions.sort((a, b) -> a.getValue().getStart() != b.getValue().getStart()
+        ? Integer.compare(a.getValue().getStart(), b.getValue().getStart())
+        : Integer.compare(b.getValue().getEnd(), a.getValue().getEnd()));
+    final Map<String, Integer> chainIds = new HashMap<>();
+    final List<Annotation<CorefMention>> layer = new ArrayList<>(mentions.size());
+    for (final Map.Entry<String, Span> mention : mentions) {
+      final int chain = chainIds.computeIfAbsent(mention.getKey(), id -> chainIds.size());
+      layer.add(new Annotation<>(mention.getValue(),
+          new CorefMention(chain, CorefMention.KIND_GOLD, CorefMention.NO_ENTITY)));
+    }
     return layer;
   }
 
