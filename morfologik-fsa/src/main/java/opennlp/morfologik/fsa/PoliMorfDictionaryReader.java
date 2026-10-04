@@ -98,7 +98,7 @@ public final class PoliMorfDictionaryReader {
       int lineNumber = 0;
       while ((line = reader.readLine()) != null) {
         lineNumber++;
-        if (isBlank(line)) {
+        if (StringUtil.isUnicodeBlank(line)) {
           continue;
         }
         final int firstTab = line.indexOf(FIELD_SEPARATOR);
@@ -118,23 +118,4 @@ public final class PoliMorfDictionaryReader {
     return entries.toLemmatizer();
   }
 
-  /**
-   * Determines whether a line carries no content: empty, or made up entirely of code
-   * points the toolkit treats as whitespace. This follows {@link StringUtil#isWhitespace(int)}
-   * rather than {@link String#isBlank()}, which leaves out the no-break spaces, so a line
-   * spelled entirely from them is skipped rather than parsed as an entry.
-   *
-   * @param line The line to examine. Must not be {@code null}.
-   * @return {@code true} if {@code line} is empty or all whitespace.
-   */
-  private static boolean isBlank(CharSequence line) {
-    for (int i = 0; i < line.length(); ) {
-      final int codePoint = Character.codePointAt(line, i);
-      if (!StringUtil.isWhitespace(codePoint)) {
-        return false;
-      }
-      i += Character.charCount(codePoint);
-    }
-    return true;
-  }
 }
