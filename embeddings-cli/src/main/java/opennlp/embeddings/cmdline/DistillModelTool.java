@@ -28,6 +28,7 @@ import opennlp.embeddings.ModelDistiller;
 import opennlp.tools.cmdline.BasicCmdLineTool;
 import opennlp.tools.cmdline.TerminateToolException;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Distills a local or Hugging Face sentence-transformer into a static embedding model. The
@@ -101,7 +102,7 @@ public class DistillModelTool extends BasicCmdLineTool {
     final List<String> terms = new ArrayList<>();
     for (final String line : Files.readAllLines(file)) {
       final int tab = line.indexOf('\t');
-      final String term = (tab < 0 ? line : line.substring(0, tab)).strip();
+      final String term = StringUtil.trimUnicodeWhitespace(tab < 0 ? line : line.substring(0, tab));
       if (!term.isEmpty()) {
         terms.add(term);
       }

@@ -27,6 +27,8 @@ import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Discovers and selects {@link TeacherEncoderProvider providers} without opening models.
  * Providers register through {@link ServiceLoader}. This class names no backend: which one
@@ -96,7 +98,7 @@ public final class TeacherEncoderProviders {
         logger.warn("Skipping a teacher encoder provider registration: {}", e.getMessage());
         continue;
       }
-      if (provider.name() == null || provider.name().isBlank()) {
+      if (StringUtil.isUnicodeBlank(provider.name())) {
         throw new IllegalStateException("Teacher encoder provider declares a blank name: "
             + provider.getClass().getName());
       }
@@ -132,7 +134,7 @@ public final class TeacherEncoderProviders {
    *                               available providers of that name share the highest priority.
    */
   public static TeacherEncoderProvider get(String name, ClassLoader loader) {
-    if (name == null || name.isBlank()) {
+    if (StringUtil.isUnicodeBlank(name)) {
       throw new IllegalArgumentException("name must not be null or blank");
     }
     List<TeacherEncoderProvider> installed = installed(loader);
@@ -191,8 +193,8 @@ public final class TeacherEncoderProviders {
       throw new IllegalArgumentException("model must not be null");
     }
     String pinned = System.getProperty(PROVIDER_PROPERTY);
-    if (pinned != null && !pinned.isBlank()) {
-      return get(pinned.strip(), loader);
+    if (!StringUtil.isUnicodeBlank(pinned)) {
+      return get(StringUtil.trimUnicodeWhitespace(pinned), loader);
     }
     List<TeacherEncoderProvider> installed = installed(loader);
     List<TeacherEncoderProvider> candidates = new ArrayList<>();

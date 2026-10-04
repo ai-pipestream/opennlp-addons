@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * The tokenizer side of a teacher model, distilled the way
@@ -1153,12 +1154,12 @@ final class TeacherTokenizer {
       int i = 0;
       while (i < length) {
         final int c = template.codePointAt(i);
-        if (Character.isWhitespace(c)) {
+        if (StringUtil.isUnicodeWhitespace(c)) {
           i += Character.charCount(c);
           continue;
         }
         final int start = i;
-        while (i < length && !Character.isWhitespace(template.codePointAt(i))) {
+        while (i < length && !StringUtil.isUnicodeWhitespace(template.codePointAt(i))) {
           i += Character.charCount(template.codePointAt(i));
         }
         final String part = template.substring(start, i);
