@@ -32,7 +32,7 @@ final class LemmaFolding {
    * one-to-one mapping of {@link StringUtil#toLowerCase(CharSequence)}, with the underscore
    * some formats store in multiword lemmas treated as a space. Leading and trailing whitespace
    * is removed and every inner run of underscores or Unicode whitespace
-   * ({@link StringUtil#isWhitespace(char)}) becomes one space, so a query typed with a
+   * ({@link StringUtil#isUnicodeWhitespace(char)}) becomes one space, so a query typed with a
    * no-break space or tab finds the same lemma as one typed with a plain space.
    *
    * @param writtenForm The form as written in a source file or query. Must not be {@code null}.
@@ -47,7 +47,7 @@ final class LemmaFolding {
     boolean pendingSpace = false;
     for (int i = 0; i < writtenForm.length(); i++) {
       final char c = writtenForm.charAt(i);
-      if (c == '_' || StringUtil.isWhitespace(c)) {
+      if (c == '_' || StringUtil.isUnicodeWhitespace(c)) {
         pendingSpace = !normalized.isEmpty();
       } else {
         if (pendingSpace) {
