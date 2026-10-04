@@ -23,12 +23,14 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -87,6 +89,26 @@ public class EmbeddedAssetTest {
         Arguments.of("decodedLength must not be negative",
             (Executable) () -> new EmbeddedAsset(new Span(4, 12), new Span(8, 12),
                 "png", "image/png", -1, -1, -1)));
+  }
+
+  /**
+   * The blank checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a format or media type made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankChecksIgnoreTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class, () -> new EmbeddedAsset(new Span(4, 12),
+          new Span(8, 12), "\u0085", "image/png", 3, -1, -1));
+      assertThrows(IllegalArgumentException.class, () -> new EmbeddedAsset(new Span(4, 12),
+          new Span(8, 12), "png", "\u0085", 3, -1, -1));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   @ParameterizedTest
