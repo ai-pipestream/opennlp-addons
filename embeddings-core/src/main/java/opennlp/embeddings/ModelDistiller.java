@@ -32,6 +32,7 @@ import java.util.Set;
 import opennlp.embeddings.spi.TeacherEncoder;
 import opennlp.embeddings.spi.TeacherEncoderProvider;
 import opennlp.embeddings.spi.TeacherEncoderProviders;
+import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -244,7 +245,7 @@ public final class ModelDistiller {
   public static Result distill(Path teacherDirectory, Path outputDirectory, int pcaDims,
                                List<String> terms, ProgressListener listener, String provider)
       throws IOException {
-    if (provider != null && provider.isBlank()) {
+    if (provider != null && StringUtil.isUnicodeBlank(provider)) {
       throw new IllegalArgumentException("provider must not be blank");
     }
     if (teacherDirectory == null) {

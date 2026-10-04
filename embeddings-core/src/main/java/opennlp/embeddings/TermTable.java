@@ -126,7 +126,11 @@ final class TermTable {
     return normalized.toString();
   }
 
-  /** {@return the number of space-separated words of a normalized term} */
+  /**
+   * {@return the number of words of a normalized term} The term has already passed
+   * {@link #normalizeTerm(String)}, which joins letter-or-digit runs with exactly one U+0020,
+   * so counting that one character is not a whitespace test on free text.
+   */
   private static int countWords(String term) {
     int words = 1;
     for (int i = 0; i < term.length(); i++) {
