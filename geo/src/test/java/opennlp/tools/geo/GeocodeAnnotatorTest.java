@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
@@ -34,6 +35,7 @@ import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -323,5 +325,26 @@ public class GeocodeAnnotatorTest {
     // though the JDK's own blank check does not cover it
     assertThrows(IllegalArgumentException.class,
         () -> new GeocodeAnnotator(geocoder, Set.of("\u00A0")));
+  }
+
+  /**
+   * The location type blank checks of both annotators follow the Unicode White_Space
+   * property whatever the active {@link WhitespaceMode}: U+0085 (next line) is not
+   * whitespace under the legacy definition, but a type made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankTypeChecksIgnoreTheWhitespaceMode() {
+    final Geocoder geocoder = GeoTestUtil.tableGeocoder(Map.of(), 0.5);
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class,
+          () -> new GeocodeAnnotator(geocoder, Set.of("\u0085")));
+      assertThrows(IllegalArgumentException.class,
+          () -> new DocumentRegionAnnotator(Set.of("\u0085")));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 }
