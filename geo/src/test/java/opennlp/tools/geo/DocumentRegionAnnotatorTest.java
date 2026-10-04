@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -36,6 +37,7 @@ import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -302,6 +304,23 @@ public class DocumentRegionAnnotatorTest {
         Arguments.of("AU", -0.1),
         Arguments.of("AU", 1.1),
         Arguments.of("AU", Double.NaN));
+  }
+
+  /**
+   * The blank check follows the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a country code made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testRegionVoteBlankCheckIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class, () -> new RegionVote("\u0085", 0.5));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   @Test
