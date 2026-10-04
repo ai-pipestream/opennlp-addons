@@ -97,7 +97,7 @@ public class DistillModelTool extends BasicCmdLineTool {
    * @return The terms in file order.
    * @throws IOException Thrown if reading the file fails.
    */
-  private List<String> readTerms(Path file) throws IOException {
+  static List<String> readTerms(Path file) throws IOException {
     final List<String> terms = new ArrayList<>();
     for (final String line : Files.readAllLines(file)) {
       final int tab = line.indexOf('\t');

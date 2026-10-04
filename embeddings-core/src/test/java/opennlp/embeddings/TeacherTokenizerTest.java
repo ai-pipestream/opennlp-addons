@@ -371,6 +371,24 @@ class TeacherTokenizerTest {
     assertArrayEquals(new long[] {0, 4, 2}, tokenizer.inputSequence(4));
   }
 
+  /** The items of a string template are separated by Unicode whitespace, not only by U+0020. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testStringTemplateItemsSplitOnUnicodeWhitespace(String separator, @TempDir Path dir)
+      throws IOException {
+    final Path tokenizerJson = write(dir, "tokenizer.json",
+        "{\"post_processor\":{\"type\":\"TemplateProcessing\","
+            + "\"single\":\"<s>" + separator + "$A" + separator + "</s>\","
+            + "\"special_tokens\":{\"<s>\":{\"id\":\"<s>\",\"ids\":[0]},"
+            + "\"</s>\":{\"id\":\"</s>\",\"ids\":[2]}}},"
+            + "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"<unk>\","
+            + "\"vocab\":{\"<s>\":0,\"<pad>\":1,\"</s>\":2,\"<unk>\":3,\"a\":4}}}");
+
+    final TeacherTokenizer tokenizer = TeacherTokenizer.read(tokenizerJson, null);
+
+    assertArrayEquals(new long[] {0, 4, 2}, tokenizer.inputSequence(4));
+  }
+
   /**
    * A {@code BertProcessing} post-processor carries its wrapper as {@code cls}/{@code sep} token
    * pairs instead of as a template, and the ids come straight from those pairs.
