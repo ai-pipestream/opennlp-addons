@@ -117,6 +117,7 @@
         <module>dehyphenation</module>
         <module>symbol-joiner</module>
         <module>predicate-annotators</module>
+        <module>morfologik-fsa</module>
     </modules>
 
     <properties>

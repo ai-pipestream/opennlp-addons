@@ -65,4 +65,5 @@
   <xi:include href="dehyphenation.xml" />
   <xi:include href="symbol-joiner.xml" />
   <xi:include href="predicate-annotators.xml" />
+  <xi:include href="morfologik-fsa.xml" />
 </book>
