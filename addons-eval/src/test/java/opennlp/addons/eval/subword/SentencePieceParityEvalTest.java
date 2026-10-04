@@ -55,6 +55,9 @@ class SentencePieceParityEvalTest {
   static final String MODEL_SUFFIX = ".model";
   static final String FIXTURES_SUFFIX = ".fixtures.tsv";
 
+  /** The fixture count below which a file counts as truncated. */
+  static final int MIN_FIXTURES = 30;
+
   /** One fixture line: the input, the expected pieces and the expected normalized form. */
   record Fixture(String input, List<SubwordPiece> pieces, String normalized) {
   }
@@ -67,14 +70,14 @@ class SentencePieceParityEvalTest {
       files.filter(f -> f.getFileName().toString().endsWith(MODEL_SUFFIX)).sorted()
           .forEach(models::add);
     }
-    assumeTrue(!models.isEmpty(), "skipped: no " + MODEL_SUFFIX + " files in " + dataset);
+    assumeTrue(!models.isEmpty(), EvalRuns.SKIPPED + "no " + MODEL_SUFFIX + " files in " + dataset);
 
     final List<EvalReport> reports = new ArrayList<>();
     for (final Path model : models) {
       final String name = model.getFileName().toString();
       final Path fixturesFile = dataset.resolve(
           name.substring(0, name.length() - MODEL_SUFFIX.length()) + FIXTURES_SUFFIX);
-      assumeTrue(Files.isRegularFile(fixturesFile), "skipped: no fixtures for " + model
+      assumeTrue(Files.isRegularFile(fixturesFile), EvalRuns.SKIPPED + "no fixtures for " + model
           + ", expected " + fixturesFile);
       final SentencePieceTokenizer tokenizer = SentencePieceTokenizer.load(model);
       final List<Fixture> fixtures = readFixtures(fixturesFile);
@@ -88,7 +91,7 @@ class SentencePieceParityEvalTest {
           normalizedMatches++;
         }
       }
-      reports.add(EvalReport.atLeast("fixtures", DATASET, name, fixtures.size(), 30));
+      reports.add(EvalReport.atLeast("fixtures", DATASET, name, fixtures.size(), MIN_FIXTURES));
       reports.add(EvalReport.atLeast("piece.parity", DATASET, name,
           share(pieceMatches, fixtures.size()), 1.0));
       reports.add(EvalReport.atLeast("normalized.parity", DATASET, name,
@@ -97,6 +100,7 @@ class SentencePieceParityEvalTest {
     EvalRuns.finish(DATASET, reports);
   }
 
+  /** {@return the share of matches, {@code 0} when there are no fixtures} */
   private static double share(int matches, int total) {
     return total == 0 ? 0.0 : (double) matches / total;
   }

@@ -76,7 +76,7 @@ class OntoGumEvalTest {
       listing.filter(f -> f.getFileName().toString().endsWith(CONLLU_SUFFIX)).sorted()
           .forEach(files::add);
     }
-    assumeTrue(!files.isEmpty(), "skipped: no " + CONLLU_SUFFIX + " files in " + directory);
+    assumeTrue(!files.isEmpty(), EvalRuns.SKIPPED + "no " + CONLLU_SUFFIX + " files in " + directory);
     EvalRuns.assumeModels(CorefEvalModels.NER_MODELS);
     EvalRuns.assumeModels(CorefEvalModels.CHUNKER_MODEL);
 
@@ -113,12 +113,12 @@ class OntoGumEvalTest {
     final String model = "rules + en-ner + en-chunker";
     EvalRuns.finish(DATASET, List.of(
         EvalReport.atLeast("conll", DATASET, model, scores.conll(), MIN_CONLL),
-        EvalReport.atLeast("muc.f1", DATASET, model, scores.muc().f1(), 0.0),
-        EvalReport.atLeast("bcubed.f1", DATASET, model, scores.bCubed().f1(), 0.0),
-        EvalReport.atLeast("ceafe.f1", DATASET, model, scores.ceafE().f1(), 0.0),
-        EvalReport.atLeast("mentions.f1", DATASET, model, scores.mentions().f1(), 0.0),
+        EvalReport.atLeast("muc.f1", DATASET, model, scores.muc().f1(), EvalRuns.RECORDED),
+        EvalReport.atLeast("bcubed.f1", DATASET, model, scores.bCubed().f1(), EvalRuns.RECORDED),
+        EvalReport.atLeast("ceafe.f1", DATASET, model, scores.ceafE().f1(), EvalRuns.RECORDED),
+        EvalReport.atLeast("mentions.f1", DATASET, model, scores.mentions().f1(), EvalRuns.RECORDED),
         EvalReport.atLeast("documents", DATASET, model, documents, 1.0),
         EvalReport.atLeast("documents.per.second", DATASET, model,
-            documents / Math.max(corefNanos / 1e9, 1e-9), 0.0)));
+            documents / Math.max(corefNanos / 1e9, 1e-9), EvalRuns.RECORDED)));
   }
 }

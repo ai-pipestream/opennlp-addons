@@ -48,6 +48,9 @@ import opennlp.embeddings.eval.SearchEvaluator;
 class VectorSearchEvalTest {
 
   static final String DATASET = "vector-search";
+
+  /** The name {@link SearchEvaluator} gives the exact index in its metrics. */
+  static final String EXACT_INDEX = "exact";
   static final int BITS = 4;
   static final long SEED = 42L;
   static final int TOP_K = 10;
@@ -78,21 +81,21 @@ class VectorSearchEvalTest {
     reports.add(EvalReport.atLeast("fidelity.rank1Agreement", DATASET,
         modelName + " turboquant" + BITS, report.fidelityAgreement(), MIN_FIDELITY_AGREEMENT));
     for (final SearchEvaluator.RetrievalMetrics metrics : report.halfPassage()) {
-      final boolean exact = "exact".equals(metrics.name());
+      final boolean exact = EXACT_INDEX.equals(metrics.name());
       reports.add(EvalReport.atLeast("halfPassage.recallAt" + TOP_K, DATASET,
           modelName + " " + metrics.name(), metrics.recallAtK(),
           exact ? MIN_HALF_PASSAGE_RECALL : MIN_HALF_PASSAGE_QUANTIZED_RECALL));
       reports.add(EvalReport.atLeast("halfPassage.mrr", DATASET,
-          modelName + " " + metrics.name(), metrics.mrr(), 0.0));
+          modelName + " " + metrics.name(), metrics.mrr(), EvalRuns.RECORDED));
     }
     for (final SearchEvaluator.RetrievalMetrics metrics : report.definitionToHeadword()) {
       reports.add(EvalReport.atLeast("definitionToHeadword.mrr", DATASET,
           modelName + " " + metrics.name(), metrics.mrr(), MIN_DEFINITION_MRR));
     }
     reports.add(EvalReport.atLeast("exact.qps", DATASET, modelName,
-        report.flat().queriesPerSecond(), 0.0));
+        report.flat().queriesPerSecond(), EvalRuns.RECORDED));
     reports.add(EvalReport.atLeast("turboquant.qps", DATASET, modelName,
-        report.quantized().queriesPerSecond(), 0.0));
+        report.quantized().queriesPerSecond(), EvalRuns.RECORDED));
     reports.add(EvalReport.atLeast("passages.indexed", DATASET, modelName,
         report.indexedPassageCount(), 1.0));
     EvalRuns.finish(DATASET, reports);
