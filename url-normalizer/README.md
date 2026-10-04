@@ -21,9 +21,10 @@ limitations under the License.
 Optional OpenNLP components, published as `org.apache.opennlp.addons:url-normalizer`.
 
 `BoundedUrlCharSequenceNormalizer` removes each `http` or `https` URL as a whole, the way it
-is bounded in running text, and each email address. Core's `UrlCharSequenceNormalizer` stops
-at the first character outside its ASCII body set, which the existing language detector
-models were trained on, so this one is an opt-in for new training pipelines.
+is bounded in running text, and each email address. Since 3.0.0 core's
+`UrlCharSequenceNormalizer` does the same by default and keeps the ASCII-bounded output of
+the language detector models before 3.0.0 under `CompatibilityMode.LEGACY`; this normalizer
+has no compatibility mode.
 
 Build and run the module tests from the repository root:
 

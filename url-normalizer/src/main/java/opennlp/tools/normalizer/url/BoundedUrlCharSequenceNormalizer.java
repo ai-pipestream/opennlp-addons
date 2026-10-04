@@ -17,6 +17,8 @@
 
 package opennlp.tools.normalizer.url;
 
+import java.io.Serial;
+
 import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 import opennlp.tools.util.normalizer.CodePointSet;
@@ -35,17 +37,26 @@ import opennlp.tools.util.normalizer.UrlCharSequenceNormalizer;
  * quotation mark, or one of {@code < > "}; it therefore includes a port, userinfo, percent
  * escapes, a bracketed IPv6 host, and non-ASCII host names and paths. Trailing sentence
  * punctuation ({@code . , ; : ! ?}), a trailing apostrophe, and a closing bracket without its
- * opening bracket inside the body are not part of the URL. A URL with another scheme is kept as it is, and no email address
- * is matched inside it. This differs from {@link UrlCharSequenceNormalizer}, the normalizer
- * existing language detector models were trained with; a model trained with one normalizer
- * must be decoded with the same one.
+ * opening bracket inside the body are not part of the URL. A URL with another scheme is kept
+ * as it is, and no email address is matched inside it.</p>
  *
- * <p>Email addresses are matched as in {@link UrlCharSequenceNormalizer}.
+ * <p>Email addresses are matched as in {@link UrlCharSequenceNormalizer}: a maximal run of
+ * {@code [-+_.0-9A-Za-z]} whose left neighbor is outside that set, an {@code @}, and a domain
+ * run out of {@code [-.0-9A-Za-z]} that does not start with a dot and spans at least two
+ * chars.</p>
+ *
+ * <p>Core's {@link UrlCharSequenceNormalizer} produces this output as well since 3.0.0, and
+ * under {@link opennlp.tools.util.CompatibilityMode#LEGACY} the ASCII-bounded output the
+ * language detector models before 3.0.0 were trained with. This normalizer has no
+ * compatibility mode and always removes whole URLs. A model trained with one normalizer must
+ * be decoded with the same one.</p>
  *
  * @see <a href="https://url.spec.whatwg.org/">WHATWG URL Standard</a>
+ * @since 3.0.0
  */
 public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNormalizer {
 
+  @Serial
   private static final long serialVersionUID = -1024195904855005L;
 
   private static final String SCHEME_SEPARATOR = "://";
@@ -141,7 +152,7 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
       }
     }
     final int length = text.length();
-    if (!isAsciiLetter(text.charAt(start))) {
+    if (!StringUtil.isAsciiLetter(text.charAt(start))) {
       return -1;
     }
     int at = start + 1;
@@ -193,7 +204,7 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
         || type == Character.CONTROL
         || type == Character.INITIAL_QUOTE_PUNCTUATION
         || type == Character.FINAL_QUOTE_PUNCTUATION
-        || (codePoint <= Character.MAX_VALUE && Character.isSurrogate((char) codePoint))
+        || StringUtil.isUnpairedSurrogate(codePoint)
         || BODY_DELIMITERS.contains(codePoint);
   }
 
@@ -244,6 +255,11 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
   /**
    * Tests whether the scheme between two indexes is {@code http} or {@code https} in any
    * letter case.
+   *
+   * @param text The text. Must not be {@code null}.
+   * @param start The index the scheme starts at.
+   * @param end The index after the scheme, where {@code ://} starts.
+   * @return {@code true} if the scheme is {@code http} or {@code https}.
    */
   private boolean isHttpScheme(CharSequence text, int start, int end) {
     final int schemeLength = end - start;
@@ -263,10 +279,8 @@ public final class BoundedUrlCharSequenceNormalizer implements CharSequenceNorma
     return true;
   }
 
-  private boolean isAsciiLetter(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-  }
-
+  /** {@return the shared instance after deserialization} */
+  @Serial
   private Object readResolve() {
     return INSTANCE;
   }

@@ -39,9 +39,10 @@ normalizer.normalize("See https://example.org:8080/a%20b, or mail me@example.org
 	<section xml:id="tools.normalizer.url.langdetect">
 		<title>Using it for language detection</title>
 		<para>
-			Core's <code>UrlCharSequenceNormalizer</code> removes a URL only up to the first
-			character outside its ASCII body set, and the existing language detector models were
-			trained with that output. To use the bounded normalizer, supply a custom
+			Since 3.0.0 core's <code>UrlCharSequenceNormalizer</code> removes whole URLs the
+			same way, and under <code>CompatibilityMode.LEGACY</code> it produces the
+			ASCII-bounded output the language detector models before 3.0.0 were trained with.
+			This normalizer has no compatibility mode. To use it, supply a custom
 			<code>LanguageDetectorFactory</code> whose <code>getContextGenerator()</code> uses it,
 			and use that factory for both training and inference. A model trained with one URL
 			normalizer must be decoded with the same one, and changing it requires evaluation.
