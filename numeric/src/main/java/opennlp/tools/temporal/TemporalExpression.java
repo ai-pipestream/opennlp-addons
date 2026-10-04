@@ -18,6 +18,7 @@
 package opennlp.tools.temporal;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /**
  * One temporal mention in a text: the {@link Span} it covers in the original text, the
@@ -88,7 +89,7 @@ public record TemporalExpression(Span span, String value, Granularity granularit
     if (span == null) {
       throw new IllegalArgumentException("span must not be null");
     }
-    if (value == null || value.isBlank()) {
+    if (StringUtil.isUnicodeBlank(value)) {
       throw new IllegalArgumentException("value must not be null or blank");
     }
     if (granularity == null) {

@@ -33,6 +33,7 @@ import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
 import opennlp.tools.temporal.DocumentDateAnnotator;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Converts {@link MoneyAnnotator#MONEY} into a target currency under
@@ -84,7 +85,7 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
     if (rates == null) {
       throw new IllegalArgumentException(RATES_REQUIRED);
     }
-    if (target == null || target.isBlank()) {
+    if (StringUtil.isUnicodeBlank(target)) {
       throw new IllegalArgumentException(TARGET_REQUIRED);
     }
     if (asOf == null) {
@@ -109,7 +110,7 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
     if (rates == null) {
       throw new IllegalArgumentException(RATES_REQUIRED);
     }
-    if (target == null || target.isBlank()) {
+    if (StringUtil.isUnicodeBlank(target)) {
       throw new IllegalArgumentException(TARGET_REQUIRED);
     }
     this.rates = rates;
