@@ -28,6 +28,8 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.InvalidFormatException;
 
@@ -148,6 +150,17 @@ class IndexFilesTest {
   @Test
   void testReadRejectsBlankId(@TempDir Path directory) throws IOException {
     IndexFiles.write(directory, VECTORS_FILE, IDS_FILE, List.of(" "),
+        file -> Files.write(file, new byte[] {1}));
+
+    assertThrows(InvalidFormatException.class,
+        () -> IndexFiles.readIds(directory, VECTORS_FILE, IDS_FILE));
+  }
+
+  /** An id made of Unicode whitespace only is blank, as an ASCII space is. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testReadRejectsUnicodeBlankId(String blank, @TempDir Path directory) throws IOException {
+    IndexFiles.write(directory, VECTORS_FILE, IDS_FILE, List.of(blank),
         file -> Files.write(file, new byte[] {1}));
 
     assertThrows(InvalidFormatException.class,
