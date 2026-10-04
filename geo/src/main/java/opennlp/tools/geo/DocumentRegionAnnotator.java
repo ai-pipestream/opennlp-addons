@@ -119,7 +119,7 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
     this.geocoder = geocoder;
     final Set<String> lowered = new HashSet<>(locationTypes.size());
     for (final String type : locationTypes) {
-      if (type == null || StringUtil.isBlank(type)) {
+      if (StringUtil.isUnicodeBlank(type)) {
         throw new IllegalArgumentException("locationTypes must not contain blank entries");
       }
       lowered.add(StringUtil.toLowerCase(type));

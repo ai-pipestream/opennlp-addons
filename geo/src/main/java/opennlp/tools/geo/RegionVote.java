@@ -45,7 +45,7 @@ public record RegionVote(String countryCode, double share) {
    *         blank, or {@code share} is not in {@code (0, 1]}, including {@code NaN}.
    */
   public RegionVote {
-    if (countryCode == null || StringUtil.isBlank(countryCode)) {
+    if (StringUtil.isUnicodeBlank(countryCode)) {
       throw new IllegalArgumentException("countryCode must not be null or blank");
     }
     if (!(share > 0.0 && share <= 1.0)) {
