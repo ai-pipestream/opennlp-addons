@@ -153,12 +153,12 @@ public final class StructuralNoiseScorer implements NoiseScorer {
     final int length = text.length();
     int i = 0;
     while (i < length) {
-      if (StringUtil.isWhitespace(text.charAt(i))) {
+      if (StringUtil.isUnicodeWhitespace(text.charAt(i))) {
         i++;
         continue;
       }
       final int start = i;
-      while (i < length && !StringUtil.isWhitespace(text.charAt(i))) {
+      while (i < length && !StringUtil.isUnicodeWhitespace(text.charAt(i))) {
         i++;
       }
       if (!overlapsAny(start, i, exclude)) {
@@ -391,7 +391,7 @@ public final class StructuralNoiseScorer implements NoiseScorer {
    */
   private boolean onlyWhitespaceBetween(CharSequence text, int from, int to) {
     for (int i = from; i < to; i++) {
-      if (!StringUtil.isWhitespace(text.charAt(i))) {
+      if (!StringUtil.isUnicodeWhitespace(text.charAt(i))) {
         return false;
       }
     }

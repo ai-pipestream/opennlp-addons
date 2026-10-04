@@ -62,7 +62,7 @@ public record NoiseSpan(Span span, String severity, double score) {
     if (span == null) {
       throw new IllegalArgumentException("span must not be null");
     }
-    if (severity == null || StringUtil.isBlank(severity)) {
+    if (StringUtil.isUnicodeBlank(severity)) {
       throw new IllegalArgumentException("severity must not be null or blank");
     }
     if (!(score > 0.0 && score <= 1.0)) {
