@@ -545,8 +545,10 @@ public final class ModelDistiller {
    * @param teacherDirectory The teacher's directory, for the name.
    * @param pcaDims          The requested PCA dimension.
    * @param components       The effective PCA dimension.
+   * @throws IOException Thrown if the teacher's revision file cannot be read.
    */
-  private static String configJson(Path teacherDirectory, int pcaDims, int components) {
+  private static String configJson(Path teacherDirectory, int pcaDims, int components)
+      throws IOException {
     final Path name = teacherDirectory.getFileName();
     return "{\n"
         + "  \"model_type\": \"model2vec\",\n"
@@ -572,8 +574,9 @@ public final class ModelDistiller {
    * teacher revision used for the distillation.</p>
    *
    * @param teacherDirectory The teacher's directory.
+   * @throws IOException Thrown if the teacher's revision file cannot be read.
    */
-  private static String teacherRevisionField(Path teacherDirectory) {
+  private static String teacherRevisionField(Path teacherDirectory) throws IOException {
     final String revision = HuggingFaceModelCache.pinnedRevision(teacherDirectory);
     return revision == null ? "" : "  \"teacher_revision\": " + jsonString(revision) + ",\n";
   }
