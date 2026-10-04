@@ -16,6 +16,8 @@
  */
 package opennlp.embeddings.onnx;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -399,6 +401,8 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    * <p>The shared {@link OrtEnvironment} remains open because {@link
    * OrtEnvironment#getEnvironment()} returns a process-wide singleton. The atomic guard prevents
    * a second {@link OrtSession#close()} call.</p>
+   *
+   * @throws UncheckedIOException Thrown if the ONNX runtime fails to release the session.
    */
   @Override
   public void close() {
@@ -406,7 +410,7 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
       try {
         session.close();
       } catch (OrtException e) {
-        // Closing a native resource must not mask a distillation result.
+        throw new UncheckedIOException(new IOException("Cannot close the ONNX session.", e));
       }
     }
   }
