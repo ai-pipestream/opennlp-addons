@@ -67,6 +67,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
 
   private static final String ENTITY_DECLARATIONS = "javax.xml.stream.entities";
   private static final String TBX_NAMESPACE = "urn:iso:std:iso:30042:ed-2";
+  private static final char SUBTAG_SEPARATOR = '-';
 
   /** The structural levels used to locate terms without entering metadata subtrees. */
   private enum Scope {
@@ -75,6 +76,9 @@ public final class TbxGlossaryReader implements GlossaryReader {
 
   /** The lowercased BCP 47 tag selecting which language sections to read. */
   private final String language;
+
+  /** The lowercased tag followed by the subtag separator, matched as a prefix. */
+  private final String languagePrefix;
 
   /**
    * Builds a reader for one language of a termbase.
@@ -90,6 +94,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
       throw new IllegalArgumentException("languageTag must not be null or blank");
     }
     this.language = StringUtil.toLowerCase(languageTag);
+    this.languagePrefix = language + SUBTAG_SEPARATOR;
   }
 
   /** {@inheritDoc} */
@@ -107,14 +112,10 @@ public final class TbxGlossaryReader implements GlossaryReader {
     }
     try {
       readEntries(xml, entries);
+      // Releases parser state only; the parser does not own the supplied stream.
+      xml.close();
     } catch (XMLStreamException e) {
       throw readFailure(e);
-    } finally {
-      try {
-        xml.close();
-      } catch (XMLStreamException e) {
-        // The XML parser does not own the supplied stream.
-      }
     }
     return entries;
   }
@@ -310,7 +311,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
       return false;
     }
     final String folded = StringUtil.toLowerCase(xmlLang);
-    return folded.equals(language) || folded.startsWith(language + "-");
+    return folded.equals(language) || folded.startsWith(languagePrefix);
   }
 
   /**
