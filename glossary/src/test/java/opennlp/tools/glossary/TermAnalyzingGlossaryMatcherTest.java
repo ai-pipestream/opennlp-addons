@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -29,6 +30,7 @@ import opennlp.tools.lemmatizer.Lemmatizer;
 import opennlp.tools.stemmer.snowball.SnowballStemmer;
 import opennlp.tools.stemmer.snowball.SnowballStemmerFactory;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 import opennlp.tools.util.normalizer.Dimension;
 import opennlp.tools.util.normalizer.TermAnalyzer;
@@ -277,6 +279,39 @@ public class TermAnalyzingGlossaryMatcherTest {
     Assertions.assertEquals(1, matches.size());
     Assertions.assertEquals("hot zap dogs",
         text.substring(matches.get(0).span().getStart(), matches.get(0).span().getEnd()));
+  }
+
+  /**
+   * Blank-normalized tokens are recognized by the Unicode White_Space property whatever
+   * the active {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the
+   * legacy definition, but a token normalized to it is still rejected in a registered
+   * term and still vanishes from the input text.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankNormalizedTokenCheckIgnoresTheWhitespaceMode() {
+    final CharSequenceNormalizer blanker = text ->
+        "zap".contentEquals(text) ? "\u0085" : text;
+    final TermAnalyzer blanking = TermAnalyzer.builder()
+        .caseFold()
+        .transform(Dimension.WHITESPACE, blanker)
+        .build();
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new TermAnalyzingGlossaryMatcher(
+              List.of(new GlossaryEntry("Z", "hot zap dog")), blanking));
+      final TermAnalyzingGlossaryMatcher matcher = new TermAnalyzingGlossaryMatcher(
+          List.of(new GlossaryEntry("FOOD", "hot dog")), blanking);
+      final String text = "the hot zap dog barks";
+      final List<GlossaryMatch> matches = matcher.match(text);
+      Assertions.assertEquals(1, matches.size());
+      Assertions.assertEquals("hot zap dog",
+          text.substring(matches.get(0).span().getStart(), matches.get(0).span().getEnd()));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /**

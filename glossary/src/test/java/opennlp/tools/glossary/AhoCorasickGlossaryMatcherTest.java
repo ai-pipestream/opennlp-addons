@@ -22,10 +22,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 import opennlp.tools.util.normalizer.DashCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.FullCaseFoldCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.GermanUmlautCharSequenceNormalizer;
@@ -600,6 +602,25 @@ public class AhoCorasickGlossaryMatcherTest {
         () -> new AhoCorasickGlossaryMatcher(
             List.of(new GlossaryEntry("Z2", "\u200B\u200B\u200B")), false,
             InvisibleCharSequenceNormalizer.getInstance()));
+  }
+
+  /**
+   * The blank term checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a term made of it is still blank, for the entry and for the pattern.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankTermCheckIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new AhoCorasickGlossaryMatcher(
+              List.of(new GlossaryEntry("Z", "\u0085")), false));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /**

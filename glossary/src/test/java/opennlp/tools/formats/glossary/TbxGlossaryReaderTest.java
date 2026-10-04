@@ -25,9 +25,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import opennlp.tools.glossary.GlossaryEntry;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.WhitespaceMode;
 
 /** Tests TBX versions, language selection, entity handling, and entry validation. */
 public class TbxGlossaryReaderTest {
@@ -207,6 +209,34 @@ public class TbxGlossaryReaderTest {
 
     Assertions.assertThrows(InvalidFormatException.class, () -> new TbxGlossaryReader("en")
         .read(new ByteArrayInputStream(doc.getBytes(StandardCharsets.UTF_8))));
+  }
+
+  /**
+   * The blank checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a language tag, an entry id or a term made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankChecksIgnoreTheWhitespaceMode() {
+    final String prefix = "<?xml version=\"1.0\"?><martif type=\"TBX\"><text><body>";
+    final String suffix = "</body></text></martif>";
+    final String blankId = prefix + "<termEntry id=\"\u0085\"><langSet xml:lang=\"en\">"
+        + "<tig><term>hot dog</term></tig></langSet></termEntry>" + suffix;
+    final String blankTerm = prefix + "<termEntry id=\"c1\"><langSet xml:lang=\"en\">"
+        + "<tig><term>\u0085</term></tig></langSet></termEntry>" + suffix;
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new TbxGlossaryReader("\u0085"));
+      Assertions.assertThrows(InvalidFormatException.class, () -> new TbxGlossaryReader("en")
+          .read(new ByteArrayInputStream(blankId.getBytes(StandardCharsets.UTF_8))));
+      Assertions.assertThrows(InvalidFormatException.class, () -> new TbxGlossaryReader("en")
+          .read(new ByteArrayInputStream(blankTerm.getBytes(StandardCharsets.UTF_8))));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** Reports truncated XML as invalid content. */
