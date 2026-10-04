@@ -18,11 +18,13 @@
 package opennlp.tools.glossary;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -46,6 +48,27 @@ class GlossaryRecordsTest {
     assertThrows(IllegalArgumentException.class, () -> new GlossaryEntry("ID", invalid));
     assertThrows(IllegalArgumentException.class, () -> new GlossaryMatch(SPAN, invalid, "term"));
     assertThrows(IllegalArgumentException.class, () -> new GlossaryMatch(SPAN, "ID", invalid));
+  }
+
+  /**
+   * The blank checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but an identifier or term made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankChecksIgnoreTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class, () -> new GlossaryEntry("\u0085", "term"));
+      assertThrows(IllegalArgumentException.class, () -> new GlossaryEntry("ID", "\u0085"));
+      assertThrows(IllegalArgumentException.class,
+          () -> new GlossaryMatch(SPAN, "\u0085", "term"));
+      assertThrows(IllegalArgumentException.class, () -> new GlossaryMatch(SPAN, "ID", "\u0085"));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** A match requires an original-text span. */

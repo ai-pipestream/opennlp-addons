@@ -22,9 +22,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import opennlp.tools.glossary.GlossaryEntry;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.WhitespaceMode;
 
 import static opennlp.tools.formats.glossary.GlossaryTestSupport.utf8;
 
@@ -153,6 +155,30 @@ public class CsvGlossaryReaderTest {
     final InvalidFormatException blankTerm = Assertions.assertThrows(InvalidFormatException.class,
         () -> new CsvGlossaryReader().read(utf8("Q1,hot dog\nQ2,\"\"\n")));
     Assertions.assertTrue(blankTerm.getMessage().contains("line 2"), blankTerm.getMessage());
+  }
+
+  /**
+   * Blank identifiers and terms are recognized by the Unicode White_Space property whatever
+   * the active {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the
+   * legacy definition, but a cell made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankCellChecksIgnoreTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      final InvalidFormatException blankId = Assertions.assertThrows(
+          InvalidFormatException.class,
+          () -> new CsvGlossaryReader().read(utf8("\u0085,hot dog\n")));
+      Assertions.assertTrue(blankId.getMessage().contains("line 1"), blankId.getMessage());
+      final InvalidFormatException blankTerm = Assertions.assertThrows(
+          InvalidFormatException.class,
+          () -> new CsvGlossaryReader().read(utf8("Q1,hot dog\nQ2,\u0085\n")));
+      Assertions.assertTrue(blankTerm.getMessage().contains("line 2"), blankTerm.getMessage());
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** Rejects an unclosed quoted field. */
