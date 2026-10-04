@@ -20,8 +20,9 @@
 		<para>
 			<code>DehyphenationCharSequenceNormalizer</code> joins words split at a
 			line break, such as <code>"litiga-\ntion"</code> to <code>"litigation"</code>.
-			A letter must precede the hyphen and follow the break, with optional
-			horizontal whitespace before the continuation. The supported hyphens are
+			A letter, optionally followed by combining marks, must precede the hyphen,
+			and a letter must follow the break, with optional horizontal whitespace
+			before the continuation. The supported hyphens are
 			<code>U+002D</code>, <code>U+00AD</code> and <code>U+2010</code>.
 			The non-breaking hyphen <code>U+2011</code> is excluded.
 		</para>

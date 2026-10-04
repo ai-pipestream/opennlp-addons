@@ -29,8 +29,9 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * Joins words split by a hyphen and a line break, such as
  * {@code "litiga-\ntion"} to {@code "litigation"}.
  *
- * <p>The hyphen must have a letter immediately before it and a forced line break
- * immediately after it. Horizontal whitespace may precede the next letter.
+ * <p>The hyphen must have a letter, optionally followed by combining marks, immediately
+ * before it and a forced line break immediately after it. Horizontal whitespace may
+ * precede the next letter.
  * Supported hyphens are {@code U+002D}, {@code U+00AD} and {@code U+2010}.
  * {@code U+2011 NON-BREAKING HYPHEN} is excluded.</p>
  *
@@ -137,7 +138,8 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
   }
 
   /**
-   * Checks for a hyphenation break between letters.
+   * Checks for a hyphenation break between letters. Combining marks after the letter
+   * before the hyphen are allowed.
    *
    * @param text The input text.
    * @param hyphen The candidate hyphen offset.
@@ -148,7 +150,8 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
     if (c != HYPHEN_MINUS && c != SOFT_HYPHEN && c != TYPESET_HYPHEN) {
       return -1;
     }
-    if (hyphen == 0 || !Character.isLetter(Character.codePointBefore(text, hyphen))) {
+    final int letterEnd = skipMarksBackward(text, hyphen);
+    if (letterEnd == 0 || !Character.isLetter(Character.codePointBefore(text, letterEnd))) {
       return -1;
     }
     final int length = text.length();
@@ -171,6 +174,38 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       return -1;
     }
     return end;
+  }
+
+  /**
+   * Steps back over the combining marks that end before an offset, so that a letter in
+   * decomposed form, such as {@code "e\u0301"}, counts as a letter.
+   *
+   * @param text The input text.
+   * @param end The offset after the last code point to inspect.
+   * @return The offset after the last code point before {@code end} that is not a mark.
+   */
+  private int skipMarksBackward(CharSequence text, int end) {
+    while (end > 0) {
+      final int codePoint = Character.codePointBefore(text, end);
+      if (!isMark(codePoint)) {
+        break;
+      }
+      end -= Character.charCount(codePoint);
+    }
+    return end;
+  }
+
+  /**
+   * Checks for a combining mark.
+   *
+   * @param codePoint The code point to check.
+   * @return Whether the code point has the general category Mn, Mc or Me.
+   */
+  private boolean isMark(int codePoint) {
+    final int type = Character.getType(codePoint);
+    return type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
+        || type == Character.ENCLOSING_MARK;
   }
 
   /**
