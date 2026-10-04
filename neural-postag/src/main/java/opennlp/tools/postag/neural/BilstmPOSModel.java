@@ -560,7 +560,7 @@ public class BilstmPOSModel {
    * magic itself, and every one of those layouts stays readable.
    *
    * @param out The stream to write to; not closed. Must not be {@code null}.
-   * @throws IllegalArgumentException If {@code out} is {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code out} is {@code null}.
    * @throws IOException Thrown if writing fails.
    */
   public void serialize(OutputStream out) throws IOException {
@@ -626,7 +626,7 @@ public class BilstmPOSModel {
    * Serializes this model to a file, replacing any existing content.
    *
    * @param file The target path. Must not be {@code null}.
-   * @throws IllegalArgumentException If {@code file} is {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code file} is {@code null}.
    * @throws IOException Thrown if writing fails.
    */
   public void serialize(Path file) throws IOException {
@@ -646,8 +646,8 @@ public class BilstmPOSModel {
    *
    * @param in The stream to read from; not closed. Must not be {@code null}.
    * @return The loaded model. Never {@code null}.
-   * @throws IllegalArgumentException If {@code in} is {@code null}.
-   * @throws IOException If reading fails or the model content is invalid.
+   * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
+   * @throws IOException Thrown if reading fails or the model content is invalid.
    */
   public static BilstmPOSModel load(InputStream in) throws IOException {
     if (in == null) {
@@ -661,8 +661,8 @@ public class BilstmPOSModel {
    *
    * @param file The model file. Must not be {@code null}.
    * @return The loaded model. Never {@code null}.
-   * @throws IllegalArgumentException If {@code file} is {@code null}.
-   * @throws IOException If reading fails or the model content is invalid.
+   * @throws IllegalArgumentException Thrown if {@code file} is {@code null}.
+   * @throws IOException Thrown if reading fails or the model content is invalid.
    */
   public static BilstmPOSModel load(Path file) throws IOException {
     if (file == null) {

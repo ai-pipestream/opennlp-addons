@@ -133,7 +133,7 @@ public final class BilstmPOSTrainer {
     /**
      * Validates the hyperparameters.
      *
-     * @throws IllegalArgumentException If a value is out of range or not finite.
+     * @throws IllegalArgumentException Thrown if a value is out of range or not finite.
      */
     public Settings {
       if (wordEmbeddingSize <= 0 || charEmbeddingSize <= 0 || charHiddenSize <= 0
@@ -298,7 +298,7 @@ public final class BilstmPOSTrainer {
      *
      * @param values The array, or null for an absent auxiliary tagging.
      * @param name The argument name used in errors.
-     * @throws IllegalArgumentException If an element is null.
+     * @throws IllegalArgumentException Thrown if an element is null.
      */
     private void checkElements(String[] values, String name) {
       if (values != null) {
@@ -473,7 +473,7 @@ public final class BilstmPOSTrainer {
    * @param wordVectors The word vector source, or {@code null} to train without one.
    * @param lexicon Additional words to store vectors for, or {@code null} for none.
    * @return A trained {@link BilstmPOSModel}. Never {@code null}.
-   * @throws IllegalArgumentException If {@code corpus} is empty, vector inputs are
+   * @throws IllegalArgumentException Thrown if {@code corpus} is empty, vector inputs are
    *         invalid, or the combined word representation exceeds {@link Integer#MAX_VALUE}.
    * @throws IllegalStateException Thrown if a training worker fails or the training
    *         thread is interrupted, or training arithmetic produces a non-finite value.
@@ -581,7 +581,7 @@ public final class BilstmPOSTrainer {
    * @param charHiddenSize The validated character encoder width per direction.
    * @param pretrainedSize The pretrained width, or zero without pretrained vectors.
    * @return The combined input width.
-   * @throws IllegalArgumentException If the sum exceeds {@link Integer#MAX_VALUE}.
+   * @throws IllegalArgumentException Thrown if the sum exceeds {@link Integer#MAX_VALUE}.
    */
   private static int wordRepresentationSize(int wordEmbeddingSize, int charHiddenSize,
       int pretrainedSize) {
@@ -1025,7 +1025,7 @@ public final class BilstmPOSTrainer {
      * @param wordVectors The word vector source, or {@code null} to train without one.
      * @param lexicon Additional words to store vectors for, or {@code null} for none.
      * @return The initialized context. Never {@code null}.
-     * @throws IllegalArgumentException If {@code lexicon} contains {@code null}
+     * @throws IllegalArgumentException Thrown if {@code lexicon} contains {@code null}
      *         or {@code wordVectors} violates its contract, or the combined word
      *         representation exceeds {@link Integer#MAX_VALUE}.
      */

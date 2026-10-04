@@ -60,7 +60,7 @@ final class LstmLayer {
    * @param inputSize The number of input features per timestep. Must be positive.
    * @param hiddenSize The number of hidden units. Must be positive.
    * @param random The seeded source of init randomness. Must not be {@code null}.
-   * @throws IllegalArgumentException If a size is not positive, {@code hiddenSize}
+   * @throws IllegalArgumentException Thrown if a size is not positive, {@code hiddenSize}
    *         exceeds {@link #MAX_HIDDEN_SIZE}, or {@code random} is {@code null}.
    */
   LstmLayer(int inputSize, int hiddenSize, Random random) {
@@ -123,7 +123,7 @@ final class LstmLayer {
    *          not be {@code null}.
    * @param b The biases, length {@code 4 * hiddenSize}. Must not be {@code null}.
    * @return A layer over the given arrays. Never {@code null}.
-   * @throws IllegalArgumentException If a size is not positive, {@code hiddenSize}
+   * @throws IllegalArgumentException Thrown if a size is not positive, {@code hiddenSize}
    *         exceeds {@link #MAX_HIDDEN_SIZE}, or an array is {@code null} or its outer
    *         length is not {@code 4 * hiddenSize}.
    */
@@ -145,7 +145,7 @@ final class LstmLayer {
    *
    * @param inputSize The input width.
    * @param hiddenSize The recurrent width.
-   * @throws IllegalArgumentException If a size is not positive or the gate width overflows.
+   * @throws IllegalArgumentException Thrown if a size is not positive or the gate width overflows.
    */
   private static void validateDimensions(int inputSize, int hiddenSize) {
     if (inputSize <= 0 || hiddenSize <= 0) {
