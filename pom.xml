@@ -107,6 +107,7 @@
     </issueManagement>
 
     <modules>
+        <module>parser-tagger</module>
         <module>opennlp-addons-docs</module>
         <module>light-stemmers</module>
         <module>geo</module>

@@ -69,4 +69,5 @@
   <xi:include href="neural-postag.xml" />
   <xi:include href="subword.xml" />
   <xi:include href="embeddings.xml" />
+  <xi:include href="parser-tagger.xml" />
 </book>

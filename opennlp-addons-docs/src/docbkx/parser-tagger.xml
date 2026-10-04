@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
+"http://docbook.org/xml/5.0/dtd/docbook.dtd"[
+]>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
+	license agreements. See the NOTICE file distributed with this work for additional
+	information regarding copyright ownership. The ASF licenses this file to
+	you under the Apache License, Version 2.0 (the "License"); you may not use
+	this file except in compliance with the License. You may obtain a copy of
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
+	by applicable law or agreed to in writing, software distributed under the
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+	OF ANY KIND, either express or implied. See the License for the specific
+	language governing permissions and limitations under the License. -->
+
+<chapter xml:id="addons.parser-tagger" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title>Parsers with a custom tagger</title>
+	<section xml:id="tools.parser.custom">
+		<title>Supplying a POS tagger and chunker</title>
+		<para>
+			The core bottom-up parsers tag and chunk with the models packed in the
+			<code>ParserModel</code>. The package <code>opennlp.tools.parser.custom</code> provides
+			<code>CustomTaggerParsers</code>, which creates the parser for the model's type, chunking
+			or tree insert, with a <code>POSTagger</code> you supply, and optionally a
+			<code>Chunker</code>. Any tagger whose <code>topKSequences</code> returns scored
+			sequences can drive the parse, for example a neural tagger.
+		</para>
+		<programlisting language="java"><![CDATA[POSTagger tagger = ...;  // any POSTagger
+AbstractBottomUpParser parser = CustomTaggerParsers.create(parserModel, tagger);
+Parse[] parses = parser.parse(sentence, 1);
+
+Chunker chunker = ...;   // optional
+AbstractBottomUpParser both = CustomTaggerParsers.create(parserModel, tagger, chunker,
+    AbstractBottomUpParser.defaultBeamSize, AbstractBottomUpParser.defaultAdvancePercentage);]]>
+		</programlisting>
+		<para>
+			The tags the tagger produces must match the tag set the parser model was trained on.
+			The core constructor still builds the model's tagger and chunker once; they are
+			replaced before the parser is returned and are never used. A <code>null</code>
+			argument is rejected with an <code>IllegalArgumentException</code>.
+		</para>
+	</section>
+</chapter>
