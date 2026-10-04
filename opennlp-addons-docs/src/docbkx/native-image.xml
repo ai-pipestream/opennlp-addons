@@ -39,7 +39,9 @@
 			The metadata is generated from the core jars by
 			<code>ReachabilityMetadataGenerator</code>, and <code>ReachabilityMetadataTest</code>
 			fails when the shipped file no longer matches the core version the add-on builds
-			against, or when the runtime jar bundles a resource no glob covers.
+			against, or when the runtime jar bundles a resource no glob covers. Like the other
+			add-ons, the module tracks the core 3.0.0-SNAPSHOT, and the metadata is regenerated
+			when core changes.
 		</para>
 	</section>
 	<section xml:id="tools.native-image.usage">
