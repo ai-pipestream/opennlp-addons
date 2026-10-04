@@ -19,7 +19,9 @@ package opennlp.wordnet;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
+import opennlp.tools.util.WhitespaceMode;
 import opennlp.tools.wordnet.WordNetPOS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,6 +64,24 @@ public class LemmaFoldingTest {
   void testLemmaKeyAndExceptionLookupAgreeOnTheFold() {
     assertEquals(InMemoryWordNetLexicon.LemmaKey.of("Domestic_Dog", WordNetPOS.NOUN),
         InMemoryWordNetLexicon.LemmaKey.of(LemmaFolding.fold("DOMESTIC_DOG"), WordNetPOS.NOUN));
+  }
+
+  /**
+   * Folding follows the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but it still separates and pads a lemma like a space.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testFoldIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertEquals("domestic dog", LemmaFolding.fold("\u0085domestic\u0085dog\u0085"));
+      assertEquals("", LemmaFolding.fold("\u0085"));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   @Test
