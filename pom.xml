@@ -118,6 +118,7 @@
         <module>symbol-joiner</module>
         <module>predicate-annotators</module>
         <module>morfologik-fsa</module>
+        <module>neural-postag</module>
     </modules>
 
     <properties>
