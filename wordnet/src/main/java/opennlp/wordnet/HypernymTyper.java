@@ -76,8 +76,8 @@ public final class HypernymTyper {
     this.knowledgeBase = knowledgeBase;
     final Map<String, String> labels = new LinkedHashMap<>();
     for (final Map.Entry<String, String> anchor : anchors.entrySet()) {
-      if (anchor.getKey() == null || StringUtil.isBlank(anchor.getKey())
-          || anchor.getValue() == null || StringUtil.isBlank(anchor.getValue())) {
+      if (StringUtil.isUnicodeBlank(anchor.getKey())
+          || StringUtil.isUnicodeBlank(anchor.getValue())) {
         throw new IllegalArgumentException("anchors must not contain blank entries");
       }
       final List<Synset> senses = knowledgeBase.lookup(anchor.getKey(), WordNetPOS.NOUN);
@@ -105,7 +105,7 @@ public final class HypernymTyper {
    * @throws IllegalArgumentException Thrown if {@code lemma} is {@code null} or blank.
    */
   public Optional<String> type(String lemma) {
-    if (lemma == null || StringUtil.isBlank(lemma)) {
+    if (StringUtil.isUnicodeBlank(lemma)) {
       throw new IllegalArgumentException("lemma must not be null or blank");
     }
     String bestLabel = null;

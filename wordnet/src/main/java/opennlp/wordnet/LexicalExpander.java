@@ -100,7 +100,7 @@ public final class LexicalExpander {
      *         {@code senseRank} is negative, or {@code weight} is not in {@code (0, 1]}.
      */
     public Expansion {
-      if (term == null || StringUtil.isBlank(term)) {
+      if (StringUtil.isUnicodeBlank(term)) {
         throw new IllegalArgumentException(TERM_BLANK);
       }
       if (kind == null) {
@@ -203,7 +203,7 @@ public final class LexicalExpander {
    * @throws IllegalArgumentException Thrown if {@code term} is {@code null} or blank.
    */
   private List<Expansion> collect(String term, List<WordNetPOS> poses) {
-    if (term == null || StringUtil.isBlank(term)) {
+    if (StringUtil.isUnicodeBlank(term)) {
       throw new IllegalArgumentException(TERM_BLANK);
     }
     final Map<String, Expansion> best = new HashMap<>();
