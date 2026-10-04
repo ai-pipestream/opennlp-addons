@@ -46,7 +46,9 @@ import opennlp.tools.wordnet.WordNetRelation;
  * {@link WordNetPOS} name as the tag.</p>
  *
  * <p>Hypernym walks follow both the direct and the instance relation, track visited synsets so
- * malformed cyclic data cannot loop, and exclude the term itself. Results are deduplicated
+ * malformed cyclic data cannot loop, and exclude the term itself and, when a lemmatizer resolved
+ * it, its lemma; both are compared after the same case and underscore folding the lexicon applies.
+ * Results are deduplicated
  * case-insensitively, keeping the highest weight, and ordered by weight descending, then kind,
  * then term, so output is stable across runs.</p>
  *
@@ -166,8 +168,9 @@ public final class LexicalExpander {
    *
    * @param term The term to expand. Must not be {@code null} or blank.
    * @param pos  The part of speech to expand as. Must not be {@code null}.
-   * @return The expansions, deduplicated and ordered by descending weight; empty when the term
-   *     (and its lemma, when a lemmatizer is configured) is not in the lexicon.
+   * @return The expansions, deduplicated and ordered by descending weight, without the term or
+   *     its lemma; empty when the term (and its lemma, when a lemmatizer is configured) is not in
+   *     the lexicon.
    * @throws IllegalArgumentException Thrown if {@code term} is {@code null} or blank or
    *     {@code pos} is {@code null}.
    */
@@ -212,6 +215,8 @@ public final class LexicalExpander {
       if (subject == null) {
         continue;
       }
+      // The lemma is the input in another form, so it is excluded like the input itself.
+      excluded.add(LemmaFolding.fold(subject));
       final List<Synset> senses = lexicon.lookup(subject, pos);
       final int senseCount = Math.min(senses.size(), maxSenses);
       for (int rank = 0; rank < senseCount; rank++) {
