@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
+"http://docbook.org/xml/5.0/dtd/docbook.dtd"[
+]>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<chapter xml:id="tools.addons.eval">
+	<title>Add-on evaluation suite</title>
+	<para>The addon artifact is <code>org.apache.opennlp.addons:addons-eval</code>. It holds the
+		evaluation suite of the add-ons: tests that run the production evaluators of each
+		add-on on downloaded data, skip when the data is absent, and hold the measured figures
+		against documented regression floors when it is present. It mirrors the
+		<code>opennlp-eval-tests</code> module of OpenNLP core and depends on the add-ons it
+		evaluates, so it is the last add-on module in the build.
+	</para>
+	<section xml:id="tools.addons.eval.data">
+		<title>Locating the data</title>
+		<para>
+			<code>EvalData</code> resolves two directories. The model directory is the
+			<code>.opennlp</code> directory below the <code>OPENNLP_DOWNLOAD_HOME</code> system
+			property, else the environment variable of the same name, else the user's home,
+			which is where core's <code>DownloadUtil</code> stores downloaded models. The eval
+			root is the <code>opennlp.addons.eval.dir</code> system property, else the
+			<code>OPENNLP_ADDONS_EVAL_DIR</code> environment variable, else the <code>eval</code>
+			directory below the model directory. A blank setting counts as unset. Each
+			evaluation reads one subdirectory of the root: <code>vector-search</code>,
+			<code>sentencepiece</code>, <code>ud</code>, <code>coref/ontogum</code> and
+			<code>coref/gap</code>; the module README lists the files each one expects.
+		</para>
+		<para>
+			The eval tests use JUnit assumptions, so a missing directory or file skips the
+			test with a message naming the path, and a plain build never fails for want of
+			data. When an evaluation runs, it writes one tab-separated report per evaluation
+			under <code>target/eval-reports</code> through <code>EvalReport</code>, with the
+			columns <code>metric</code>, <code>dataset</code>, <code>model</code>,
+			<code>value</code>, <code>threshold</code> and <code>pass</code>, and prints one
+			summary line per metric.
+		</para>
+		<programlisting language="java">
+				<![CDATA[
+EvalData data = EvalData.fromEnvironment();
+Path treebank = data.dataset("ud");                 // <eval root>/ud
+Path chunker = data.model("en-chunker.bin");        // <models>/en-chunker.bin
+
+EvalReport report = EvalReport.atLeast("upos.accuracy", "ud", "bilstm", 0.953, 0.85);
+EvalReport.write(Path.of("target", "eval-reports", "ud.tsv"), List.of(report));]]>
+		</programlisting>
+	</section>
+	<section xml:id="tools.addons.eval.suite">
+		<title>The evaluations</title>
+		<itemizedlist>
+			<listitem>
+				<para><code>VectorSearchEvalTest</code> runs <code>SearchEvaluator</code> of
+					embeddings-core over a static embedding model and a normalized passage corpus
+					at 4 bits and depth 10, as the <code>EvalVectorSearch</code> command does, and
+					records index fidelity, half-passage and definition-to-headword retrieval and
+					throughput.</para>
+			</listitem>
+			<listitem>
+				<para><code>SentencePieceParityEvalTest</code> encodes the reference fixtures of
+					real SentencePiece models with <code>SentencePieceTokenizer</code> of subword and
+					requires exact parity of pieces, ids, spans and normalized forms.</para>
+			</listitem>
+			<listitem>
+				<para><code>BilstmPosEvalTest</code> trains the BiLSTM tagger of neural-postag on a
+					Universal Dependencies treebank with the default settings and scores its UPOS
+					word accuracy on the test split with core's <code>POSEvaluator</code>.</para>
+			</listitem>
+			<listitem>
+				<para><code>OntoGumEvalTest</code> reads OntoGUM or CorefUD documents with
+					<code>ConlluCorefDocumentStream</code>, predicts entities and chunks with core's
+					document annotators, resolves them with the rule-based
+					<code>CorefAnnotator</code> and scores the CoNLL average with
+					<code>CorefScorer</code>.</para>
+			</listitem>
+			<listitem>
+				<para><code>GapEvalTest</code> scores pronoun resolution on the GAP development
+					split with every layer predicted, reporting F1 overall and by the pronoun's
+					gender.</para>
+			</listitem>
+		</itemizedlist>
+		<para>
+			The thresholds are regression floors well below the figures the add-on chapters
+			report; the report files are the measurement. Run the suite with
+			<code>mvn -pl addons-eval verify -Dopennlp.addons.eval.dir=/path/to/eval</code>, or
+			one evaluation with <code>-Dtest=&lt;name&gt;</code>. The continuous integration
+			workflow caches the <code>.opennlp</code> directory, including the eval root below
+			it, keyed on the hash of <code>.github/models-manifest.txt</code>, so downloaded
+			models and data survive between builds until that manifest changes.
+		</para>
+	</section>
+</chapter>
