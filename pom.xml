@@ -112,6 +112,7 @@
         <module>geo</module>
         <module>numeric</module>
         <module>wordnet</module>
+        <module>glossary</module>
     </modules>
 
     <properties>
