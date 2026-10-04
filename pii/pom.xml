@@ -65,25 +65,6 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>default-cli</id>
-            <configuration>
-              <excludes>
-                <!-- Preserve the source branch's line-oriented regression corpus. -->
-                <exclude>src/test/resources/opennlp/tools/pii/golden-false-positives.txt</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
   <profiles>
     <profile>
       <id>jmh</id>
