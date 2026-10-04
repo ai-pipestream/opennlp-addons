@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Verifies the {@link DehyphenationCharSequenceNormalizer} join rule across the recognized
  * hyphens, line breaks, and continuation-line indentation, the no-join cases that must pass
- * through untouched, and the {@link Alignment} fidelity that lets a consumer report the
+ * through untouched, and the alignment fidelity that lets a consumer report the
  * joined word against the original text.
  */
 public class DehyphenationCharSequenceNormalizerTest {
@@ -145,9 +145,27 @@ public class DehyphenationCharSequenceNormalizerTest {
     assertEquals("word-", NORMALIZER.normalize("word-").toString());
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"-\nword", "\u0301-\nword", "3\u0301-\nword"})
+  void testHyphenWithoutPrecedingLetterIsLeftAlone(String text) {
+    // A hyphen at the start, after a lone combining mark, or after a digit with a mark has no
+    // letter before it, so there is nothing to join.
+    assertEquals(text, NORMALIZER.normalize(text).toString());
+  }
+
   @Test
-  void testHyphenWithoutPrecedingLetterIsLeftAlone() {
-    assertEquals("-\nword", NORMALIZER.normalize("-\nword").toString());
+  void testJoinAfterLetterWithCombiningMarks() {
+    // Decomposed text (NFD), as macOS PDF extractors emit it, ends "cafe" with U+0301 COMBINING
+    // ACUTE ACCENT. A mark is not a letter, so the letter check must look past the marks to the
+    // "e" that carries them.
+    final String text = "cafe\u0301-\nteria";
+    assertEquals("cafe\u0301teria", NORMALIZER.normalize(text).toString());
+    final AlignedText aligned = NORMALIZER.normalizeAligned(text);
+    assertEquals("cafe\u0301teria", aligned.normalizedString());
+    assertEquals(new Span(0, 12), aligned.toOriginalSpan(0, 10));
+    // Two stacked marks and an enclosing mark (U+20DD) are looked past as well.
+    assertEquals("a\u0308\u0301b", NORMALIZER.normalize("a\u0308\u0301-\nb").toString());
+    assertEquals("a\u20DDb", NORMALIZER.normalize("a\u20DD-\nb").toString());
   }
 
   @Test
