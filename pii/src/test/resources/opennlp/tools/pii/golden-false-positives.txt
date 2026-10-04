@@ -43,6 +43,11 @@ extension 12345
 tracking 1234567890123456789012
 build 2024 0131 0942 1122 3344
 
+# Phone numbers: a date followed by a clock time. The grouped digits before the colon
+# count ten, but the colon and the minutes continue the run, so this is a timestamp.
+meeting 2024-01-15 12:30
+logged 2024-01-15 12:30:45
+
 # Phone numbers: digit runs that carry no visible grouping at all.
 identifier 5551234567
 sequence 15551234567
