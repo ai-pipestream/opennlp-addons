@@ -136,7 +136,7 @@
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
         <executions><execution><id>default-cli</id><configuration>
-          <!-- Generated parity data and WNDB exception fixtures have no license preamble. -->
+          <!-- The generated stemmer parity data has no license preamble. -->
           <excludes>
             <exclude>src/test/resources/opennlp/tools/stemmer/light/*.tsv</exclude>
           </excludes>
