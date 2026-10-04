@@ -67,6 +67,9 @@ public final class ContainmentSpine implements PlaceHierarchy {
    */
   private static final int NO_PENDING = -2;
 
+  /** The byte order mark, U+FEFF, which a UTF-8 file may carry as its first character. */
+  private static final char BYTE_ORDER_MARK = '\uFEFF';
+
   /** The prefix of the failure naming a malformed containment table line. */
   private static final String MALFORMED_LINE = "malformed containment line ";
 
@@ -174,7 +177,8 @@ public final class ContainmentSpine implements PlaceHierarchy {
      * {@code name}, {@code type} per line, empty parent for roots, {@code #} comment
      * lines skipped.
      *
-     * @param table The table file, UTF-8. Must not be {@code null}.
+     * @param table The table file, UTF-8, with or without a byte order mark. Must not be
+     *              {@code null}.
      * @return This builder.
      * @throws IOException Thrown if reading fails.
      * @throws InvalidFormatException Thrown if a line is malformed: not exactly four columns, or
@@ -223,7 +227,8 @@ public final class ContainmentSpine implements PlaceHierarchy {
      * starts. This includes short rows, empty required fields, invalid parent identifiers, and
      * unterminated quoted fields.</p>
      *
-     * @param metaCsv The meta CSV file, UTF-8. Must not be {@code null}.
+     * @param metaCsv The meta CSV file, UTF-8, with or without a byte order mark. Must not be
+     *                {@code null}.
      * @return This builder.
      * @throws IOException Thrown if reading fails.
      * @throws InvalidFormatException Thrown if the file is empty, a required column is
@@ -290,7 +295,8 @@ public final class ContainmentSpine implements PlaceHierarchy {
   }
 
   /**
-   * Reads a file as UTF-8 lines, accepting {@code LF}, {@code CRLF}, or {@code CR} endings.
+   * Reads a file as UTF-8 lines, accepting {@code LF}, {@code CRLF}, or {@code CR} endings. A
+   * byte order mark at the start of the file is not part of the first line.
    *
    * @param file The file to read.
    * @return The lines without their terminators.
@@ -301,7 +307,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
     try (BufferedReader reader = GazetteerIndex.utf8Reader(Files.newInputStream(file))) {
       String line;
       while ((line = reader.readLine()) != null) {
-        lines.add(line);
+        lines.add(lines.isEmpty() ? StringUtil.stripByteOrderMark(line) : line);
       }
     }
     return lines;
@@ -414,7 +420,8 @@ public final class ContainmentSpine implements PlaceHierarchy {
    * quote are rejected.
    *
    * <p>The file is streamed, never materialized whole, so a table of any size parses
-   * in memory proportional to its longest row.</p>
+   * in memory proportional to its longest row. A byte order mark at the start of the file
+   * is skipped.</p>
    *
    * @param file The CSV file, UTF-8.
    * @param consumer Receives each completed row with its starting line.
@@ -433,7 +440,10 @@ public final class ContainmentSpine implements PlaceHierarchy {
       int quoteLine = 1;
       // One character of pushback covers the two lookahead cases, the CRLF pair and
       // the doubled quote.
-      int pending = NO_PENDING;
+      int pending = in.read();
+      if (pending == BYTE_ORDER_MARK) {
+        pending = NO_PENDING;
+      }
       while (true) {
         final int read = pending != NO_PENDING ? pending : in.read();
         pending = NO_PENDING;
