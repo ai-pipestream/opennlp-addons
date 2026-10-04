@@ -525,7 +525,7 @@ public class FeedforwardPOSModel {
    *
    * @param in The stream to read from. Must not be {@code null}. Not closed.
    * @return The loaded model. Never {@code null}.
-   * @throws IOException If reading fails, the format or dimensions are invalid,
+   * @throws IOException Thrown if reading fails, the format or dimensions are invalid,
    *         vocabulary entries are invalid, or a weight is non-finite.
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
    */
@@ -577,7 +577,7 @@ public class FeedforwardPOSModel {
    * Checks the relationships between decoded fields before the model can be scored.
    *
    * @param pretrained Whether the format declares a pretrained vector block.
-   * @throws IOException If the model cannot be indexed with the tagger's feature template.
+   * @throws IOException Thrown if the model cannot be indexed with the tagger's feature template.
    */
   private void validate(boolean pretrained) throws IOException {
     if (tags.length == 0) {
@@ -616,7 +616,7 @@ public class FeedforwardPOSModel {
    * @param rows The required row count.
    * @param columns The required column count.
    * @param field The matrix name for error messages.
-   * @throws IOException If the dimensions do not match.
+   * @throws IOException Thrown if the dimensions do not match.
    */
   private void checkMatrix(float[][] matrix, int rows, long columns, String field)
       throws IOException {
@@ -632,7 +632,7 @@ public class FeedforwardPOSModel {
    * @param rows The number of available embedding rows.
    * @param field The vocabulary name for error messages.
    * @param requireUnknown Whether lookups use an unknown-symbol fallback.
-   * @throws IOException If a required symbol is absent or a row is outside the matrix.
+   * @throws IOException Thrown if a required symbol is absent or a row is outside the matrix.
    */
   private void checkVocabulary(Map<String, Integer> ids, int rows, String field,
       boolean requireUnknown) throws IOException {
@@ -652,7 +652,7 @@ public class FeedforwardPOSModel {
    *
    * @param path The file to read. Must not be {@code null}.
    * @return The loaded model. Never {@code null}.
-   * @throws IOException If reading fails or the model data is invalid.
+   * @throws IOException Thrown if reading fails or the model data is invalid.
    * @throws IllegalArgumentException Thrown if {@code path} is {@code null}.
    */
   public static FeedforwardPOSModel load(Path path) throws IOException {
@@ -743,7 +743,7 @@ public class FeedforwardPOSModel {
    * @param data The stream to read from.
    * @param field The name of the size field, used in the error message.
    * @return The restored vocabulary. Never {@code null}.
-   * @throws IOException If reading fails, the size field is invalid or a symbol is repeated.
+   * @throws IOException Thrown if reading fails, the size field is invalid or a symbol is repeated.
    */
   private static Map<String, Integer> readVocabulary(DataInputStream data, String field)
       throws IOException {
@@ -782,7 +782,7 @@ public class FeedforwardPOSModel {
    * @param data The stream to read from.
    * @param field The name of the matrix, used in the error message.
    * @return The restored matrix. Never {@code null}.
-   * @throws IOException If reading fails, a dimension is invalid, the element count
+   * @throws IOException Thrown if reading fails, a dimension is invalid, the element count
    *         exceeds the format limit, or a value is non-finite.
    */
   private static float[][] readMatrix(DataInputStream data, String field)
@@ -824,7 +824,7 @@ public class FeedforwardPOSModel {
    * @param data The stream to read from.
    * @param field The name of the vector, used in the error message.
    * @return The restored vector. Never {@code null}.
-   * @throws IOException If reading fails, the length is invalid or a value is non-finite.
+   * @throws IOException Thrown if reading fails, the length is invalid or a value is non-finite.
    */
   private static float[] readVector(DataInputStream data, String field)
       throws IOException {
@@ -838,7 +838,7 @@ public class FeedforwardPOSModel {
    * @param length The declared value count.
    * @param field The field name for error messages.
    * @return The decoded values.
-   * @throws IOException If reading fails or a value is non-finite.
+   * @throws IOException Thrown if reading fails or a value is non-finite.
    */
   private static float[] readValues(DataInputStream data, int length, String field)
       throws IOException {

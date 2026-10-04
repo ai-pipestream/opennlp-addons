@@ -139,7 +139,7 @@ public final class FeedforwardPOSTrainer {
    * @throws IOException Thrown if reading the samples fails.
    * @throws IllegalArgumentException Thrown if a parameter is {@code null} or the
    *         samples contain no token.
-   * @throws IllegalStateException If training produces non-finite values.
+   * @throws IllegalStateException Thrown if training produces non-finite values.
    */
   public static FeedforwardPOSModel train(ObjectStream<POSSample> samples,
       Settings settings) throws IOException {
@@ -160,7 +160,7 @@ public final class FeedforwardPOSTrainer {
    * @throws IOException Thrown if reading the samples fails.
    * @throws IllegalArgumentException Thrown if a parameter is {@code null}, the
    *         samples contain no token, or {@code wordVectors} violates its contract.
-   * @throws IllegalStateException If training produces non-finite values.
+   * @throws IllegalStateException Thrown if training produces non-finite values.
    */
   public static FeedforwardPOSModel train(ObjectStream<POSSample> samples,
       Settings settings, Function<CharSequence, float[]> wordVectors) throws IOException {
@@ -186,7 +186,7 @@ public final class FeedforwardPOSTrainer {
    * @throws IOException Thrown if reading the samples fails.
    * @throws IllegalArgumentException Thrown if a parameter is {@code null}, the
    *         samples contain no token, or {@code wordVectors} violates its contract.
-   * @throws IllegalStateException If training produces non-finite values.
+   * @throws IllegalStateException Thrown if training produces non-finite values.
    */
   public static FeedforwardPOSModel train(ObjectStream<POSSample> samples,
       Settings settings, Function<CharSequence, float[]> wordVectors,
@@ -213,7 +213,7 @@ public final class FeedforwardPOSTrainer {
    * @throws IllegalArgumentException Thrown if {@code samples} or {@code settings} is
    *         {@code null}, the samples contain no token, or {@code wordVectors} violates
    *         its contract.
-   * @throws IllegalStateException If training produces non-finite values.
+   * @throws IllegalStateException Thrown if training produces non-finite values.
    */
   private static FeedforwardPOSModel trainWith(ObjectStream<POSSample> samples,
       Settings settings, Function<CharSequence, float[]> wordVectors,
@@ -390,7 +390,7 @@ public final class FeedforwardPOSTrainer {
    * @param expectedSize The established dimension, or zero for the first vector.
    * @param word The normalized word for error messages.
    * @return The vector dimension.
-   * @throws IllegalArgumentException If the vector is empty, has a different length,
+   * @throws IllegalArgumentException Thrown if the vector is empty, has a different length,
    *         or contains a non-finite component.
    */
   private static int validateVector(float[] vector, int expectedSize, String word) {
@@ -425,7 +425,7 @@ public final class FeedforwardPOSTrainer {
    * @param goldList The gold output index of every training example, aligned with
    *                 {@code featureList}.
    * @param settings The hyperparameters controlling the optimization.
-   * @throws IllegalStateException If a gradient, accumulator or updated weight is non-finite.
+   * @throws IllegalStateException Thrown if a gradient, accumulator or updated weight is non-finite.
    */
   private static void optimize(FeedforwardPOSModel model, List<int[]> featureList,
       List<int[]> pretrainedList, List<Integer> goldList, Settings settings) {
@@ -616,7 +616,7 @@ public final class FeedforwardPOSTrainer {
    * @param accumulators The running sums of squared gradients per weight.
    * @param batch The number of examples in the current minibatch.
    * @param settings The hyperparameters providing the learning rate and L2 penalty.
-   * @throws IllegalStateException If a gradient, accumulator or updated weight is non-finite.
+   * @throws IllegalStateException Thrown if a gradient, accumulator or updated weight is non-finite.
    */
   private static void update(float[][] weights, double[][] gradients,
       double[][] accumulators, int batch, Settings settings) {
@@ -642,7 +642,7 @@ public final class FeedforwardPOSTrainer {
    * @param accumulators The running sums of squared gradients per weight.
    * @param batch The number of examples in the current minibatch.
    * @param settings The hyperparameters providing the learning rate.
-   * @throws IllegalStateException If a gradient, accumulator or updated weight is non-finite.
+   * @throws IllegalStateException Thrown if a gradient, accumulator or updated weight is non-finite.
    */
   private static void updateVector(float[] weights, double[] gradients,
       double[] accumulators, int batch, Settings settings) {
@@ -661,7 +661,7 @@ public final class FeedforwardPOSTrainer {
    * @param accumulator The sum of squared gradients, including this update.
    * @param learningRate The configured step size.
    * @return The updated weight.
-   * @throws IllegalStateException If the gradient, accumulator or updated weight is non-finite.
+   * @throws IllegalStateException Thrown if the gradient, accumulator or updated weight is non-finite.
    */
   private static float updateWeight(float weight, double gradient, double accumulator,
       double learningRate) {
