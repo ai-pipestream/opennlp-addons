@@ -132,7 +132,11 @@ public class FeedforwardPOSTaggerTest {
         new ByteArrayInputStream("not a model".getBytes(StandardCharsets.UTF_8))));
   }
 
-  /** Pins every shape class {@link FeedforwardPOSContext#shape(String)} can return. */
+  /**
+   * Pins every shape class {@link FeedforwardPOSContext#shape(String)} can return. The
+   * Deseret rows are supplementary-plane letters, which a {@code char} loop would see as
+   * surrogates and classify as {@code *other*}.
+   */
   @ParameterizedTest
   @CsvSource({
       "Paris, *cap*",
@@ -141,12 +145,19 @@ public class FeedforwardPOSTaggerTest {
       "B2B, *alnum*",
       "--, *other*",
       "dog, *lower*",
-      "'', *other*"})
+      "'', *other*",
+      "\uD801\uDC00\uD801\uDC28, *cap*",
+      "\uD801\uDC00\uD801\uDC01, *allcaps*",
+      "\uD801\uDC28\uD801\uDC29, *lower*",
+      "\uD801\uDC281, *alnum*"})
   void testShapes(String word, String expected) {
     assertEquals(expected, FeedforwardPOSContext.shape(word));
   }
 
-  /** Pins the suffix extraction on words longer than, equal to, and shorter than it. */
+  /**
+   * Pins the suffix extraction on words longer than, equal to, and shorter than it. A
+   * suffix counts code points, so it never cuts a supplementary-plane letter in half.
+   */
   @ParameterizedTest
   @CsvSource({
       "dog, 2, og",
@@ -154,7 +165,10 @@ public class FeedforwardPOSTaggerTest {
       "a, 2, a",
       "a, 3, a",
       "'', 2, ''",
-      "running, 3, ing"})
+      "running, 3, ing",
+      "a\uD801\uDC28, 2, a\uD801\uDC28",
+      "\uD801\uDC28\uD801\uDC29\uD801\uDC2A, 2, \uD801\uDC29\uD801\uDC2A",
+      "ab\uD801\uDC28, 2, b\uD801\uDC28"})
   void testSuffixes(String word, int length, String expected) {
     assertEquals(expected, FeedforwardPOSContext.suffix(word, length));
   }
