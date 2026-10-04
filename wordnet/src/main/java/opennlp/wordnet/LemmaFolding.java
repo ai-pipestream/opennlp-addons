@@ -16,7 +16,6 @@
  */
 package opennlp.wordnet;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.StringUtil;
@@ -75,19 +74,6 @@ final class LemmaFolding {
     if (value == null) {
       throw new IllegalArgumentException("value must not be null");
     }
-    final List<String> parts = new ArrayList<>(4);
-    int start = 0;
-    while (start < value.length()) {
-      final int space = value.indexOf(' ', start);
-      if (space < 0) {
-        parts.add(value.substring(start));
-        break;
-      }
-      if (space > start) {
-        parts.add(value.substring(start, space));
-      }
-      start = space + 1;
-    }
-    return parts;
+    return List.of(StringUtil.splitNonEmpty(value, ' '));
   }
 }
