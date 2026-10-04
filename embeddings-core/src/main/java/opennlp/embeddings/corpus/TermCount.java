@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * One learned vocabulary term with its corpus frequency.
@@ -63,7 +64,7 @@ public record TermCount(String term, long count, boolean fromDictionary) {
     if (term == null) {
       throw new IllegalArgumentException("term must not be null");
     }
-    if (term.isBlank()) {
+    if (StringUtil.isUnicodeBlank(term)) {
       throw new IllegalArgumentException("term must not be blank");
     }
     if (term.indexOf('\t') >= 0 || term.indexOf('\n') >= 0 || term.indexOf('\r') >= 0) {
@@ -129,7 +130,7 @@ public record TermCount(String term, long count, boolean fromDictionary) {
       int lineNumber = 0;
       while ((line = in.readLine()) != null) {
         lineNumber++;
-        if (line.isBlank()) {
+        if (StringUtil.isUnicodeBlank(line)) {
           continue;
         }
         final int firstTab = line.indexOf('\t');

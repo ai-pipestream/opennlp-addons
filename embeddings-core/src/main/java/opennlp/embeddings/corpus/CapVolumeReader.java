@@ -31,6 +31,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Reads a Caselaw Access Project volume zip ({@code https://static.case.law/us/<N>.zip})
@@ -118,7 +119,7 @@ public final class CapVolumeReader {
     final String id;
     if (idValue instanceof Long number) {
       id = Long.toString(number);
-    } else if (idValue instanceof String string && !string.isBlank()) {
+    } else if (idValue instanceof String string && !StringUtil.isUnicodeBlank(string)) {
       id = string;
     } else {
       throw new InvalidFormatException("Missing or invalid case id in " + inputName);
@@ -187,7 +188,7 @@ public final class CapVolumeReader {
         end = text.length();
       }
       final String rawParagraph = text.substring(start, end);
-      String paragraph = rawParagraph.strip();
+      String paragraph = StringUtil.trimUnicodeWhitespace(rawParagraph);
       if (!paragraph.isEmpty()) {
         if (!batch.isEmpty() && size + paragraph.length() > TARGET_CHARS) {
           result.add(String.join(" ", batch));
@@ -206,7 +207,7 @@ public final class CapVolumeReader {
             }
           }
           result.add(paragraph.substring(0, cut));
-          paragraph = paragraph.substring(cut).strip();
+          paragraph = StringUtil.trimUnicodeWhitespace(paragraph.substring(cut));
         }
         if (!paragraph.isEmpty()) {
           batch.add(paragraph);
@@ -225,7 +226,7 @@ public final class CapVolumeReader {
   }
 
   /**
-   * {@return the index of the last {@link Character#isWhitespace(int) whitespace} character at
+   * {@return the index of the last {@link StringUtil#isUnicodeWhitespace(int) whitespace} character at
    * or before {@code from}, or {@code -1} when there is none}
    *
    * @param text The text to search.
@@ -233,7 +234,7 @@ public final class CapVolumeReader {
    */
   private static int lastWhitespace(String text, int from) {
     for (int i = Math.min(from, text.length() - 1); i >= 0; i--) {
-      if (Character.isWhitespace(text.charAt(i))) {
+      if (StringUtil.isUnicodeWhitespace(text.charAt(i))) {
         return i;
       }
     }

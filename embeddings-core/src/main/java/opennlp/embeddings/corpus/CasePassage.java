@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * One court opinion passage: a coherent run of paragraphs from one opinion, small enough
@@ -67,10 +68,10 @@ public record CasePassage(String id, String caseName, String cite, String date,
     requireNotNull(date, "date");
     requireNotNull(volume, "volume");
     requireNotNull(text, "text");
-    if (id.isBlank()) {
+    if (StringUtil.isUnicodeBlank(id)) {
       throw new IllegalArgumentException("id must not be blank");
     }
-    if (text.isBlank()) {
+    if (StringUtil.isUnicodeBlank(text)) {
       throw new IllegalArgumentException("text must not be blank");
     }
   }
@@ -140,7 +141,7 @@ public record CasePassage(String id, String caseName, String cite, String date,
       int lineNumber = 0;
       while ((line = in.readLine()) != null) {
         lineNumber++;
-        if (line.isBlank()) {
+        if (StringUtil.isUnicodeBlank(line)) {
           continue;
         }
         final String inputName = file + " line " + lineNumber;

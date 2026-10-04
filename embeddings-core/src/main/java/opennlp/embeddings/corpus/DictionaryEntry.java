@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * One law dictionary entry: a headword and its definition.
@@ -111,7 +112,7 @@ public record DictionaryEntry(String headword, String definition) {
       int lineNumber = 0;
       while ((line = in.readLine()) != null) {
         lineNumber++;
-        if (line.isBlank()) {
+        if (StringUtil.isUnicodeBlank(line)) {
           continue;
         }
         final int tab = line.indexOf('\t');
@@ -144,7 +145,7 @@ public record DictionaryEntry(String headword, String definition) {
     if (value == null) {
       throw new IllegalArgumentException(name + " must not be null");
     }
-    if (value.isBlank()) {
+    if (StringUtil.isUnicodeBlank(value)) {
       throw new IllegalArgumentException(name + " must not be blank");
     }
     if (value.indexOf('\t') >= 0 || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {

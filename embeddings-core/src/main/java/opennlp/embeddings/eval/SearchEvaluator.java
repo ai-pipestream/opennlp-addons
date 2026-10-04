@@ -30,6 +30,7 @@ import opennlp.embeddings.corpus.DictionaryEntry;
 import opennlp.embeddings.index.FlatFloatIndex;
 import opennlp.embeddings.index.TurboQuantIndex;
 import opennlp.embeddings.index.VectorIndex;
+import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -628,7 +629,7 @@ public final class SearchEvaluator {
       return text;
     }
     int cut = Math.min(midpoint, text.length() - 1);
-    while (cut >= 0 && !Character.isWhitespace(text.charAt(cut))) {
+    while (cut >= 0 && !StringUtil.isUnicodeWhitespace(text.charAt(cut))) {
       cut--;
     }
     return text.substring(0, cut > 0 ? cut : midpoint);
@@ -650,7 +651,7 @@ public final class SearchEvaluator {
    * @throws IllegalArgumentException Thrown if {@code name} is {@code null} or blank.
    */
   private static void requireName(String name) {
-    if (name == null || name.isBlank()) {
+    if (StringUtil.isUnicodeBlank(name)) {
       throw new IllegalArgumentException("name must not be null or blank");
     }
     if (name.indexOf('\t') >= 0 || name.indexOf('\r') >= 0
