@@ -25,11 +25,13 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.lemmatizer.Lemmatizer;
+import opennlp.tools.util.WhitespaceMode;
 import opennlp.tools.wordnet.LexicalKnowledgeBase;
 import opennlp.tools.wordnet.Synset;
 import opennlp.tools.wordnet.WordNetPOS;
@@ -440,6 +442,26 @@ public class LexicalExpanderTest {
                                            double weight) {
     assertThrows(IllegalArgumentException.class,
         () -> new Expansion(term, kind, depth, senseRank, weight));
+  }
+
+  /**
+   * The blank checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a term made of it is still blank for expand and for the record.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankChecksIgnoreTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      final LexicalExpander expander = LexicalExpander.builder(lexicon()).build();
+      assertThrows(IllegalArgumentException.class, () -> expander.expand("\u0085"));
+      assertThrows(IllegalArgumentException.class,
+          () -> new Expansion("\u0085", Kind.SYNONYM, 0, 0, 1.0));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** Verifies that a fully valid component set is accepted. */
