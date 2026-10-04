@@ -28,6 +28,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
@@ -42,6 +43,22 @@ class PiiLayerTest {
   private static final Pseudonymizer PSEUDONYMIZER = new Pseudonymizer();
   private static final HmacTokenizer TOKENIZER = new HmacTokenizer(
       "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8));
+
+  /**
+   * A type or normalized value made only of Unicode whitespace is blank, like an ASCII
+   * space, so the record rejects it.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testMentionRejectsUnicodeBlankComponents(int codePoint) {
+    final String blank = Character.toString(codePoint);
+    Assertions.assertThrows(IllegalArgumentException.class,
+        () -> new PiiMention(ADDRESS_SPAN, blank, ADDRESS));
+    Assertions.assertThrows(IllegalArgumentException.class,
+        () -> new PiiMention(ADDRESS_SPAN, PiiMention.TYPE_EMAIL, blank));
+  }
 
   private enum Consumer {
     PSEUDONYMIZER, TOKENIZER, AUDIT
