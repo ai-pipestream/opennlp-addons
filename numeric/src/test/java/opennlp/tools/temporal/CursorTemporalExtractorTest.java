@@ -208,6 +208,19 @@ public class CursorTemporalExtractorTest {
             Granularity.MONTH, null));
   }
 
+  /**
+   * A value made only of Unicode whitespace is blank, like an ASCII space.
+   *
+   * @param codePoint A no-break space, an ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testTemporalExpressionRejectsUnicodeBlankValue(int codePoint) {
+    final String value = Character.toString(codePoint);
+    assertThrows(IllegalArgumentException.class,
+        () -> new TemporalExpression(new Span(0, 1), value, Granularity.MONTH));
+  }
+
   @Test
   void testAnnotatorProvidesTheTemporalLayer() {
     final Document document = DocumentAnalyzer.builder()
