@@ -217,8 +217,8 @@ List<GlossaryMatch> hits = matcher.match("私は東京に住む");
 	<section xml:id="tools.glossary.loading">
 		<title>Loading glossaries from TBX and CSV files</title>
 		<para>
-			The <code>opennlp.tools.formats.glossary</code> package in
-			<code>opennlp-formats</code> loads TBX, CSV, and TSV files.
+			The <code>opennlp.tools.formats.glossary</code> package of this
+			module loads TBX, CSV, and TSV files.
 			<code>TbxGlossaryReader</code> accepts TBX 2 and TBX 3 element names;
 			<code>CsvGlossaryReader</code> loads delimited term lists. Both return
 			<code>GlossaryEntry</code> values in file order. Aliases use the same
