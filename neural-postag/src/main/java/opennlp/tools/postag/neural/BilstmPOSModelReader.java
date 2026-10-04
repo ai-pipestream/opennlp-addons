@@ -54,7 +54,7 @@ final class BilstmPOSModelReader {
    * Reads compatible vocabularies, layer dimensions and finite parameter values.
    *
    * @return The loaded model.
-   * @throws IOException If reading fails or the model is malformed.
+   * @throws IOException Thrown if reading fails or the model is malformed.
    */
   BilstmPOSModel read() throws IOException {
     final String magic = data.readUTF();
@@ -145,7 +145,7 @@ final class BilstmPOSModelReader {
    * @param name The field name used in error messages.
    * @param unknown Whether row zero must be the unknown symbol.
    * @return The vocabulary in file order.
-   * @throws IOException If reading fails, a key repeats or a row index is invalid.
+   * @throws IOException Thrown if reading fails, a key repeats or a row index is invalid.
    */
   private LinkedHashMap<String, Integer> readVocabulary(String name, boolean unknown)
       throws IOException {
@@ -173,7 +173,7 @@ final class BilstmPOSModelReader {
    * @param vocabulary The symbol-to-row mapping.
    * @param rows The number of parameter rows.
    * @param name The field name used in error messages.
-   * @throws IOException If a row index is outside the parameter table.
+   * @throws IOException Thrown if a row index is outside the parameter table.
    */
   private void checkRows(Map<String, Integer> vocabulary, int rows, String name) throws IOException {
     for (Map.Entry<String, Integer> entry : vocabulary.entrySet()) {
@@ -187,7 +187,7 @@ final class BilstmPOSModelReader {
    * Reads a nonempty, unique tag inventory in output order.
    *
    * @return The model tags.
-   * @throws IOException If reading fails or the tag inventory is invalid.
+   * @throws IOException Thrown if reading fails or the tag inventory is invalid.
    */
   private String[] readTags() throws IOException {
     final int size = readDimension("tag count", 0);
@@ -210,7 +210,7 @@ final class BilstmPOSModelReader {
    * @param expectedInput The required input width, or zero if not yet known.
    * @param expectedHidden The required hidden width, or zero if not yet known.
    * @return The layer over the validated weights.
-   * @throws IOException If reading fails or a dimension or value is invalid.
+   * @throws IOException Thrown if reading fails or a dimension or value is invalid.
    */
   private LstmLayer readLstm(String name, int expectedInput, int expectedHidden) throws IOException {
     final int input = readDimension(name + " input", expectedInput);
@@ -228,7 +228,7 @@ final class BilstmPOSModelReader {
    * @param name The field name used in error messages.
    * @param expected The required size, or zero if not yet known.
    * @return The validated dimension.
-   * @throws IOException If reading fails or the dimension is invalid.
+   * @throws IOException Thrown if reading fails or the dimension is invalid.
    */
   private int readDimension(String name, int expected) throws IOException {
     final int size = checkedSize(data.readInt(), name);
@@ -244,7 +244,7 @@ final class BilstmPOSModelReader {
    * @param size The declared or computed size.
    * @param name The field name used in error messages.
    * @return The positive size as an integer.
-   * @throws IOException If the size is not a positive integer.
+   * @throws IOException Thrown if the size is not a positive integer.
    */
   private int checkedSize(long size, String name) throws IOException {
     if (size <= 0 || size > Integer.MAX_VALUE) {
@@ -260,7 +260,7 @@ final class BilstmPOSModelReader {
    * @param expectedRows The required row count, or zero if not yet known.
    * @param expectedColumns The required column count, or zero if not yet known.
    * @return The parameter matrix.
-   * @throws IOException If reading fails or a dimension or value is invalid.
+   * @throws IOException Thrown if reading fails or a dimension or value is invalid.
    */
   private double[][] readMatrix(String name, int expectedRows, int expectedColumns) throws IOException {
     final int rows = readDimension(name + " rows", expectedRows);
@@ -278,7 +278,7 @@ final class BilstmPOSModelReader {
    * @param name The field name used in error messages.
    * @param expected The required vector length.
    * @return The parameter vector.
-   * @throws IOException If reading fails or the length or a value is invalid.
+   * @throws IOException Thrown if reading fails or the length or a value is invalid.
    */
   private double[] readVector(String name, int expected) throws IOException {
     return readDoubles(readDimension(name + " length", expected), name);
@@ -290,7 +290,7 @@ final class BilstmPOSModelReader {
    * @param length The positive declared length.
    * @param name The field name used in error messages.
    * @return The parameter values.
-   * @throws IOException If reading fails or a value is not finite.
+   * @throws IOException Thrown if reading fails or a value is not finite.
    */
   private double[] readDoubles(int length, String name) throws IOException {
     double[] values = new double[Math.min(length, INITIAL_VALUE_CAPACITY)];
@@ -313,7 +313,7 @@ final class BilstmPOSModelReader {
    * @param length The positive declared length.
    * @param name The field name used in error messages.
    * @return The parameter values.
-   * @throws IOException If reading fails or a value is not finite.
+   * @throws IOException Thrown if reading fails or a value is not finite.
    */
   private float[] readFloats(int length, String name) throws IOException {
     float[] values = new float[Math.min(length, INITIAL_VALUE_CAPACITY)];
