@@ -67,6 +67,11 @@ public final class NativeSmoke {
   private NativeSmoke() {
   }
 
+  /**
+   * Runs the smoke test.
+   *
+   * @param args The model directory as the only argument.
+   */
   public static void main(String[] args) {
     if (args.length != 1) {
       System.err.println("usage: " + NativeSmoke.class.getSimpleName() + " <model directory>");
@@ -91,6 +96,13 @@ public final class NativeSmoke {
     }
   }
 
+  /**
+   * Loads the models and runs every check, collecting the failed ones.
+   *
+   * @param dir The directory holding the model files.
+   * @param failures Receives one message per failed check.
+   * @throws IOException Thrown if a model file is missing or cannot be read.
+   */
   private static void run(Path dir, List<String> failures) throws IOException {
     final SentenceModel sentenceModel = load(dir, SENTENCE_MODEL, SentenceModel::new);
     final TokenizerModel tokenizerModel = load(dir, TOKENIZER_MODEL, TokenizerModel::new);
@@ -138,6 +150,16 @@ public final class NativeSmoke {
     check(failures, "main".equals(indonesian), "the Indonesian stemmer should stem bermainlah to main");
   }
 
+  /**
+   * Reads one model file.
+   *
+   * @param dir The model directory.
+   * @param name The file name inside {@code dir}.
+   * @param reader The model constructor to apply to the stream.
+   * @param <T> The model type.
+   * @return The model.
+   * @throws IOException Thrown if the file is missing or cannot be read.
+   */
   private static <T> T load(Path dir, String name, ModelReader<T> reader) throws IOException {
     final Path file = dir.resolve(name);
     if (!Files.isRegularFile(file)) {
@@ -156,9 +178,24 @@ public final class NativeSmoke {
   /** Reads a model from a stream; the model constructors that take an {@link InputStream}. */
   @FunctionalInterface
   private interface ModelReader<T> {
+
+    /**
+     * Reads a model.
+     *
+     * @param in The stream to read from.
+     * @return The model.
+     * @throws IOException Thrown if the stream cannot be read or holds no valid model.
+     */
     T read(InputStream in) throws IOException;
   }
 
+  /**
+   * Records a failed check.
+   *
+   * @param failures Receives {@code message} when the condition is false.
+   * @param condition The result of the check.
+   * @param message Describes the failed check.
+   */
   private static void check(List<String> failures, boolean condition, String message) {
     if (!condition) {
       failures.add(message);
