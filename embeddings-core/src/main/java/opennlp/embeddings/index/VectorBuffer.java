@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Collects validated copies of ids and vectors during the single-threaded build phase.
  */
@@ -54,7 +56,7 @@ final class VectorBuffer {
    * @throws IllegalArgumentException Thrown if {@code id} or {@code vector} is invalid.
    */
   void add(String id, float[] vector) {
-    if (id == null || id.isBlank()) {
+    if (StringUtil.isUnicodeBlank(id)) {
       throw new IllegalArgumentException("Id must not be null or blank");
     }
     if (id.indexOf('\n') >= 0 || id.indexOf('\r') >= 0) {

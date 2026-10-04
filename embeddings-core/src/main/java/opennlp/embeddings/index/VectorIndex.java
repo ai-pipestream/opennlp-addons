@@ -18,6 +18,7 @@ package opennlp.embeddings.index;
 
 import java.util.List;
 
+import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -51,7 +52,7 @@ public interface VectorIndex {
      * @throws IllegalArgumentException Thrown if {@code id} or {@code score} is invalid.
      */
     public Hit {
-      if (id == null || id.isBlank()) {
+      if (StringUtil.isUnicodeBlank(id)) {
         throw new IllegalArgumentException("Id must not be null or blank");
       }
       if (id.indexOf('\n') >= 0 || id.indexOf('\r') >= 0) {

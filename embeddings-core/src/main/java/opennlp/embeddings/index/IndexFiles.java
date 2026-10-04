@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /** Reads and writes the ids and checksum manifest shared by vector indexes. */
 final class IndexFiles {
@@ -145,7 +146,7 @@ final class IndexFiles {
     final List<String> ids = readLines(idsFile, StandardCharsets.UTF_8);
     final Set<String> seen = new HashSet<>();
     for (final String id : ids) {
-      if (id.isBlank()) {
+      if (StringUtil.isUnicodeBlank(id)) {
         throw new InvalidFormatException(idsFile + " contains a blank id");
       }
       if (!seen.add(id)) {
