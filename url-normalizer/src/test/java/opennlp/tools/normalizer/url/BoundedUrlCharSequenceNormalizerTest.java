@@ -107,7 +107,7 @@ public class BoundedUrlCharSequenceNormalizerTest {
     Assertions.assertEquals(expected, NORMALIZER.normalize(text));
   }
 
-  /** Trailing punctuation and unbalanced closing brackets belong to the text. */
+  /** Trailing punctuation, a closing apostrophe and unbalanced closing brackets belong to the text. */
   private static Stream<Arguments> trailingPunctuation() {
     return Stream.of(
         Arguments.of("see http://example.com/a.", "see  ."),
@@ -116,6 +116,9 @@ public class BoundedUrlCharSequenceNormalizerTest {
         Arguments.of("http://example.com/a!?", " !?"),
         Arguments.of("http://example.com/a:", " :"),
         Arguments.of("http://example.com/a;", " ;"),
+        Arguments.of("'http://example.com/a'", "' '"),
+        Arguments.of("see http://example.com/a'.", "see  '."),
+        Arguments.of("http://example.com/a'b", " "),
         Arguments.of("(http://example.com/a).", "( )."),
         Arguments.of("http://example.com/a(b)", " "),
         Arguments.of("http://example.com/a(b).", " ."),
