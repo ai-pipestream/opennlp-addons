@@ -62,4 +62,5 @@
   <xi:include href="wordnet.xml" />
   <xi:include href="glossary.xml" />
   <xi:include href="pii.xml" />
+  <xi:include href="dehyphenation.xml" />
 </book>
