@@ -136,7 +136,7 @@
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
         <executions><execution><id>default-cli</id><configuration>
-          <!-- Generated parity data and WNDB exception fixtures have no license preamble. -->
+          <!-- The WNDB exception list fixtures and the Git attributes file have no license preamble. -->
           <excludes>
             <exclude>src/test/resources/opennlp/wordnet/mini-wndb/noun.exc</exclude>
             <exclude>src/test/resources/opennlp/wordnet/mini-wndb/verb.exc</exclude>

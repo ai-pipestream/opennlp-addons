@@ -17,7 +17,6 @@
 package opennlp.wordnet;
 
 import java.io.BufferedInputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -41,6 +40,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.model.UncloseableInputStream;
 import opennlp.tools.wordnet.LexicalKnowledgeBase;
 import opennlp.tools.wordnet.Synset;
 import opennlp.tools.wordnet.WordNetPOS;
@@ -245,7 +245,7 @@ public final class WnLmfReader {
     final Parser parser = new Parser(resourceName);
     try {
       final XMLStreamReader reader =
-          hardenedFactory().createXMLStreamReader(new NonClosingInputStream(in));
+          hardenedFactory().createXMLStreamReader(new UncloseableInputStream(in));
       try {
         parser.parse(reader);
       } finally {
@@ -297,20 +297,6 @@ public final class WnLmfReader {
       throw new XMLStreamException("External entity resolution is disabled: " + systemId);
     });
     return factory;
-  }
-
-  /** Prevents a StAX reader from closing the stream owned by its caller. */
-  private static final class NonClosingInputStream extends FilterInputStream {
-
-    /** Wraps the caller-owned stream. */
-    NonClosingInputStream(InputStream in) {
-      super(in);
-    }
-
-    /** Leaves the wrapped stream open. */
-    @Override
-    public void close() {
-    }
   }
 
   /** Holds the streaming parse state and performs post-parse resolution. */
