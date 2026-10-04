@@ -15,10 +15,13 @@
  * limitations under the License.
  */
 
-package opennlp.tools.depparse;
+package opennlp.tools.relation;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import opennlp.tools.depparse.DependencyGraph;
+import opennlp.tools.depparse.DependencySample;
 
 /**
  * The gold samples shared by the dependency parser tests.
