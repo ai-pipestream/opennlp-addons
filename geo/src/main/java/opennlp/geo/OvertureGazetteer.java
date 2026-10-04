@@ -49,8 +49,10 @@ import opennlp.tools.util.StringUtil;
  * settlements, a derived table also resolves mentions like {@code Australia} or {@code Bavaria}
  * that place-only gazetteers miss.</p>
  *
- * <p>Lookup matches the primary and every alternate name case-insensitively;
- * candidates are ranked by population descending. Subtypes map coarsely:
+ * <p>Lookup matches the primary and every alternate name by the one matching rule of this
+ * module's gazetteers: names and queries are folded through NFC, case fold, accent fold and
+ * UAX&#160;#29 word tokens joined by one space. Candidates are ranked by population
+ * descending. Subtypes map coarsely:
  * {@code locality} rows become {@link GazetteerEntry#FEATURE_CLASS_CITY}; the
  * sub-locality subtypes ({@code borough}, {@code macrohood}, {@code neighborhood},
  * {@code microhood}) become {@link GazetteerEntry#FEATURE_CLASS_POI}; every other
@@ -139,7 +141,7 @@ public final class OvertureGazetteer implements Gazetteer {
     if (recordId == null) {
       throw new IllegalArgumentException("recordId must not be null");
     }
-    return SOURCE.equals(source) ? index.byId(recordId) : Optional.empty();
+    return index.byId(source, recordId);
   }
 
   /** {@inheritDoc} */

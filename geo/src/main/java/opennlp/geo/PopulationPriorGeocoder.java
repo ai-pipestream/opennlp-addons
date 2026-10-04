@@ -18,7 +18,9 @@ package opennlp.geo;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
@@ -69,25 +71,37 @@ public final class PopulationPriorGeocoder implements Geocoder {
       throws IOException {
     GeocoderInput.validateResolveArguments(text, locationMentions);
     final List<GeoResolution> resolutions = new ArrayList<>(locationMentions.size());
+    // Candidates per distinct mention text, so a name repeated in the document is looked up
+    // and ranked once; the map lives for this call only.
+    final Map<String, List<GazetteerEntry>> rankedByText = new HashMap<>();
     for (final Span mention : locationMentions) {
-      final CharSequence mentionText = text.subSequence(mention.getStart(), mention.getEnd());
-      final List<GazetteerEntry> found = gazetteer.lookup(mentionText);
-      if (found.isEmpty()) {
-        continue;
+      final String mentionText = text.subSequence(mention.getStart(), mention.getEnd()).toString();
+      List<GazetteerEntry> candidates = rankedByText.get(mentionText);
+      if (candidates == null) {
+        candidates = rank(gazetteer.lookup(mentionText));
+        rankedByText.put(mentionText, candidates);
       }
-      final List<GazetteerEntry> candidates;
-      if (found.size() == 1) {
-        candidates = found;
-      } else {
-        // Re-sort so the winner does not depend on the gazetteer's own return order, which the
-        // contract leaves as a best-effort ranking.
-        final List<GazetteerEntry> ranked = new ArrayList<>(found);
-        ranked.sort(CandidateRanking.BY_PRIOR);
-        candidates = ranked;
+      if (!candidates.isEmpty()) {
+        resolutions.add(new GeoResolution(mention, candidates.get(0), confidence(candidates)));
       }
-      resolutions.add(new GeoResolution(mention, candidates.get(0), confidence(candidates)));
     }
     return resolutions;
+  }
+
+  /**
+   * Ranks candidates by {@link CandidateRanking#BY_PRIOR}, so the winner does not depend on
+   * the gazetteer's own return order, which the contract leaves as a best-effort ranking.
+   *
+   * @param found The candidates as the gazetteer returned them. Must not be {@code null}.
+   * @return The ranked candidates; {@code found} itself when it has fewer than two.
+   */
+  private List<GazetteerEntry> rank(List<GazetteerEntry> found) {
+    if (found.size() < 2) {
+      return found;
+    }
+    final List<GazetteerEntry> ranked = new ArrayList<>(found);
+    ranked.sort(CandidateRanking.BY_PRIOR);
+    return ranked;
   }
 
   /**

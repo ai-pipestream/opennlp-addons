@@ -72,10 +72,11 @@ import opennlp.tools.util.StringUtil;
  * read as UTF-8, ignoring a leading byte order mark. Names containing a tab or {@code |} are not
  * representable in this format.</p>
  *
- * <p>Lookup matches the canonical and alternate names case-insensitively and without further
- * folding; candidates are ranked like the other loaders of this module, by population descending
- * with the feature-class prior on ties. Instances are immutable after loading and safe to share
- * between threads.</p>
+ * <p>Lookup matches the canonical and alternate names by the one matching rule of this module's
+ * gazetteers: names and queries are folded through NFC, case fold, accent fold and
+ * UAX&#160;#29 word tokens joined by one space. Candidates are ranked like the other loaders of
+ * this module, by population descending with the feature-class prior on ties. Instances are
+ * immutable after loading and safe to share between threads.</p>
  */
 @ThreadSafe
 public final class UserGazetteer implements Gazetteer {
@@ -238,7 +239,7 @@ public final class UserGazetteer implements Gazetteer {
     if (recordId == null) {
       throw new IllegalArgumentException("recordId must not be null");
     }
-    return this.source.equals(source) ? index.byId(recordId) : Optional.empty();
+    return index.byId(source, recordId);
   }
 
   /** {@inheritDoc} */
