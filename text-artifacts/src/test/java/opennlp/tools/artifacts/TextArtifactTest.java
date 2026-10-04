@@ -18,10 +18,12 @@
 package opennlp.tools.artifacts;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -57,6 +59,23 @@ public class TextArtifactTest {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> new TextArtifact(new Span(2, 5), type));
     assertEquals("type must not be null or blank", e.getMessage());
+  }
+
+  /**
+   * The blank check follows the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a type made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankTypeCheckIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      assertThrows(IllegalArgumentException.class, () -> new TextArtifact(new Span(2, 5), "\u0085"));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** Returns the supplied components and accepts custom types. */
