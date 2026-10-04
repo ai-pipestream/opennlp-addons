@@ -288,6 +288,21 @@ public class BundledGazetteerTest {
     assertMalformedAt(3, "naturalearth;1;Zurich;;47.4;8.5;CH;;1108000;CITY;=Q72");
   }
 
+  /**
+   * A line that holds only Unicode whitespace is a blank line, like in the other gazetteer
+   * readers. Before the fix it reached the row parser and was rejected as a malformed row.
+   *
+   * @param codePoint The whitespace code point that fills the line: no-break space,
+   *     ideographic space or the U+2028 line separator.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x00A0, 0x3000, 0x2028})
+  void testParseSkipsUnicodeBlankLines(int codePoint) throws IOException {
+    final List<GazetteerEntry> entries = parseRows(ROWS[0], cp(codePoint), ROWS[1]);
+    assertEquals(2, entries.size());
+    assertEquals("Zurich", entries.get(0).name());
+  }
+
   @Test
   void testParseReportsTheFailingLineNotTheFirst() {
     // Two good rows before the bad one: the reported line number is the bad row's.
