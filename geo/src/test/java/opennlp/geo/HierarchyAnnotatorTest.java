@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -36,6 +37,7 @@ import opennlp.tools.geo.GeoResolution;
 import opennlp.tools.geo.GeocodeAnnotator;
 import opennlp.tools.geo.PlaceAncestor;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.WhitespaceMode;
 
 /**
  * Tests containment chains from pre-built location layers.
@@ -209,6 +211,24 @@ public class HierarchyAnnotatorTest {
   void testBlankAttributeKeyIsRejected(String attributeKey) {
     Assertions.assertThrows(IllegalArgumentException.class,
         () -> new HierarchyAnnotator(spine(), attributeKey));
+  }
+
+  /**
+   * The blank check follows the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but a key made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankAttributeKeyCheckIgnoresTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new HierarchyAnnotator(spine(), "\u0085"));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   /** A custom join key overrides the default key. */
