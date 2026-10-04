@@ -234,7 +234,7 @@ public final class TermAnalyzingGlossaryMatcher implements GlossaryMatcher {
         throw new IllegalStateException(
             "TermAnalyzingGlossaryMatcher requires Terms with original spans");
       }
-      if (!StringUtil.isBlank(term.normalized())) {
+      if (!StringUtil.isUnicodeBlank(term.normalized())) {
         final Span span = aligned == null ? term.span()
             : aligned.toOriginalSpan(term.span().getStart(), term.span().getEnd());
         terms.add(new AnalyzedTerm(term.normalized(), span));
@@ -269,7 +269,7 @@ public final class TermAnalyzingGlossaryMatcher implements GlossaryMatcher {
     final List<String> tokens = new ArrayList<>(terms.size());
     for (final Term analyzed : terms) {
       final String normalized = analyzed.normalized();
-      if (StringUtil.isBlank(normalized)) {
+      if (StringUtil.isUnicodeBlank(normalized)) {
         throw new IllegalArgumentException("glossary term token must not normalize to"
             + " blank: \"" + analyzed.original() + "\" in \"" + term + "\"");
       }

@@ -90,7 +90,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
    *         or blank.
    */
   public TbxGlossaryReader(String languageTag) {
-    if (languageTag == null || StringUtil.isBlank(languageTag)) {
+    if (StringUtil.isUnicodeBlank(languageTag)) {
       throw new IllegalArgumentException("languageTag must not be null or blank");
     }
     this.language = StringUtil.toLowerCase(languageTag);
@@ -184,7 +184,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
           skipElement(xml);
         } else if (child == Scope.TERM) {
           final String term = StringUtil.trimUnicodeWhitespace(collectText(xml));
-          if (StringUtil.isBlank(term)) {
+          if (StringUtil.isUnicodeBlank(term)) {
             throw new InvalidFormatException("blank term in entry \"" + entryId + "\"");
           }
           entries.add(new GlossaryEntry(entryId, term));
@@ -192,7 +192,7 @@ public final class TbxGlossaryReader implements GlossaryReader {
           String childId = entryId;
           if (child == Scope.ENTRY) {
             childId = xml.getAttributeValue(XMLConstants.NULL_NS_URI, "id");
-            if (childId == null || StringUtil.isBlank(childId)) {
+            if (StringUtil.isUnicodeBlank(childId)) {
               throw new InvalidFormatException("term entry must have a nonblank id attribute");
             }
           }

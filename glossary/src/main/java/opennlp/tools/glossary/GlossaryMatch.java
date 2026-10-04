@@ -47,10 +47,10 @@ public record GlossaryMatch(Span span, String id, String term) {
     if (span == null) {
       throw new IllegalArgumentException("span must not be null");
     }
-    if (id == null || StringUtil.isBlank(id)) {
+    if (StringUtil.isUnicodeBlank(id)) {
       throw new IllegalArgumentException("id must not be null or blank");
     }
-    if (term == null || StringUtil.isBlank(term)) {
+    if (StringUtil.isUnicodeBlank(term)) {
       throw new IllegalArgumentException("term must not be null or blank");
     }
   }
