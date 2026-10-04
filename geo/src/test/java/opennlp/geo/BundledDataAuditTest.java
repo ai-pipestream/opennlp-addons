@@ -146,10 +146,10 @@ public class BundledDataAuditTest {
   void testEveryNameFoldsToANonEmptyMatchKey() {
     // Check each name directly so this audit does not depend on indexing order.
     for (final GazetteerEntry entry : entries) {
-      assertFalse(BundledGazetteer.foldKey(entry.name()).isEmpty(),
+      assertFalse(GazetteerIndex.foldKey(entry.name()).isEmpty(),
           "Name folds to an empty match key: " + entry.recordId());
       for (final String alternateName : entry.alternateNames()) {
-        assertFalse(BundledGazetteer.foldKey(alternateName).isEmpty(),
+        assertFalse(GazetteerIndex.foldKey(alternateName).isEmpty(),
             "Alternate name '" + alternateName + "' folds to an empty match key: "
                 + entry.recordId());
       }

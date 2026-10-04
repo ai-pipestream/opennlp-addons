@@ -26,10 +26,11 @@ import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
 
 /**
- * A {@link Gazetteer} over caller-supplied entries held in memory, indexed and ranked
- * exactly like the bundled table (same folding chain, same candidate order), so place
- * records from any origin, for example a database or a remote service, get the matching
- * behavior of {@link BundledGazetteer} without a file format in between.
+ * A {@link Gazetteer} over caller-supplied entries held in memory, indexed and ranked by the
+ * one matching rule of this module's gazetteers (names and queries folded through NFC, case
+ * fold, accent fold and UAX&#160;#29 word tokens; candidates ordered by the population prior),
+ * so place records from any origin, for example a database or a remote service, behave like
+ * the {@link BundledGazetteer} without a file format in between.
  *
  * <p>The bundled table is never loaded and the shared
  * {@link BundledGazetteer#getInstance()} instance is not affected, so callers can build
@@ -40,11 +41,10 @@ import opennlp.tools.geo.GazetteerEntry;
 @ThreadSafe
 public final class InMemoryGazetteer implements Gazetteer {
 
-  // Shares the bundled table's index implementation over the entries given here only.
-  private final BundledGazetteer index;
+  private final GazetteerIndex index;
 
   private InMemoryGazetteer(List<GazetteerEntry> entries) {
-    this.index = new BundledGazetteer(entries);
+    this.index = GazetteerIndex.of(entries);
   }
 
   /**
@@ -64,12 +64,21 @@ public final class InMemoryGazetteer implements Gazetteer {
   /** {@inheritDoc} */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name must not be null");
+    }
     return index.lookup(name);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) {
+    if (source == null) {
+      throw new IllegalArgumentException("source must not be null");
+    }
+    if (recordId == null) {
+      throw new IllegalArgumentException("recordId must not be null");
+    }
     return index.byId(source, recordId);
   }
 

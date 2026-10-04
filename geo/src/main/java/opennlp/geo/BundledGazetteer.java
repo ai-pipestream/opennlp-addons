@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +34,6 @@ import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.StringUtil;
-import opennlp.tools.util.normalizer.Term;
-import opennlp.tools.util.normalizer.TermAnalyzer;
 
 /**
  * The bundled {@link Gazetteer}: a public-domain populated-places table derived from Natural
@@ -46,11 +42,11 @@ import opennlp.tools.util.normalizer.TermAnalyzer;
  * resource and line of a malformed row. After loading an instance is immutable and
  * thread-safe.
  *
- * <p>Indexed names and queries are folded through the same normalization chain (NFC, case fold,
- * accent fold with {@link TermAnalyzer} over
- * <a href="https://unicode.org/reports/tr29/">UAX&#160;#29</a> word tokens), so queries match
- * across case, accents, and hyphenation. The bundled table is pure ASCII;
- * native-script names are not matchable against it.</p>
+ * <p>Lookup uses the one matching rule of this module's gazetteers: names and queries are
+ * folded through NFC, case fold, accent fold and
+ * <a href="https://unicode.org/reports/tr29/">UAX&#160;#29</a> word tokens joined by one
+ * space, so queries match across case, accents, whitespace and hyphenation. The bundled table
+ * is pure ASCII; native-script names are not matchable against it.</p>
  *
  * <p>{@link #lookup(CharSequence)} returns candidates ordered by population descending, then a
  * feature-class prior ({@link GazetteerEntry#FEATURE_CLASS_CITY} before
@@ -71,14 +67,7 @@ public final class BundledGazetteer implements Gazetteer {
   /** The number of semicolons separating {@link #FIELD_COUNT} fields. */
   private static final int SEPARATOR_COUNT = FIELD_COUNT - 1;
 
-  // The character-level matching chain; stateless and thread-safe, shared by index and queries.
-  private static final TermAnalyzer FOLD =
-      TermAnalyzer.builder().nfc().caseFold().accentFold().build();
-
-  private final Map<IdKey, GazetteerEntry> idIndex;
-  private final Map<String, List<GazetteerEntry>> nameIndex;
-  private final Map<String, GazetteerEntry> regionIndex;
-  private final Set<String> sources;
+  private final GazetteerIndex index;
 
   /**
    * Indexes the given entries. Package-private; callers go through {@link #getInstance()} for
@@ -89,41 +78,7 @@ public final class BundledGazetteer implements Gazetteer {
    *     contains an entry with a name that folds to an empty match key.
    */
   BundledGazetteer(List<GazetteerEntry> entries) {
-    if (entries == null) {
-      throw new IllegalArgumentException("entries must not be null");
-    }
-    final Map<IdKey, GazetteerEntry> byId = new HashMap<>(entries.size() * 2);
-    final Map<String, List<GazetteerEntry>> byName = new HashMap<>(entries.size() * 2);
-    final Map<String, GazetteerEntry> byRegion = new HashMap<>();
-    final Set<String> sourceIds = new HashSet<>();
-    for (final GazetteerEntry entry : entries) {
-      if (entry == null) {
-        throw new IllegalArgumentException("entries must not contain a null element");
-      }
-      final IdKey key = new IdKey(entry.source(), entry.recordId());
-      if (byId.putIfAbsent(key, entry) != null) {
-        throw new IllegalArgumentException("Duplicate gazetteer record for source "
-            + entry.source() + " and recordId " + entry.recordId());
-      }
-      sourceIds.add(entry.source());
-      indexName(byName, entry.name(), entry);
-      for (final String alternateName : entry.alternateNames()) {
-        indexName(byName, alternateName, entry);
-      }
-      if (entry.countryCode() != null) {
-        byRegion.merge(entry.countryCode(), entry, (existing, candidate) ->
-            CandidateRanking.BY_PRIOR.compare(candidate, existing) < 0 ? candidate : existing);
-      }
-    }
-    for (final Map.Entry<String, List<GazetteerEntry>> indexed : byName.entrySet()) {
-      final List<GazetteerEntry> ranked = new ArrayList<>(indexed.getValue());
-      ranked.sort(CandidateRanking.BY_PRIOR);
-      indexed.setValue(List.copyOf(ranked));
-    }
-    this.idIndex = byId;
-    this.nameIndex = byName;
-    this.regionIndex = byRegion;
-    this.sources = Set.copyOf(sourceIds);
+    this.index = GazetteerIndex.of(entries);
   }
 
   /**
@@ -143,12 +98,7 @@ public final class BundledGazetteer implements Gazetteer {
     if (name == null) {
       throw new IllegalArgumentException("name must not be null");
     }
-    final String key = foldKey(name);
-    if (key.isEmpty()) {
-      return List.of();
-    }
-    final List<GazetteerEntry> entries = nameIndex.get(key);
-    return entries == null ? List.of() : entries;
+    return index.lookup(name);
   }
 
   /** {@inheritDoc} */
@@ -160,42 +110,19 @@ public final class BundledGazetteer implements Gazetteer {
     if (recordId == null) {
       throw new IllegalArgumentException("recordId must not be null");
     }
-    return Optional.ofNullable(idIndex.get(new IdKey(source, recordId)));
+    return index.byId(source, recordId);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<GazetteerEntry> byRegion(String isoCountryCode) {
-    final String key = GazetteerIndex.normalizeRegionCode(isoCountryCode);
-    return Optional.ofNullable(regionIndex.get(key));
+    return index.byRegion(isoCountryCode);
   }
 
   /** {@inheritDoc} */
   @Override
   public Set<String> sources() {
-    return sources;
-  }
-
-  /**
-   * Folds one name to its match key: UAX&#160;#29 word tokens, each NFC + case fold + accent
-   * fold, joined by single spaces. Returns empty when the name contains no word token.
-   *
-   * @param name The name to fold. Must not be {@code null}.
-   * @return The match key, or empty when the name has no word token.
-   */
-  static String foldKey(CharSequence name) {
-    final List<Term> terms = FOLD.analyze(name);
-    if (terms.isEmpty()) {
-      return "";
-    }
-    final StringBuilder key = new StringBuilder(name.length());
-    for (final Term term : terms) {
-      if (key.length() > 0) {
-        key.append(' ');
-      }
-      key.append(term.normalized());
-    }
-    return key.toString();
+    return index.sources();
   }
 
   /**
@@ -362,38 +289,10 @@ public final class BundledGazetteer implements Gazetteer {
   }
 
   /**
-   * Indexes {@code entry} under the folded match key of {@code name}, listing it once even when
-   * several of its names fold to the same key.
-   *
-   * @throws IllegalArgumentException Thrown if {@code name} folds to an empty match key, which
-   *     would leave the record unreachable by lookup.
-   */
-  private static void indexName(Map<String, List<GazetteerEntry>> byName, String name,
-                                GazetteerEntry entry) {
-    final String key = foldKey(name);
-    if (key.isEmpty()) {
-      throw new IllegalArgumentException("Name '" + name + "' of record " + entry.source() + ";"
-          + entry.recordId() + " folds to an empty match key, so the record would be"
-          + " unreachable by lookup");
-    }
-    final List<GazetteerEntry> entries =
-        byName.computeIfAbsent(key, unused -> new ArrayList<>(2));
-    // An entry indexed under the same key by several of its names (or by two alternate names
-    // that fold together) is listed once.
-    if (!entries.contains(entry)) {
-      entries.add(entry);
-    }
-  }
-
-  /**
    * Holds the shared instance, initialized on first access to {@link #getInstance()} by the
    * class loader without locking.
    */
   private static final class Holder {
     static final BundledGazetteer INSTANCE = new BundledGazetteer(load());
-  }
-
-  /** The composite identifier of one record; only (source, recordId) together are unique. */
-  private record IdKey(String source, String recordId) {
   }
 }

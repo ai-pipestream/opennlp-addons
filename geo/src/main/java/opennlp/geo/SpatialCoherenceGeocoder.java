@@ -19,7 +19,9 @@ package opennlp.geo;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
@@ -85,14 +87,20 @@ public final class SpatialCoherenceGeocoder implements Geocoder {
     // first pass: candidates per mention, provisional pick by the population prior
     final List<Span> resolvedMentions = new ArrayList<>();
     final List<List<GazetteerEntry>> candidatesPerMention = new ArrayList<>();
+    // Ranked candidates per distinct mention text, so a name repeated in the document is
+    // looked up and ranked once; the map lives for this call only.
+    final Map<String, List<GazetteerEntry>> rankedByText = new HashMap<>();
     for (final Span mention : locationMentions) {
-      final CharSequence mentionText = text.subSequence(mention.getStart(), mention.getEnd());
-      final List<GazetteerEntry> found = gazetteer.lookup(mentionText);
-      if (found.isEmpty()) {
+      final String mentionText = text.subSequence(mention.getStart(), mention.getEnd()).toString();
+      List<GazetteerEntry> ranked = rankedByText.get(mentionText);
+      if (ranked == null) {
+        ranked = new ArrayList<>(gazetteer.lookup(mentionText));
+        ranked.sort(CandidateRanking.BY_PRIOR);
+        rankedByText.put(mentionText, ranked);
+      }
+      if (ranked.isEmpty()) {
         continue;
       }
-      final List<GazetteerEntry> ranked = new ArrayList<>(found);
-      ranked.sort(CandidateRanking.BY_PRIOR);
       resolvedMentions.add(mention);
       candidatesPerMention.add(ranked);
     }

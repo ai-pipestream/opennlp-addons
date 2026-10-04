@@ -41,10 +41,23 @@
 			user-downloaded GeoNames extract, <code>OvertureGazetteer</code> over an
 			Overture divisions export, and <code>UserGazetteer</code> over a
 			user-authored file, each described in its own section below. An
-			<code>InMemoryGazetteer</code> builds the same index over
-			caller-supplied entries, so place records from a database or a service
-			compose without a file in between. All are immutable and thread-safe
-			after loading, so one instance can be shared across threads.
+			<code>InMemoryGazetteer</code> indexes caller-supplied entries, so
+			place records from a database or a service compose without a file in
+			between. All are immutable and thread-safe after loading, so one
+			instance can be shared across threads.
+		</para>
+		<para>
+			All five share one name-matching rule: indexed names and queries are
+			folded through NFC, case folding under <code>Locale.ROOT</code>,
+			accent folding, and UAX #29 word tokenization with the tokens joined
+			by one space, so <code>Sao Paulo</code>, <code>SÃO PAULO</code> and a
+			mention split across a line break all hit the record named
+			<code>São Paulo</code>. A name that folds to an empty key is rejected
+			at load time, because no query could reach it. Record ids are matched
+			exactly by <code>byId</code>, and an <code>OverlayGazetteer</code>
+			over any two of these resolves a mention the same way on both sides.
+			<code>GazetteerFoldingRuleTest</code> pins the rule for every
+			implementation.
 		</para>
 		<para>
 			These implementations order name matches by population descending.
@@ -115,9 +128,9 @@ String representative = gazetteer.byRegion("us").orElseThrow().recordId();
 		</para>
 		<para>
 			Lookup matches the canonical name, the ASCII name, and every
-			alternate name case-insensitively; the ASCII name column is what
-			makes accent-free queries hit accented places. Candidates return
-			ranked by population descending.
+			alternate name by the shared folding rule described above, so
+			accent-free queries hit accented places even when the ASCII name
+			column is empty. Candidates return ranked by population descending.
 			<code>GeoNamesGazetteerTest</code> covers the loading and ranking
 			shown here.
 			<programlisting language="java"><![CDATA[
