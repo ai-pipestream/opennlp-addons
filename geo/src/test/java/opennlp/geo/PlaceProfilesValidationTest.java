@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -180,6 +181,21 @@ class PlaceProfilesValidationTest {
     assertEquals(-1.0, load(table).similarity("a", "b"));
     assertEquals("duplicate id in row 5: a", assertThrows(InvalidFormatException.class,
         () -> load(table + ending + "a\t3")).getMessage());
+  }
+
+  /**
+   * Ignores a byte order mark at the start of the table, so an exported file whose first
+   * line is a comment or the header loads like one without the mark.
+   *
+   * @param firstLine The first line of the table, before the mark is prepended.
+   * @throws IOException Thrown if loading fails.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"# note\nid\tv", "id\tv"})
+  void testLeadingByteOrderMarkIsIgnored(String firstLine) throws IOException {
+    final PlaceProfiles profiles = load("\uFEFF" + firstLine + "\na\t1\nb\t2\n");
+    assertEquals(List.of("v"), profiles.metrics());
+    assertEquals(-1.0, profiles.similarity("a", "b"));
   }
 
   /**
