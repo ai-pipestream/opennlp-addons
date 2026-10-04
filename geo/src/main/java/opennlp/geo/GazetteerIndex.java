@@ -48,14 +48,26 @@ import opennlp.tools.util.normalizer.TermAnalyzer;
  * <p>Names and queries share one folding rule, {@link #foldKey(CharSequence)}: NFC, case fold
  * under {@link Locale#ROOT}, accent fold, then the
  * <a href="https://unicode.org/reports/tr29/">UAX&#160;#29</a> word tokens joined by one
- * space. Every name is folded once, when it is indexed; a lookup folds only the query. A name
- * that folds to an empty key is rejected because no query could ever reach it.</p>
+ * space. Every name is folded once, when it is indexed; a lookup folds only the query. A
+ * canonical name that folds to an empty key is rejected because no query could ever reach the
+ * record; an alternate name that does is rejected or skipped as the loader's
+ * {@link UnmatchableAlternates} policy says.</p>
  *
  * <p>Instances are immutable and thread-safe; a {@link Builder} collects entries, and
  * {@link #load(InputStream, boolean, RowParser)} is the shared read loop of the file loaders.</p>
  */
 @ThreadSafe
 final class GazetteerIndex {
+
+  /** What a {@link Builder} does with an alternate name that folds to an empty match key. */
+  enum UnmatchableAlternates {
+
+    /** Reject the entry; for hand-written tables the author can correct. */
+    REJECT,
+
+    /** Leave that alternate name out of the index; for downloaded tables nobody can edit. */
+    SKIP
+  }
 
   /** Parses one data line of a gazetteer table into an entry. */
   @FunctionalInterface
@@ -118,7 +130,7 @@ final class GazetteerIndex {
     if (entries == null) {
       throw new IllegalArgumentException("entries must not be null");
     }
-    final Builder builder = new Builder();
+    final Builder builder = new Builder(UnmatchableAlternates.REJECT);
     for (final GazetteerEntry entry : entries) {
       if (entry == null) {
         throw new IllegalArgumentException("entries must not contain a null element");
@@ -139,15 +151,16 @@ final class GazetteerIndex {
    * @param in           The table content, read fully as UTF-8 but not closed.
    * @param skipComments Whether lines starting with {@code #} are skipped.
    * @param parser       The row parser of the caller's table format.
+   * @param alternates   What to do with an alternate name that folds to an empty match key.
    * @return The index over the parsed entries.
    * @throws IOException Thrown if reading fails.
    * @throws InvalidFormatException Thrown if the content has no data rows, a row repeats a
-   *     record id, a name folds to an empty match key, or from {@code parser} for a malformed
-   *     row.
+   *     record id, a canonical name (or, under {@link UnmatchableAlternates#REJECT}, an
+   *     alternate name) folds to an empty match key, or from {@code parser} for a malformed row.
    */
-  static GazetteerIndex load(InputStream in, boolean skipComments, RowParser parser)
-      throws IOException {
-    final Builder builder = new Builder();
+  static GazetteerIndex load(InputStream in, boolean skipComments, RowParser parser,
+                             UnmatchableAlternates alternates) throws IOException {
+    final Builder builder = new Builder(alternates);
     final BufferedReader reader = utf8Reader(in);
     String line;
     int lineNumber = 0;
@@ -337,9 +350,15 @@ final class GazetteerIndex {
     private final Map<IdKey, GazetteerEntry> byId = new HashMap<>();
     private final Map<String, GazetteerEntry> byCountry = new HashMap<>();
     private final Set<String> sources = new HashSet<>();
+    private final UnmatchableAlternates alternates;
 
-    /** Starts an empty builder. */
-    private Builder() {
+    /**
+     * Starts an empty builder.
+     *
+     * @param alternates What to do with an alternate name that folds to an empty match key.
+     */
+    private Builder(UnmatchableAlternates alternates) {
+      this.alternates = alternates;
     }
 
     /**
@@ -350,18 +369,24 @@ final class GazetteerIndex {
      * @param entry The entry to index. Must not be {@code null}.
      * @return {@code true} if the entry was added, or {@code false} if its (source, record id)
      *     was present; a rejected entry changes nothing.
-     * @throws IllegalArgumentException Thrown if a name of {@code entry} folds to an empty
-     *     match key, which would leave the record unreachable by lookup.
+     * @throws IllegalArgumentException Thrown if the canonical name of {@code entry}, or under
+     *     {@link UnmatchableAlternates#REJECT} one of its alternate names, folds to an empty
+     *     match key, which would leave that name unreachable by lookup.
      */
     boolean add(GazetteerEntry entry) {
       final IdKey id = new IdKey(entry.source(), entry.recordId());
       if (byId.containsKey(id)) {
         return false;
       }
-      final String[] keys = new String[entry.alternateNames().size() + 1];
-      keys[0] = requireMatchable(entry.name(), entry);
-      for (int i = 1; i < keys.length; i++) {
-        keys[i] = requireMatchable(entry.alternateNames().get(i - 1), entry);
+      final List<String> keys = new ArrayList<>(entry.alternateNames().size() + 1);
+      keys.add(requireMatchable(entry.name(), entry));
+      for (final String alternate : entry.alternateNames()) {
+        final String key = foldKey(alternate);
+        if (!key.isEmpty()) {
+          keys.add(key);
+        } else if (alternates == UnmatchableAlternates.REJECT) {
+          throw unmatchable(alternate, entry);
+        }
       }
       byId.put(id, entry);
       sources.add(entry.source());
@@ -401,11 +426,22 @@ final class GazetteerIndex {
     private static String requireMatchable(String name, GazetteerEntry entry) {
       final String key = foldKey(name);
       if (key.isEmpty()) {
-        throw new IllegalArgumentException("Name '" + name + "' of record " + entry.source()
-            + ";" + entry.recordId() + " folds to an empty match key, so the record would be"
-            + " unreachable by lookup");
+        throw unmatchable(name, entry);
       }
       return key;
+    }
+
+    /**
+     * Builds the failure for a name that folds to an empty match key.
+     *
+     * @param name  The offending canonical or alternate name.
+     * @param entry The entry the name belongs to.
+     * @return The exception to throw.
+     */
+    private static IllegalArgumentException unmatchable(String name, GazetteerEntry entry) {
+      return new IllegalArgumentException("Name '" + name + "' of record " + entry.source()
+          + ";" + entry.recordId() + " folds to an empty match key, so the record would be"
+          + " unreachable by lookup");
     }
   }
 }

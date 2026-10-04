@@ -25,8 +25,10 @@ import opennlp.tools.util.StringUtil;
  * One rule hiding base entries from an {@link OverlayGazetteer}: a place name with optional
  * country and feature-class filters, so a rule can be as narrow as one place reading. A rule
  * matches an entry when the name equals the entry's canonical name or any of its alternate names
- * case-insensitively, the country filter, when present, equals the entry's country code, and the
- * feature-class filter, when present, equals the entry's feature class case-insensitively.
+ * under the folding rule of this module's gazetteers (NFC, case fold, accent fold, UAX&#160;#29
+ * word tokens joined by one space, so {@code Sao Paulo} hides {@code São Paulo}), the country
+ * filter, when present, equals the entry's country code, and the feature-class filter, when
+ * present, equals the entry's feature class case-insensitively.
  *
  * <p>An entry without a country code never matches a rule carrying a country filter, and an entry
  * without a feature class never matches a rule carrying a feature-class filter: a filter demands
@@ -34,8 +36,9 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>Instances are immutable and thread-safe.</p>
  *
- * @param name         The place name to suppress, matched case-insensitively against the
- *                     canonical and alternate names. Must not be {@code null} or blank.
+ * @param name         The place name to suppress, matched by the gazetteer folding rule against
+ *                     the canonical and alternate names. Must not be {@code null} and must
+ *                     contain a word token.
  * @param countryCode  The <a href="https://www.iso.org/iso-3166-country-codes.html">ISO
  *                     3166-1</a> alpha-2 country filter, two ASCII letters of either case, or
  *                     {@code null} to match any country.
@@ -49,13 +52,17 @@ public record Suppression(String name, String countryCode, String featureClass) 
   /**
    * Creates a rule.
    *
-   * @throws IllegalArgumentException Thrown if {@code name} is {@code null} or blank,
-   *     {@code countryCode} is present but not two ASCII letters, or {@code featureClass} is
-   *     present but blank.
+   * @throws IllegalArgumentException Thrown if {@code name} is {@code null} or has no word
+   *     token (so it could never match), {@code countryCode} is present but not two ASCII
+   *     letters, or {@code featureClass} is present but blank.
    */
   public Suppression {
-    if (StringUtil.isUnicodeBlank(name)) {
-      throw new IllegalArgumentException("name must not be null or blank");
+    if (name == null) {
+      throw new IllegalArgumentException("name must not be null");
+    }
+    if (GazetteerIndex.foldKey(name).isEmpty()) {
+      throw new IllegalArgumentException(
+          "name must contain a word token, otherwise the rule could never match: " + name);
     }
     if (countryCode != null) {
       countryCode = GazetteerIndex.normalizeRegionCode(countryCode);
@@ -68,15 +75,17 @@ public record Suppression(String name, String countryCode, String featureClass) 
   /**
    * Creates a rule suppressing every entry with a name, in any country and of any feature class.
    *
-   * @param name The place name to suppress. Must not be {@code null} or blank.
-   * @throws IllegalArgumentException Thrown if {@code name} is {@code null} or blank.
+   * @param name The place name to suppress. Must not be {@code null} and must contain a word
+   *             token.
+   * @throws IllegalArgumentException Thrown if {@code name} is {@code null} or has no word token.
    */
   public Suppression(String name) {
     this(name, null, null);
   }
 
   /**
-   * Tests whether this rule matches an entry.
+   * Tests whether this rule matches an entry. The rule name and the entry's names are folded
+   * on each call; a record cannot cache the folded key.
    *
    * @param entry The entry to test. Must not be {@code null}.
    * @return {@code true} if the entry matches the name and every present filter.
@@ -93,11 +102,12 @@ public record Suppression(String name, String countryCode, String featureClass) 
         && (entry.featureClass() == null || !featureClass.equalsIgnoreCase(entry.featureClass()))) {
       return false;
     }
-    if (name.equalsIgnoreCase(entry.name())) {
+    final String key = GazetteerIndex.foldKey(name);
+    if (key.equals(GazetteerIndex.foldKey(entry.name()))) {
       return true;
     }
     for (final String alternate : entry.alternateNames()) {
-      if (name.equalsIgnoreCase(alternate)) {
+      if (key.equals(GazetteerIndex.foldKey(alternate))) {
         return true;
       }
     }

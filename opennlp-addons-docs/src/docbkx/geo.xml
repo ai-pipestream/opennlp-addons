@@ -52,8 +52,11 @@
 			accent folding, and UAX #29 word tokenization with the tokens joined
 			by one space, so <code>Sao Paulo</code>, <code>SÃO PAULO</code> and a
 			mention split across a line break all hit the record named
-			<code>São Paulo</code>. A name that folds to an empty key is rejected
-			at load time, because no query could reach it. Record ids are matched
+			<code>São Paulo</code>. A canonical name that folds to an empty key is
+			rejected at load time, because no query could reach it; an alternate
+			name that does is rejected in a hand-written user file and left out of
+			the index for a downloaded GeoNames or Overture table. Suppression
+			rules match by the same folding. Record ids are matched
 			exactly by <code>byId</code>, and an <code>OverlayGazetteer</code>
 			over any two of these resolves a mention the same way on both sides.
 			<code>GazetteerFoldingRuleTest</code> pins the rule for every
@@ -195,6 +198,8 @@ OvertureGazetteer gazetteer = OvertureGazetteer.load(Path.of("divisions.tsv"));
 		<para>
 			A suppression rule is a place name with optional country and
 			feature-class filters, one rule per line with tab-separated columns.
+			The name is matched by the folding rule above, so a rule written
+			<code>Sao Paulo</code> hides the entry <code>São Paulo</code>.
 			The following file removes the city of Mobile, Alabama, from a corpus
 			where that reading is always noise, while leaving every other
 			<code>Mobile</code>-named record intact.

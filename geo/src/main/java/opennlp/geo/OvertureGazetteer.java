@@ -51,8 +51,9 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>Lookup matches the primary and every alternate name by the one matching rule of this
  * module's gazetteers: names and queries are folded through NFC, case fold, accent fold and
- * UAX&#160;#29 word tokens joined by one space. Candidates are ranked by population
- * descending. Subtypes map coarsely:
+ * UAX&#160;#29 word tokens joined by one space. An alternate name that folds to nothing, for
+ * example one made of punctuation only, is left out of the index because the derived table is
+ * not the user's to correct. Candidates are ranked by population descending. Subtypes map coarsely:
  * {@code locality} rows become {@link GazetteerEntry#FEATURE_CLASS_CITY}; the
  * sub-locality subtypes ({@code borough}, {@code macrohood}, {@code neighborhood},
  * {@code microhood}) become {@link GazetteerEntry#FEATURE_CLASS_POI}; every other
@@ -120,7 +121,8 @@ public final class OvertureGazetteer implements Gazetteer {
       throw new IllegalArgumentException("in must not be null");
     }
     return new OvertureGazetteer(
-        GazetteerIndex.load(in, true, OvertureGazetteer::parseRow));
+        GazetteerIndex.load(in, true, OvertureGazetteer::parseRow,
+            GazetteerIndex.UnmatchableAlternates.SKIP));
   }
 
   /** {@inheritDoc} */
