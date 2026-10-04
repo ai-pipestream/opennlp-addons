@@ -160,6 +160,17 @@ class HuggingFaceModelCacheTest {
     hub.close();
   }
 
+  /** The recorded revision is trimmed of Unicode whitespace, not only of ASCII whitespace. */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testPinnedRevisionIsTrimmedWithUnicodeWhitespace(String padding, @TempDir Path cache)
+      throws IOException {
+    Files.writeString(cache.resolve(HuggingFaceModelCache.REVISION_FILE),
+        padding + COMMIT + padding + "\n", StandardCharsets.UTF_8);
+
+    assertEquals(COMMIT, HuggingFaceModelCache.pinnedRevision(cache));
+  }
+
   @Test
   void testRejectsNullTeacher() {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
