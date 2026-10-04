@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,15 +149,8 @@ public final class UserGazetteer implements Gazetteer {
       throw new IllegalArgumentException(IN_REQUIRED);
     }
     validateSource(source);
-    final Set<String> seenIds = new HashSet<>();
-    final GazetteerIndex index = GazetteerIndex.load(in, true, (line, lineNumber) -> {
-      final GazetteerEntry entry = parseRow(line, lineNumber, source);
-      if (!seenIds.add(entry.recordId())) {
-        throw new InvalidFormatException(
-            "line " + lineNumber + " repeats record id: " + entry.recordId());
-      }
-      return entry;
-    });
+    final GazetteerIndex index = GazetteerIndex.load(in, true,
+        (line, lineNumber) -> parseRow(line, lineNumber, source));
     return new UserGazetteer(source, index);
   }
 
