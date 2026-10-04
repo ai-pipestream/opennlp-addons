@@ -42,8 +42,10 @@ import opennlp.tools.document.Document;
  * <p>Tokens can change text length. {@link PiiRewrite} maps annotations to output
  * offsets.</p>
  *
- * <p>Text replacement rejects overlapping mentions. Use {@link #token(PiiMention)}
- * to tokenize those detections individually, or {@link Masker} for redaction.</p>
+ * <p>Overlapping mentions, which {@link PiiAnnotator} keeps, are resolved before
+ * replacement: the longer span is kept and identical spans are decided by
+ * {@link PiiTypePriority}. Use {@link #token(PiiMention)} to tokenize every detection
+ * individually, or {@link Masker} for redaction.</p>
  *
  * <p>Instances are immutable and safe to share between threads.</p>
  *
@@ -153,12 +155,13 @@ public final class HmacTokenizer {
    * @param text The original text. Must not be {@code null}.
    * @param mentions The mentions to replace, as reported by a {@link PiiExtractor}. Must
    *                 not be {@code null} or contain {@code null}. All spans must be
-   *                 within {@code text} and must not overlap. Mention types and
-   *                 normalized values must contain valid UTF-16.
+   *                 within {@code text}. Overlapping mentions are resolved as described
+   *                 on this class. Mention types and normalized values must contain
+   *                 valid UTF-16.
    * @return The non-null rewrite result.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}, a mention is
-   *         {@code null}, a span lies outside the text, spans overlap, or a mention's
-   *         type or normalized value contains an unpaired surrogate.
+   *         {@code null}, a span lies outside the text, or a mention's type or
+   *         normalized value contains an unpaired surrogate.
    */
   public PiiRewrite rewrite(CharSequence text, List<PiiMention> mentions) {
     return PiiRewrite.replace(text, mentions, this::token);
@@ -172,8 +175,8 @@ public final class HmacTokenizer {
    *                 offsets. Mention types and normalized values must contain valid UTF-16.
    * @return The non-null rewrite result.
    * @throws IllegalArgumentException Thrown if {@code document} is null, lacks the PII
-   *         layer, contains overlapping mentions, an annotation and mention have different
-   *         offsets, or a mention's type or normalized value contains an unpaired surrogate.
+   *         layer, an annotation and mention have different offsets, or a mention's type
+   *         or normalized value contains an unpaired surrogate.
    */
   public PiiRewrite rewrite(Document document) {
     final List<PiiMention> mentions = PiiLayer.mentions(document);

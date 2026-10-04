@@ -79,14 +79,16 @@ public final class PiiRewrite {
    *
    * @param text The original text. Must not be {@code null}.
    * @param mentions The mentions to replace. Must not be {@code null} or contain
-   *                 {@code null}. All spans must be within {@code text} and must not
-   *                 overlap. Order does not matter.
+   *                 {@code null}. All spans must be within {@code text}. Order does not
+   *                 matter. Of two overlapping mentions the longer span is kept; spans of
+   *                 equal start and end are decided by {@link PiiTypePriority}, so an
+   *                 extractor's inner candidates give way to the outer mention.
    * @param labeler Assigns the replacement for a mention. Must not be {@code null} and
    *                must not return {@code null} or an empty label.
    * @return The non-null rewrite result.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}, a mention is
-   *         {@code null}, a span lies outside the text, spans overlap, or the labeler
-   *         returns {@code null} or an empty label.
+   *         {@code null}, a span lies outside the text, or the labeler returns
+   *         {@code null} or an empty label.
    */
   static PiiRewrite replace(CharSequence text, List<PiiMention> mentions,
       Function<PiiMention, String> labeler) {
@@ -137,16 +139,21 @@ public final class PiiRewrite {
   }
 
   /**
-   * Validates, copies, and orders mentions for a left-to-right rewrite.
+   * Validates, copies, and orders mentions for a left-to-right rewrite, dropping every
+   * mention that overlaps one kept before it.
+   *
+   * <p>Candidates are visited longest span first, then by {@link PiiTypePriority} rank,
+   * then by start offset. A candidate that overlaps a mention kept before it is dropped,
+   * so of two overlapping mentions the longer survives and identical spans are decided by
+   * type rank.</p>
    *
    * @param text The source text.
    * @param mentions The mentions to validate and order.
-   * @return A mutable copy sorted by start offset.
-   * @throws IllegalArgumentException If a mention is null, outside the text or overlaps
-   *         another mention.
+   * @return A mutable copy of the surviving mentions sorted by start offset.
+   * @throws IllegalArgumentException Thrown if a mention is null or outside the text.
    */
   private static List<PiiMention> ordered(CharSequence text, List<PiiMention> mentions) {
-    final List<PiiMention> ordered = new ArrayList<>(mentions.size());
+    final List<PiiMention> candidates = new ArrayList<>(mentions.size());
     for (final PiiMention mention : mentions) {
       if (mention == null) {
         throw new IllegalArgumentException("mentions must not contain null");
@@ -154,16 +161,37 @@ public final class PiiRewrite {
       if (mention.span().getStart() < 0 || mention.span().getEnd() > text.length()) {
         throw new IllegalArgumentException("span lies outside the text: " + mention.span());
       }
-      ordered.add(mention);
+      candidates.add(mention);
     }
-    ordered.sort(Comparator.comparingInt(mention -> mention.span().getStart()));
-    for (int i = 1; i < ordered.size(); i++) {
-      if (ordered.get(i).span().getStart() < ordered.get(i - 1).span().getEnd()) {
-        throw new IllegalArgumentException("mentions must not overlap: "
-            + ordered.get(i - 1).span() + " and " + ordered.get(i).span());
+    candidates.sort(Comparator.<PiiMention>comparingInt(mention -> mention.span().length())
+        .reversed()
+        .thenComparingInt(mention -> PiiTypePriority.rank(mention.type()))
+        .thenComparingInt(mention -> mention.span().getStart()));
+    final List<PiiMention> ordered = new ArrayList<>(candidates.size());
+    for (final PiiMention candidate : candidates) {
+      if (!overlapsAny(candidate, ordered)) {
+        ordered.add(candidate);
       }
     }
+    ordered.sort(Comparator.comparingInt(mention -> mention.span().getStart()));
     return ordered;
+  }
+
+  /**
+   * Tests whether a candidate shares at least one character with a kept mention.
+   *
+   * @param candidate The candidate to place.
+   * @param kept The mentions kept so far.
+   * @return {@code true} if {@code candidate} overlaps any of {@code kept}.
+   */
+  private static boolean overlapsAny(PiiMention candidate, List<PiiMention> kept) {
+    for (final PiiMention mention : kept) {
+      if (candidate.span().getStart() < mention.span().getEnd()
+          && mention.span().getStart() < candidate.span().getEnd()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
