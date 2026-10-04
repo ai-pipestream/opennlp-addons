@@ -110,8 +110,9 @@ class PiiCompositionTest {
     Assertions.assertEquals(List.of(amy, middle, bob), result.get(PiiAnnotator.PII).stream()
         .map(annotation -> annotation.value()).toList());
     Assertions.assertEquals(prefix + "*******", Masker.mask(result, PiiAnnotator.PII, '*'));
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> new Pseudonymizer().rewrite(result));
+    // The rewrite keeps the longest span and drops both persons it crosses.
+    Assertions.assertEquals(prefix + "ACUSTOM-1ob",
+        new Pseudonymizer().rewrite(result).text());
   }
 
   /** Checks delegate invocation order and preserves the configured nested view. */

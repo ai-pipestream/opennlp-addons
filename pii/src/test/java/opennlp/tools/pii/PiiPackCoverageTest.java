@@ -110,18 +110,23 @@ class PiiPackCoverageTest {
         PiiMention.TYPE_EMAIL, 1), report.counts());
   }
 
-  /** Checks that all label replacements reject overlapping detections. */
+  /**
+   * Checks that all label replacements keep the longer of two crossing detections: the
+   * 16-character email outlives the 9-character credential it overlaps.
+   */
   @Test
-  void testLabelReplacementRequiresNonOverlappingMentions() {
+  void testLabelReplacementKeepsTheLongerOfCrossingMentions() {
     final Document document = crossingMentions();
     final List<PiiMention> mentions = document.get(PiiAnnotator.PII).stream()
         .map(Annotation::value).toList();
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> new Pseudonymizer().rewrite(document));
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> TOKENIZER.rewrite(document));
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> PiiRewrite.replace(document.text(), mentions, ignored -> "LABEL"));
+    final List<String> expectedTypes = List.of(PiiMention.TYPE_EMAIL);
+
+    Assertions.assertEquals(expectedTypes, new Pseudonymizer().rewrite(document).mentions()
+        .stream().map(PiiMention::type).toList());
+    Assertions.assertEquals(expectedTypes, TOKENIZER.rewrite(document).mentions()
+        .stream().map(PiiMention::type).toList());
+    Assertions.assertEquals("https://john:LABEL/path",
+        PiiRewrite.replace(document.text(), mentions, ignored -> "LABEL").text());
   }
 
   /**

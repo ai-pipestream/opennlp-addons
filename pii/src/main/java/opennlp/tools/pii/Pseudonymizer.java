@@ -37,8 +37,9 @@ import opennlp.tools.document.Document;
  * <p>Labels can change text length. {@link PiiRewrite} maps annotations to output
  * offsets.</p>
  *
- * <p>Text replacement rejects overlapping mentions. Use {@link Masker} to redact
- * their combined spans.</p>
+ * <p>Overlapping mentions, which {@link PiiAnnotator} keeps, are resolved before
+ * replacement: the longer span is kept and identical spans are decided by
+ * {@link PiiTypePriority}. Use {@link Masker} to redact their combined spans instead.</p>
  *
  * <p>Instances are immutable and safe to share between threads: the counters that number
  * the labels live for the duration of one {@code rewrite} call.</p>
@@ -88,10 +89,11 @@ public final class Pseudonymizer {
    * @param text The original text. Must not be {@code null}.
    * @param mentions The mentions to replace, as reported by a {@link PiiExtractor}. Must
    *                 not be {@code null} or contain {@code null}. All spans must be
-   *                 within {@code text} and must not overlap.
+   *                 within {@code text}. Overlapping mentions are resolved as described
+   *                 on this class.
    * @return The non-null rewrite result.
    * @throws IllegalArgumentException Thrown if an argument is {@code null}, a mention is
-   *         {@code null}, a span lies outside the text, or spans overlap.
+   *         {@code null}, or a span lies outside the text.
    */
   public PiiRewrite rewrite(CharSequence text, List<PiiMention> mentions) {
     final Map<Identity, String> labels = new HashMap<>();
@@ -108,8 +110,7 @@ public final class Pseudonymizer {
    *                 offsets.
    * @return The non-null rewrite result.
    * @throws IllegalArgumentException Thrown if {@code document} is null, lacks the PII
-   *         layer, contains overlapping mentions, or a mention and annotation have
-   *         different offsets.
+   *         layer, or a mention and annotation have different offsets.
    */
   public PiiRewrite rewrite(Document document) {
     final List<PiiMention> mentions = PiiLayer.mentions(document);

@@ -492,10 +492,11 @@ String maskedLink = Masker.mask(link, PiiAnnotator.PII, '*');
 	<section xml:id="tools.pii.transforms">
 		<title>Pseudonymizing, tokenizing, and auditing</title>
 		<para>
-			Text replacement requires non-overlapping mentions.
-			<code>Pseudonymizer</code> and <code>HmacTokenizer.rewrite</code>
-			reject overlapping spans with <code>IllegalArgumentException</code>.
-			Use <code>Masker</code> to redact combined spans without selecting a
+			Text replacement resolves overlapping mentions before rewriting.
+			<code>Pseudonymizer</code> and <code>HmacTokenizer.rewrite</code> keep the
+			longer span and decide identical spans by <code>PiiTypePriority</code>, so a
+			grouped IBAN is replaced once although its last groups also form a phone
+			candidate. Use <code>Masker</code> to redact combined spans without selecting a
 			subset. <code>HmacTokenizer.token</code> can tokenize retained mentions
 			individually, and audit reports accept overlapping detections.
 		</para>
