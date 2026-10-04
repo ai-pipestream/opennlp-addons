@@ -14,7 +14,7 @@
 	language governing permissions and limitations under the License. -->
 
 <chapter xml:id="addons.dehyphenation" xmlns:xlink="http://www.w3.org/1999/xlink">
-<title>dehyphenation</title>
+<title>De-hyphenation</title>
 	<section xml:id="tools.normalizer.dehyphenation">
 		<title>De-hyphenation and re-tokenizing term vectors</title>
 		<para>
