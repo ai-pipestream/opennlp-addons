@@ -39,8 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Runs the manual's predicate-annotator examples (docbkx {@code document.xml}, section
- * {@code tools.document.predicates}) over the chapter's token-length fixture and
+ * Runs the examples of the add-ons manual chapter {@code predicate-annotators.xml}
+ * (section {@code tools.document.predicates}) over the chapter's token-length fixture and
  * verifies the results from that section.
  */
 public class PredicateManualExampleTest {

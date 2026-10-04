@@ -99,7 +99,7 @@ public final class FilterAnnotator<T> implements DocumentAnnotator {
    * @param keep The annotation filter.
    * @param <T> The annotation value type.
    * @return A filter that ignores the document argument.
-   * @throws IllegalArgumentException If {@code keep} is {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code keep} is {@code null}.
    */
   private static <T> BiPredicate<Document, Annotation<T>> documentAware(
       Predicate<Annotation<T>> keep) {
