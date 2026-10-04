@@ -31,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
 import opennlp.tools.util.InvalidFormatException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -129,6 +130,20 @@ public class CapVolumeReaderTest {
     final List<String> passages = CapVolumeReader.passagesOf(paragraph);
     assertEquals(CapVolumeReader.HARD_MAX_CHARS, passages.get(0).length());
     assertEquals("tail of the fixture paragraph", passages.get(1));
+  }
+
+  @Test
+  void testHardCutKeepsSurrogatePairsTogether() {
+    // One leading char shifts every pair so the hard maximum falls between a high and a low
+    // surrogate; the cut must move so neither passage holds half a character.
+    final String paragraph = "x" + "\uD83D\uDE00".repeat(CapVolumeReader.HARD_MAX_CHARS);
+    final List<String> passages = CapVolumeReader.passagesOf(paragraph);
+    for (String passage : passages) {
+      assertFalse(Character.isHighSurrogate(passage.charAt(passage.length() - 1)));
+      assertFalse(Character.isLowSurrogate(passage.charAt(0)));
+      assertTrue(passage.length() <= CapVolumeReader.HARD_MAX_CHARS);
+    }
+    assertEquals(paragraph, String.join("", passages));
   }
 
   @Test
