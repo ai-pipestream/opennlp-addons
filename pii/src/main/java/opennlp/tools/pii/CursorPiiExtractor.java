@@ -40,7 +40,8 @@ import java.util.Set;
  *   assigned calling code and a national number length used by a territory under that
  *   code, or a domestic form with 10 or 11 digits and at least one space, hyphen, or
  *   parenthesis between digits. An unformatted digit run is not a phone number. Dots
- *   are excluded as separators to avoid decimal numbers.</li>
+ *   are excluded as separators to avoid decimal numbers, and a candidate that continues
+ *   into a decimal fraction or a clock time, such as {@code 12:30}, is rejected.</li>
  *   <li>IBAN: 2 uppercase letters, 2 check digits, and more uppercase letters or
  *   digits, optionally in space-separated groups, validated with the
  *   <a href="https://en.wikipedia.org/wiki/International_Bank_Account_Number">ISO 13616</a>
@@ -437,8 +438,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
                 && visiblySeparated;
         if (!lengthOk
             || !Boundaries.onEnd(text, end)
-            || (end + 1 < text.length() && text.charAt(end) == '.'
-                && Ascii.isDigit(text.charAt(end + 1)))) {
+            || continuesIntoNumber(text, end)) {
           continue;
         }
         Hits.add(hits, i, end, PiiMention.TYPE_PHONE,
@@ -449,6 +449,22 @@ public final class CursorPiiExtractor implements PiiExtractor {
         break;
       }
     }
+  }
+
+  /**
+   * Tests whether a phone candidate ending at {@code end} continues into a decimal
+   * fraction or a clock time, such as {@code 1.5551234567} or {@code 2024-01-15 12:30}.
+   *
+   * @param text The text being scanned.
+   * @param end The candidate end, exclusive.
+   * @return {@code true} if a dot or colon followed by a digit continues the run.
+   */
+  private boolean continuesIntoNumber(CharSequence text, int end) {
+    if (end + 1 >= text.length()) {
+      return false;
+    }
+    final char next = text.charAt(end);
+    return (next == '.' || next == ':') && Ascii.isDigit(text.charAt(end + 1));
   }
 
   /**
