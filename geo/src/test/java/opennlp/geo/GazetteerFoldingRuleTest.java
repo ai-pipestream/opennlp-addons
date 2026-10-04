@@ -177,25 +177,38 @@ public class GazetteerFoldingRuleTest {
     }
   }
 
+  private static final String NO_WORD = "...";
+
+  private static String geoNamesRow(String id, String name, String alternates) {
+    return String.join("\t", id, name, name, alternates, "1.0", "2.0", "P", "PPL", "US", "", "",
+        "", "", "", "1", "", "", "Etc/UTC", "2026-01-01") + "\n";
+  }
+
+  private static String overtureRow(String id, String name, String alternates) {
+    return String.join("\t", id, name, alternates, "1.0", "2.0", "US", "locality", "1") + "\n";
+  }
+
+  private static String userRow(String id, String name, String alternates) {
+    return String.join("\t", id, name, alternates, "1.0", "2.0", "US", "CITY", "1") + "\n";
+  }
+
   static Stream<Arguments> loadersWithAnUnmatchableName() {
-    final String noWord = "...";
     return Stream.of(
         Arguments.of("UserGazetteer", (Loader) in -> UserGazetteer.load(in, "customer"),
-            "ok\tOkay\t\t1.0\t2.0\tUS\tCITY\t1\n"
-                + "bad\t" + noWord + "\t\t1.0\t2.0\tUS\tCITY\t1\n"),
+            userRow("ok", "Okay", "") + userRow("bad", NO_WORD, "")),
         Arguments.of("GeoNamesGazetteer", (Loader) GeoNamesGazetteer::load,
-            String.join("\t", "1", "Okay", "Okay", "", "1.0", "2.0", "P", "PPL", "US", "", "",
-                "", "", "", "1", "", "", "Etc/UTC", "2026-01-01") + "\n"
-                + String.join("\t", "2", "Okay", "Okay", noWord, "1.0", "2.0", "P", "PPL", "US",
-                "", "", "", "", "", "1", "", "", "Etc/UTC", "2026-01-01") + "\n"),
+            geoNamesRow("1", "Okay", "") + geoNamesRow("2", NO_WORD, "")),
         Arguments.of("OvertureGazetteer", (Loader) OvertureGazetteer::load,
-            "d1\tOkay\t\t1.0\t2.0\tUS\tlocality\t1\n"
-                + "d2\t" + noWord + "\t\t1.0\t2.0\tUS\tlocality\t1\n"));
+            overtureRow("d1", "Okay", "") + overtureRow("d2", NO_WORD, "")),
+        Arguments.of("UserGazetteer, alternate name",
+            (Loader) in -> UserGazetteer.load(in, "customer"),
+            userRow("ok", "Okay", "") + userRow("bad", "Fine", NO_WORD)));
   }
 
   /**
-   * A name that folds to an empty key can never be queried, so every loader rejects the row and
-   * names its line, like the bundled table does.
+   * A canonical name that folds to an empty key can never be queried, so every loader rejects
+   * the row and names its line, like the bundled table does. A hand-written user file is held
+   * to the same standard for its alternate names.
    */
   @ParameterizedTest(name = "{0}")
   @MethodSource("loadersWithAnUnmatchableName")
@@ -205,6 +218,38 @@ public class GazetteerFoldingRuleTest {
     assertTrue(e.getMessage().contains("line 2"), kind + ": " + e.getMessage());
     assertTrue(e.getMessage().contains("folds to an empty match key"),
         kind + ": " + e.getMessage());
+  }
+
+  static Stream<Arguments> downloadedTablesWithAnUnmatchableAlternate() {
+    return Stream.of(
+        Arguments.of("GeoNamesGazetteer", (Loader) GeoNamesGazetteer::load,
+            geoNamesRow("1", "Okay", NO_WORD + ",Fine")),
+        Arguments.of("OvertureGazetteer", (Loader) OvertureGazetteer::load,
+            overtureRow("d1", "Okay", NO_WORD + ",Fine")));
+  }
+
+  /**
+   * A downloaded table is not the user's to edit, so an alternate name that folds to an empty
+   * key is left out of the index instead of failing the load; the other names still hit.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("downloadedTablesWithAnUnmatchableAlternate")
+  void testDownloadedTablesSkipAnAlternateWithoutWordTokens(String kind, Loader loader,
+                                                            String table) throws IOException {
+    final Gazetteer gazetteer = loader.load(utf8(table));
+    assertEquals(1, gazetteer.lookup("okay").size(), kind);
+    assertEquals(1, gazetteer.lookup("fine").size(), kind);
+    assertTrue(gazetteer.lookup(NO_WORD).isEmpty(), kind);
+  }
+
+  /** A suppression rule written in another spelling hides the base entry through the overlay. */
+  @Test
+  void testSuppressionFollowsTheFoldingRuleThroughTheOverlay() throws IOException {
+    final Gazetteer base = GeoNamesGazetteer.load(utf8(geoNamesTable()));
+    final OverlayGazetteer overlay =
+        new OverlayGazetteer(base, null, List.of(new Suppression("sao  paulo")));
+    assertTrue(overlay.lookup(SAO_PAULO).isEmpty());
+    assertEquals(1, overlay.lookup("New York").size());
   }
 
   /** One of the three stream loaders. */

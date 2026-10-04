@@ -77,10 +77,24 @@ public class SuppressionTest {
         () -> new Suppression("Mobile", countryCode, null));
   }
 
+  /** A rule is matched by the gazetteer folding rule, so it hits across accents and spacing. */
+  @Test
+  void testMatchesByTheGazetteerFoldingRule() {
+    final GazetteerEntry saoPaulo = new GazetteerEntry("test", "3", "S\u00e3o Paulo",
+        List.of("Sampa"), new GeoPoint(-23.55, -46.63), "BR", List.of(), 12_000_000L,
+        GazetteerEntry.FEATURE_CLASS_CITY, Map.of());
+    assertTrue(new Suppression("Sao Paulo").matches(saoPaulo));
+    assertTrue(new Suppression("S\u00c3O  PAULO").matches(saoPaulo));
+    assertTrue(new Suppression("Mobile\nCity").matches(MOBILE));
+    assertFalse(new Suppression("Sao").matches(saoPaulo));
+  }
+
   @Test
   void testRejectsInvalidArguments() {
     assertThrows(IllegalArgumentException.class, () -> new Suppression(null));
     assertThrows(IllegalArgumentException.class, () -> new Suppression(" "));
+    assertThrows(IllegalArgumentException.class, () -> new Suppression("..."),
+        "a name without a word token folds to an empty key and could never match");
     assertThrows(IllegalArgumentException.class, () -> new Suppression("Mobile", null, " "));
     assertThrows(IllegalArgumentException.class,
         () -> new Suppression("Mobile").matches(null));
