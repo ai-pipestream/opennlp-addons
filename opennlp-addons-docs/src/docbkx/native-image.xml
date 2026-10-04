@@ -13,9 +13,9 @@
 	OF ANY KIND, either express or implied. See the License for the specific
 	language governing permissions and limitations under the License. -->
 
-<chapter xml:id="addons.native-image" xmlns:xlink="http://www.w3.org/1999/xlink">
+<chapter xml:id="tools.native-image" xmlns:xlink="http://www.w3.org/1999/xlink">
 <title>GraalVM native image</title>
-	<section xml:id="addons.native-image.overview">
+	<section xml:id="tools.native-image.overview">
 		<title>Overview</title>
 		<para>
 			An application that uses the built-in OpenNLP components and loads its models from
@@ -42,7 +42,7 @@
 			against, or when the runtime jar bundles a resource no glob covers.
 		</para>
 	</section>
-	<section xml:id="addons.native-image.usage">
+	<section xml:id="tools.native-image.usage">
 		<title>Building an image</title>
 		<para>
 			Build the image with the
@@ -63,7 +63,7 @@
 		</para>
 		<screen><![CDATA[mvn -Pnative -pl native-image -am verify -Dopennlp.native.models=/path/to/models]]></screen>
 	</section>
-	<section xml:id="addons.native-image.limitations">
+	<section xml:id="tools.native-image.limitations">
 		<title>Limitations</title>
 		<itemizedlist>
 			<listitem>
