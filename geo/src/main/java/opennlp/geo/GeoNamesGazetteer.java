@@ -49,7 +49,9 @@ import opennlp.tools.util.StringUtil;
  * <p>Lookup matches the canonical name, the ASCII name, and every alternate name by the one
  * matching rule of this module's gazetteers: names and queries are folded through NFC, case
  * fold, accent fold and UAX&#160;#29 word tokens joined by one space, so an accent-free or
- * differently spaced query hits. Candidates are returned ranked by population descending.
+ * differently spaced query hits. An alternate name that folds to nothing, for example one made
+ * of punctuation only, is left out of the index because the downloaded file is not the user's
+ * to correct. Candidates are returned ranked by population descending.
  * Feature classes map coarsely: {@code P} rows become
  * {@link GazetteerEntry#FEATURE_CLASS_CITY}, {@code A} rows
  * {@link GazetteerEntry#FEATURE_CLASS_ADMIN}, everything else
@@ -112,7 +114,8 @@ public final class GeoNamesGazetteer implements Gazetteer {
       throw new IllegalArgumentException("in must not be null");
     }
     return new GeoNamesGazetteer(
-        GazetteerIndex.load(in, false, GeoNamesGazetteer::parseRow));
+        GazetteerIndex.load(in, false, GeoNamesGazetteer::parseRow,
+            GazetteerIndex.UnmatchableAlternates.SKIP));
   }
 
   /** {@inheritDoc} */

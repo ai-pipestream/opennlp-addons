@@ -74,8 +74,10 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>Lookup matches the canonical and alternate names by the one matching rule of this module's
  * gazetteers: names and queries are folded through NFC, case fold, accent fold and
- * UAX&#160;#29 word tokens joined by one space. Candidates are ranked like the other loaders of
- * this module, by population descending with the feature-class prior on ties. Instances are
+ * UAX&#160;#29 word tokens joined by one space. A canonical or alternate name that folds to
+ * nothing, for example one made of punctuation only, fails the load with its line number: the
+ * file is hand-written, so the author can correct it. Candidates are ranked like the other
+ * loaders of this module, by population descending with the feature-class prior on ties. Instances are
  * immutable after loading and safe to share between threads.</p>
  */
 @ThreadSafe
@@ -151,7 +153,8 @@ public final class UserGazetteer implements Gazetteer {
     }
     validateSource(source);
     final GazetteerIndex index = GazetteerIndex.load(in, true,
-        (line, lineNumber) -> parseRow(line, lineNumber, source));
+        (line, lineNumber) -> parseRow(line, lineNumber, source),
+        GazetteerIndex.UnmatchableAlternates.REJECT);
     return new UserGazetteer(source, index);
   }
 
