@@ -27,6 +27,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -108,6 +110,33 @@ class TeacherEncoderProvidersTest {
       System.setProperty(TeacherEncoderProviders.PROVIDER_PROPERTY, "missing");
       assertThrows(IllegalArgumentException.class,
           () -> TeacherEncoderProviders.select(dir.resolve("model.bin"), loader));
+    }
+  }
+
+  /**
+   * A name made of Unicode whitespace only (no-break space, ideographic space, line separator)
+   * is blank, not an unknown provider name.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void unicodeBlankNamesAreRejectedAsBlank(String blank, @TempDir Path dir) throws Exception {
+    try (URLClassLoader loader = providers(dir, First.class)) {
+      IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+          () -> TeacherEncoderProviders.get(blank, loader));
+      assertTrue(e.getMessage().contains("blank"), e.getMessage());
+    }
+  }
+
+  /** A pin padded with Unicode whitespace is trimmed, and a blank pin is no pin at all. */
+  @Test
+  void pinnedProviderIsTrimmedWithUnicodeWhitespace(@TempDir Path dir) throws Exception {
+    try (URLClassLoader loader = providers(dir, First.class)) {
+      System.setProperty(TeacherEncoderProviders.PROVIDER_PROPERTY, "\u00A0first\u3000");
+      assertInstanceOf(First.class,
+          TeacherEncoderProviders.select(dir.resolve("model.onnx"), loader));
+      System.setProperty(TeacherEncoderProviders.PROVIDER_PROPERTY, "\u2028");
+      assertInstanceOf(First.class,
+          TeacherEncoderProviders.select(dir.resolve("model.onnx"), loader));
     }
   }
 

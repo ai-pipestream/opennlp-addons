@@ -16,12 +16,19 @@
  */
 package opennlp.embeddings.cmdline;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.cmdline.BasicCmdLineTool;
 
@@ -73,6 +80,22 @@ class CLITest {
     // The optional parameters are bracketed, so a user can see they may be omitted.
     assertTrue(help.contains("[-pcaDims "), help);
     assertTrue(help.contains("[-terms "), help);
+  }
+
+  /**
+   * A term file is trimmed and blank-skipped with Unicode whitespace: a no-break space, an
+   * ideographic space or a line separator around a term is not part of the term, and a line made
+   * of them only is blank.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testTermFileTrimsAndSkipsUnicodeWhitespace(String space, @TempDir Path dir)
+      throws IOException {
+    final Path file = dir.resolve("terms.tsv");
+    Files.writeString(file, space + "alpha" + space + "\n" + space + "\nbeta\t3\n",
+        StandardCharsets.UTF_8);
+
+    assertEquals(List.of("alpha", "beta"), DistillModelTool.readTerms(file));
   }
 
   @Test
