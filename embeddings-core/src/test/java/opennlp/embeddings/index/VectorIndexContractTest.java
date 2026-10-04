@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,6 +81,21 @@ class VectorIndexContractTest {
         () -> new VectorIndex.Hit("row", Double.POSITIVE_INFINITY));
     assertThrows(IllegalArgumentException.class, () -> new VectorIndex.Hit("row", -1.01));
     assertThrows(IllegalArgumentException.class, () -> new VectorIndex.Hit("row", 1.01));
+  }
+
+  /**
+   * An id made of Unicode whitespace only (no-break space, ideographic space, line separator) is
+   * blank for a hit and for every index, exactly like an ASCII space.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\u00A0", "\u3000", "\u2028"})
+  void testUnicodeBlankIdsAreRejected(String blank) {
+    assertThrows(IllegalArgumentException.class, () -> new VectorIndex.Hit(blank, 0.0));
+    indexes().map(arguments -> (IntFunction<VectorIndex>) ((Named<?>) arguments.get()[0])
+        .getPayload()).forEach(factory -> {
+          final VectorIndex index = factory.apply(DIMENSION);
+          assertThrows(IllegalArgumentException.class, () -> index.add(blank, axis(0)));
+        });
   }
 
   @ParameterizedTest
