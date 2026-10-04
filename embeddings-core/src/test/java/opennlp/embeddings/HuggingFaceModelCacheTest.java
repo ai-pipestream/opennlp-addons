@@ -627,6 +627,18 @@ class HuggingFaceModelCacheTest {
   }
 
   /**
+   * A revision file that exists but cannot be read is an error, not an absent pin: a silent null
+   * would make the distiller drop the teacher revision from config.json without a word.
+   */
+  @Test
+  void testAnUnreadableRevisionFileFailsLoud(@TempDir Path cache) throws IOException {
+    Files.write(cache.resolve(HuggingFaceModelCache.REVISION_FILE),
+        new byte[] {(byte) 0xFF, (byte) 0xFE, (byte) 0xC0});
+
+    assertThrows(IOException.class, () -> HuggingFaceModelCache.pinnedRevision(cache));
+  }
+
+  /**
    * An incomplete cache has no revision marker. Each cached file is therefore checked against the
    * requested revision and reused only when its digest matches.
    */
