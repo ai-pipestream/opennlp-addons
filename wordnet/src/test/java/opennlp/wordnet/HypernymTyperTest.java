@@ -23,6 +23,9 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+
+import opennlp.tools.util.WhitespaceMode;
 
 /** Tests {@link HypernymTyper} against the taxonomy from {@link SynsetSimilarityTest}. */
 public class HypernymTyperTest {
@@ -80,6 +83,28 @@ public class HypernymTyperTest {
 
     Assertions.assertThrows(IllegalArgumentException.class,
         () -> new HypernymTyper(WnLmfReaderTest.fixture(), anchors));
+  }
+
+  /**
+   * The blank checks follow the Unicode White_Space property whatever the active
+   * {@link WhitespaceMode}: U+0085 (next line) is not whitespace under the legacy
+   * definition, but an anchor lemma, a label or a typed lemma made of it is still blank.
+   */
+  @Test
+  @ResourceLock(WhitespaceMode.MODE_PROPERTY)
+  void testBlankChecksIgnoreTheWhitespaceMode() {
+    final WhitespaceMode previous = WhitespaceMode.current();
+    try {
+      WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new HypernymTyper(taxonomy(), Map.of("\u0085", "person")));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new HypernymTyper(taxonomy(), Map.of("person", "\u0085")));
+      final HypernymTyper typer = new HypernymTyper(taxonomy(), Map.of("person", "person"));
+      Assertions.assertThrows(IllegalArgumentException.class, () -> typer.type("\u0085"));
+    } finally {
+      WhitespaceMode.setActive(previous);
+    }
   }
 
   @Test
