@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.WhitespaceMode;
 
 /** Tests relation path parsing and trigger validation. */
 public class RelationPatternTest {
@@ -153,6 +154,32 @@ public class RelationPatternTest {
     } else {
       Assertions.assertThrows(IllegalArgumentException.class,
           () -> new RelationPattern("t", "<nsubj", candidate), message);
+    }
+  }
+
+  /**
+   * Blank and whitespace checks follow the Unicode White_Space property whatever
+   * {@link WhitespaceMode} the process runs in. U+0085 is the probe: it has the property but is
+   * neither a JDK whitespace nor a space separator, so under the legacy mode only a
+   * mode-independent check splits on it or rejects it.
+   */
+  @ParameterizedTest
+  @ValueSource(chars = {NBSP, IDEOGRAPHIC_SPACE, '\u2028', NEL})
+  void testWhitespaceChecksDoNotDependOnTheWhitespaceMode(char space) {
+    WhitespaceMode.setActive(WhitespaceMode.LEGACY);
+    try {
+      Assertions.assertEquals(List.of("<nsubj", ">obj"),
+          new RelationPattern("t", "<nsubj" + space + ">obj", null).steps());
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new RelationPattern("t", String.valueOf(space), null));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new RelationPattern(String.valueOf(space), "<nsubj", null));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new RelationPattern("t", "<nsubj", "founded" + space));
+      Assertions.assertThrows(IllegalArgumentException.class,
+          () -> new RelationMention(String.valueOf(space), 0, 1));
+    } finally {
+      WhitespaceMode.reset();
     }
   }
 
