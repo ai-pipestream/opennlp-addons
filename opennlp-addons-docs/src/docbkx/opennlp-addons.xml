@@ -63,4 +63,5 @@
   <xi:include href="glossary.xml" />
   <xi:include href="pii.xml" />
   <xi:include href="dehyphenation.xml" />
+  <xi:include href="symbol-joiner.xml" />
 </book>

@@ -115,6 +115,7 @@
         <module>glossary</module>
         <module>pii</module>
         <module>dehyphenation</module>
+        <module>symbol-joiner</module>
     </modules>
 
     <properties>
