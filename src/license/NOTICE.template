@@ -4,4 +4,9 @@ Copyright 2021-2025 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+The phone calling-code and national-length data used by
+opennlp.tools.pii.PhoneNumberLengths is derived from libphonenumber
+PhoneNumberMetadata.xml (https://github.com/google/libphonenumber).
+Copyright (C) 2009 The Libphonenumber Authors
+
 ============================================================================

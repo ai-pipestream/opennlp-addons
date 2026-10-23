@@ -113,6 +113,7 @@
         <module>numeric</module>
         <module>wordnet</module>
         <module>glossary</module>
+        <module>pii</module>
     </modules>
 
     <properties>

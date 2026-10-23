@@ -282,3 +282,8 @@ which is dedicated to the public domain by its terms of use
 
     No permission is needed to use Natural Earth. Crediting the authors is
     unnecessary.
+The generated opennlp.tools.pii.PhoneNumberLengths table is derived from
+libphonenumber PhoneNumberMetadata.xml, distributed under the Apache License,
+Version 2.0, reproduced above:
+
+    https://github.com/google/libphonenumber

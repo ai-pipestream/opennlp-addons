@@ -61,4 +61,5 @@
   <xi:include href="numeric.xml" />
   <xi:include href="wordnet.xml" />
   <xi:include href="glossary.xml" />
+  <xi:include href="pii.xml" />
 </book>
