@@ -18,3 +18,6 @@
 # Paths are relative to the repository root and start with the add-on module directory.
 subword/src/test/resources/opennlp/subword/sentencepiece/corpus.txt
 subword/src/test/resources/opennlp/subword/sentencepiece/*.fixtures.tsv
+embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-bouvier.htm
+embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-dictionary.tsv
+embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-passages.jsonl
