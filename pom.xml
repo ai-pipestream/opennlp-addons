@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>39</version>
+        <version>40</version>
         <relativePath />
     </parent>
 
@@ -121,7 +121,7 @@
         <argLine />
 
         <opennlp.core.groupId>org.apache.opennlp</opennlp.core.groupId>
-        <opennlp.version>3.0.0-M6</opennlp.version>
+        <opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
         <opennlp.forkCount>1.0C</opennlp.forkCount>
 
         <slf4j.version>2.0.20</slf4j.version>
@@ -236,7 +236,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>14.1.0</version>
+                            <version>14.3.0</version>
                         </dependency>
                     </dependencies>
                     <executions>
@@ -369,6 +369,8 @@
                         </goals>
                         <phase>verify</phase>
                         <configuration>
+                            <!-- Data files without a license header, one path per add-on module. -->
+                            <inputExcludeFile>${maven.multiModuleProjectDirectory}/rat-excludes</inputExcludeFile>
                             <excludes>
                                 <exclude>release.properties</exclude>
                                 <exclude>.gitattributes</exclude>
