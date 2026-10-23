@@ -32,10 +32,6 @@
 	<description>Neural part-of-speech taggers and trainers for OpenNLP.</description>
 	<packaging>jar</packaging>
 
-	<properties>
-		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.opennlp</groupId>
