@@ -16,3 +16,4 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+geo/src/main/resources/opennlp/geo/naturalearth-populated-places.txt

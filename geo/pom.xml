@@ -31,8 +31,6 @@
   <packaging>jar</packaging>
   <name>Apache OpenNLP :: Ext :: Geo</name>
 
-  <properties><opennlp.version>3.0.0-SNAPSHOT</opennlp.version></properties>
-
   <dependencies>
     <dependency>
       <groupId>org.duckdb</groupId>
