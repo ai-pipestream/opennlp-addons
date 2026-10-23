@@ -77,4 +77,5 @@
   <xi:include href="assets.xml" />
   <xi:include href="noise.xml" />
   <xi:include href="coref.xml" />
+  <xi:include href="addons-eval.xml" />
 </book>
