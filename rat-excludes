@@ -16,3 +16,5 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+subword/src/test/resources/opennlp/subword/sentencepiece/corpus.txt
+subword/src/test/resources/opennlp/subword/sentencepiece/*.fixtures.tsv
