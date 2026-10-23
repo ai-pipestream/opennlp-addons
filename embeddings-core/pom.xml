@@ -32,7 +32,6 @@
   <name>Apache OpenNLP :: Ext :: Embeddings :: Core</name>
 
   <properties>
-    <opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
     <jmh.version>1.37</jmh.version>
   </properties>
   <dependencies>
