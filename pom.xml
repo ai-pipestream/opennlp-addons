@@ -114,6 +114,7 @@
         <module>wordnet</module>
         <module>glossary</module>
         <module>pii</module>
+        <module>dehyphenation</module>
     </modules>
 
     <properties>
