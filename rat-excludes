@@ -16,3 +16,4 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+parser-tagger/src/test/resources/opennlp/tools/parser/custom/en_head_rules
