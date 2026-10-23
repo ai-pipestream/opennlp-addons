@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import opennlp.tools.chunker.Chunker;
 import opennlp.tools.parser.AbstractBottomUpParser;
 import opennlp.tools.parser.HeadRules;
 import opennlp.tools.parser.Parse;
@@ -37,6 +38,7 @@ import opennlp.tools.postag.POSSample;
 import opennlp.tools.postag.POSTagger;
 import opennlp.tools.util.ObjectStreamUtils;
 import opennlp.tools.util.Sequence;
+import opennlp.tools.util.Span;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -283,17 +285,18 @@ public class FeedforwardPOSTaggerTest {
 
   /**
    * The smallest possible {@link AbstractBottomUpParser} that exercises the real
-   * {@code advanceTags} implementation without needing a chunker or a parser model.
+   * {@code advanceTags} implementation without a real chunker or a parser model.
    */
   private static final class TagOnlyParser extends AbstractBottomUpParser {
 
     /**
-     * Initializes the parser around the tagger under test; no chunker is needed.
+     * Initializes the parser around the tagger under test and a chunker that is never
+     * called.
      *
      * @param tagger The tagger driving the tagging stage.
      */
     TagOnlyParser(POSTagger tagger) {
-      super(tagger, null, new NoPunctuationHeadRules(), defaultBeamSize,
+      super(tagger, new UnusedChunker(), new NoPunctuationHeadRules(), defaultBeamSize,
           defaultAdvancePercentage);
     }
 
@@ -321,6 +324,30 @@ public class FeedforwardPOSTaggerTest {
     @Override
     protected void advanceTop(Parse p) {
       // There is no top stage to advance.
+    }
+  }
+
+  /** A chunker for the tagging stage, which never chunks; every method fails if called. */
+  private static final class UnusedChunker implements Chunker {
+
+    @Override
+    public String[] chunk(String[] toks, String[] tags) {
+      throw new UnsupportedOperationException("the tagging stage does not chunk");
+    }
+
+    @Override
+    public Span[] chunkAsSpans(String[] toks, String[] tags) {
+      throw new UnsupportedOperationException("the tagging stage does not chunk");
+    }
+
+    @Override
+    public Sequence[] topKSequences(String[] sentence, String[] tags) {
+      throw new UnsupportedOperationException("the tagging stage does not chunk");
+    }
+
+    @Override
+    public Sequence[] topKSequences(String[] sentence, String[] tags, double minSequenceScore) {
+      throw new UnsupportedOperationException("the tagging stage does not chunk");
     }
   }
 
