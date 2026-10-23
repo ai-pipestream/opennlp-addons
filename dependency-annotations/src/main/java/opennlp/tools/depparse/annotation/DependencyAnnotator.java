@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.depparse.DependencyArc;
-import opennlp.tools.depparse.DependencyGraph;
 import opennlp.tools.depparse.DependencyParser;
+import opennlp.tools.depparse.DependencyTree;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
@@ -99,7 +99,7 @@ public final class DependencyAnnotator implements DocumentAnnotator {
     final List<Annotation<DependencyArc>> arcs = new ArrayList<>(tokens.size());
     DocumentAnnotators.forEachSentence(sentences, tokens, (first, words) -> {
       final String[] posTags = DocumentAnnotators.values(tags, first, words.length);
-      final DependencyGraph graph = parser.parse(words, posTags);
+      final DependencyTree graph = parser.parse(words, posTags);
       if (graph == null) {
         throw new IllegalArgumentException("parser returned no dependency graph");
       }

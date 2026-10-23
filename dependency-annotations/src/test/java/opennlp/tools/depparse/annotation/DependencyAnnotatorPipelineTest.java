@@ -26,9 +26,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import opennlp.tools.depparse.DependencyArc;
-import opennlp.tools.depparse.DependencyGraph;
 import opennlp.tools.depparse.DependencyParserME;
 import opennlp.tools.depparse.DependencySample;
+import opennlp.tools.depparse.DependencyTree;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;
@@ -141,15 +141,15 @@ public class DependencyAnnotatorPipelineTest {
         new DependencySample(
             new String[] {"the", "dog", "barks"},
             new String[] {"DT", "NN", "VBZ"},
-            DependencyGraph.of(new int[] {1, 2, -1},
+            DependencyTree.of(new int[] {1, 2, -1},
                 new String[] {"det", "nsubj", "root"})),
         new DependencySample(
             new String[] {"she", "eats", "fish"},
             new String[] {"PRP", "VBZ", "NN"},
-            DependencyGraph.of(new int[] {1, -1, 1},
+            DependencyTree.of(new int[] {1, -1, 1},
                 new String[] {"nsubj", "root", "obj"})),
         new DependencySample(new String[] {"barks"}, new String[] {"VBZ"},
-            DependencyGraph.of(new int[] {-1}, new String[] {"root"})));
+            DependencyTree.of(new int[] {-1}, new String[] {"root"})));
     final List<DependencySample> corpus = new ArrayList<>();
     for (int i = 0; i < 40; i++) {
       corpus.addAll(distinct);

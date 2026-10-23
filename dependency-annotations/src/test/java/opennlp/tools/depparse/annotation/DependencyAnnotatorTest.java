@@ -22,8 +22,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import opennlp.tools.depparse.DependencyArc;
-import opennlp.tools.depparse.DependencyGraph;
 import opennlp.tools.depparse.DependencyParser;
+import opennlp.tools.depparse.DependencyTree;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class DependencyAnnotatorTest {
 
   private static final DependencyParser FIXED = (tokens, tags) ->
-      DependencyGraph.of(new int[] {1, -1, 1, 4, 1},
+      DependencyTree.of(new int[] {1, -1, 1, 4, 1},
           new String[] {"nsubj", "root", "iobj", "det", "obj"});
 
   private static Document tokenized() {

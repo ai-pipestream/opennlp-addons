@@ -27,8 +27,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.depparse.DependencyArc;
-import opennlp.tools.depparse.DependencyGraph;
 import opennlp.tools.depparse.DependencyParser;
+import opennlp.tools.depparse.DependencyTree;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnalyzer;
@@ -48,14 +48,14 @@ public class DependencyAnnotatorEdgeCaseTest {
       "document needs aligned opennlp:tokens<String> and opennlp:pos<String> layers";
 
   private static final DependencyParser FIXED = (tokens, tags) ->
-      DependencyGraph.of(new int[] {DependencyArc.ROOT_HEAD, 0},
+      DependencyTree.of(new int[] {DependencyArc.ROOT_HEAD, 0},
           new String[] {"root", "obj"});
 
   private static final DependencyParser ONE_TOKEN_ROOT = (tokens, tags) -> {
     if (tokens.length != 1) {
       throw new IllegalStateException("expected one-token sentences, got " + tokens.length);
     }
-    return DependencyGraph.of(new int[] {DependencyArc.ROOT_HEAD},
+    return DependencyTree.of(new int[] {DependencyArc.ROOT_HEAD},
         new String[] {"root"});
   };
 
@@ -68,7 +68,7 @@ public class DependencyAnnotatorEdgeCaseTest {
       heads[i] = 0;
       relations[i] = "dep";
     }
-    return DependencyGraph.of(heads, relations);
+    return DependencyTree.of(heads, relations);
   };
 
   private static Document twoTokens() {
