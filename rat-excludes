@@ -16,3 +16,4 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+native-image/src/main/resources/META-INF/native-image/**/reachability-metadata.json
