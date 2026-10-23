@@ -20,8 +20,8 @@ package opennlp.tools.relation;
 import java.util.ArrayList;
 import java.util.List;
 
-import opennlp.tools.depparse.DependencyGraph;
 import opennlp.tools.depparse.DependencySample;
+import opennlp.tools.depparse.DependencyTree;
 
 /**
  * The gold samples shared by the dependency parser tests.
@@ -46,7 +46,7 @@ final class DependencyTestSamples {
    */
   static DependencySample sample(String[] tokens, String[] tags, int[] heads,
       String[] relations) {
-    return new DependencySample(tokens, tags, DependencyGraph.of(heads, relations));
+    return new DependencySample(tokens, tags, DependencyTree.of(heads, relations));
   }
 
   /**

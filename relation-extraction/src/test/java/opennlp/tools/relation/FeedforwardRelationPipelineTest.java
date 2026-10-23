@@ -37,8 +37,11 @@ import opennlp.tools.depparse.annotation.DependencyAnnotator;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.Layers;
+import opennlp.tools.ml.maxent.quasinewton.QNTrainer;
 import opennlp.tools.util.ObjectStreamUtils;
+import opennlp.tools.util.Parameters;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.TrainingParameters;
 
 import static opennlp.tools.relation.DependencyTestSamples.corpus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,7 +73,7 @@ public class FeedforwardRelationPipelineTest {
   private static final int WORD_CUTOFF = 1;
 
   /** Training random seed. */
-  private static final long SEED = 17L;
+  private static final int SEED = 17;
 
   /** Serialized trained model. */
   private static byte[] modelBytes;
@@ -82,12 +85,18 @@ public class FeedforwardRelationPipelineTest {
    */
   @BeforeAll
   static void trainModel() throws IOException {
-    final FeedforwardDependencyTrainer.Settings settings =
-        new FeedforwardDependencyTrainer.Settings(
-            EMBEDDING_SIZE, HIDDEN_SIZE, EPOCHS, BATCH_SIZE, LEARNING_RATE,
-            0.0, 0.0, WORD_CUTOFF, SEED);
+    final TrainingParameters parameters = new TrainingParameters();
+    parameters.put(FeedforwardDependencyTrainer.EMBEDDING_SIZE_PARAM, EMBEDDING_SIZE);
+    parameters.put(FeedforwardDependencyTrainer.HIDDEN_SIZE_PARAM, HIDDEN_SIZE);
+    parameters.put(Parameters.ITERATIONS_PARAM, EPOCHS);
+    parameters.put(FeedforwardDependencyTrainer.BATCH_SIZE_PARAM, BATCH_SIZE);
+    parameters.put(FeedforwardDependencyTrainer.LEARNING_RATE_PARAM, LEARNING_RATE);
+    parameters.put(QNTrainer.L2COST_PARAM, 0.0);
+    parameters.put(FeedforwardDependencyTrainer.DROPOUT_PARAM, 0.0);
+    parameters.put(Parameters.CUTOFF_PARAM, WORD_CUTOFF);
+    parameters.put(FeedforwardDependencyTrainer.SEED_PARAM, SEED);
     final FeedforwardDependencyModel model = FeedforwardDependencyTrainer.train(
-        ObjectStreamUtils.createObjectStream(corpus()), settings);
+        "en", ObjectStreamUtils.createObjectStream(corpus()), parameters);
     final ByteArrayOutputStream output = new ByteArrayOutputStream();
     model.serialize(output);
     modelBytes = output.toByteArray();
@@ -103,7 +112,7 @@ public class FeedforwardRelationPipelineTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("parserConfigurations")
   void testFeedforwardDependencyToRelationPipeline(String name, int beamSize) throws IOException {
-    final FeedforwardDependencyModel model = FeedforwardDependencyModel.load(
+    final FeedforwardDependencyModel model = new FeedforwardDependencyModel(
         new ByteArrayInputStream(modelBytes));
     final DependencyAnnotator dependencyAnnotator = new DependencyAnnotator(
         new FeedforwardDependencyParser(model, beamSize));
