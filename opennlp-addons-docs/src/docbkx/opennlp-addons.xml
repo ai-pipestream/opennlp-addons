@@ -60,4 +60,5 @@
   <xi:include href="geo.xml" />
   <xi:include href="numeric.xml" />
   <xi:include href="wordnet.xml" />
+  <xi:include href="glossary.xml" />
 </book>
