@@ -16,3 +16,4 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+light-stemmers/src/test/resources/opennlp/tools/stemmer/light/*.tsv
