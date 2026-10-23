@@ -368,6 +368,8 @@
                         </goals>
                         <phase>verify</phase>
                         <configuration>
+                            <!-- Data files without a license header, one path per add-on module. -->
+                            <inputExcludeFile>${maven.multiModuleProjectDirectory}/rat-excludes</inputExcludeFile>
                             <excludes>
                                 <exclude>release.properties</exclude>
                                 <exclude>.gitattributes</exclude>
