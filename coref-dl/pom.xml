@@ -32,10 +32,6 @@
 	<description>coref-dl components for OpenNLP documents.</description>
 	<packaging>jar</packaging>
 
-	<properties>
-		<opennlp.version>3.0.0-SNAPSHOT</opennlp.version>
-	</properties>
-
 	<dependencies>
     <dependency>
       <groupId>org.apache.opennlp.addons</groupId>
