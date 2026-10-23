@@ -16,3 +16,5 @@
 # under the License.
 
 # Paths are relative to the repository root and start with the add-on module directory.
+wordnet/src/test/resources/opennlp/wordnet/mini-wndb/*.exc
+wordnet/src/test/resources/opennlp/wordnet/mini-wndb/.gitattributes
