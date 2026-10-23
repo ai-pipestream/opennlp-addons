@@ -26,3 +26,4 @@ embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-bouvier.htm
 embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-dictionary.tsv
 embeddings-core/src/test/resources/opennlp/embeddings/corpus/mini-passages.jsonl
 parser-tagger/src/test/resources/opennlp/tools/parser/custom/en_head_rules
+native-image/src/main/resources/META-INF/native-image/**/reachability-metadata.json
