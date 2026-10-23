@@ -111,6 +111,7 @@
         <module>light-stemmers</module>
         <module>geo</module>
         <module>numeric</module>
+        <module>wordnet</module>
     </modules>
 
     <properties>

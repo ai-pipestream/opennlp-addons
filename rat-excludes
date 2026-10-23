@@ -18,3 +18,5 @@
 # Paths are relative to the repository root and start with the add-on module directory.
 light-stemmers/src/test/resources/opennlp/tools/stemmer/light/*.tsv
 geo/src/main/resources/opennlp/geo/naturalearth-populated-places.txt
+wordnet/src/test/resources/opennlp/wordnet/mini-wndb/*.exc
+wordnet/src/test/resources/opennlp/wordnet/mini-wndb/.gitattributes
