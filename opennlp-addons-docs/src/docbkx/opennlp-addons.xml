@@ -66,4 +66,5 @@
   <xi:include href="symbol-joiner.xml" />
   <xi:include href="predicate-annotators.xml" />
   <xi:include href="morfologik-fsa.xml" />
+  <xi:include href="neural-postag.xml" />
 </book>
