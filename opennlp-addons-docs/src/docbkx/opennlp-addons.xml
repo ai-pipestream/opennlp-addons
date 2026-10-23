@@ -73,4 +73,5 @@
   <xi:include href="native-image.xml" />
   <xi:include href="dependency-annotations.xml" />
   <xi:include href="relation.xml" />
+  <xi:include href="artifacts.xml" />
 </book>

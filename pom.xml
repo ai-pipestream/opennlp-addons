@@ -129,6 +129,7 @@
         <module>embedding-annotator</module>
         <module>dependency-annotations</module>
         <module>relation-extraction</module>
+        <module>text-artifacts</module>
     </modules>
 
     <properties>

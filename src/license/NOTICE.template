@@ -8,5 +8,12 @@ The phone calling-code and national-length data used by
 opennlp.tools.pii.PhoneNumberLengths is derived from libphonenumber
 PhoneNumberMetadata.xml (https://github.com/google/libphonenumber).
 Copyright (C) 2009 The Libphonenumber Authors
+The Windows-1252 mapping in
+opennlp.tools.artifacts.CursorArtifactDetector is derived from CP1252.TXT,
+table version 2.01 (1998-04-15), published at:
+https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT
+
+Copyright © 1991-2026 Unicode, Inc.
+Distributed under the Unicode License V3 reproduced in LICENSE.
 
 ============================================================================
