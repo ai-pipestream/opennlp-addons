@@ -71,4 +71,6 @@
   <xi:include href="embeddings.xml" />
   <xi:include href="parser-tagger.xml" />
   <xi:include href="native-image.xml" />
+  <xi:include href="dependency-annotations.xml" />
+  <xi:include href="relation.xml" />
 </book>

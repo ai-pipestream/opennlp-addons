@@ -127,6 +127,8 @@
         <module>embeddings</module>
         <module>embeddings-cli</module>
         <module>embedding-annotator</module>
+        <module>dependency-annotations</module>
+        <module>relation-extraction</module>
     </modules>
 
     <properties>
