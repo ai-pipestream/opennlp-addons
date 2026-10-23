@@ -29,7 +29,6 @@
   </parent>
   <artifactId>embedding-annotator</artifactId>
   <name>Apache OpenNLP :: Embedding Annotator</name>
-  <properties><opennlp.version>3.0.0-SNAPSHOT</opennlp.version></properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.opennlp</groupId><artifactId>opennlp-api</artifactId>
