@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
+"http://docbook.org/xml/5.0/dtd/docbook.dtd">
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements. See the NOTICE file
+   distributed with this work for additional information regarding
+   copyright ownership. The ASF licenses this file to You under the
+   Apache License, Version 2.0 (the "License"); you may not use this
+   file except in compliance with the License. You may obtain a copy of
+   the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<chapter xml:id="addons.subword" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>SentencePiece Subword Tokenizer</title>
+  <para>The <code>subword</code> module runs trained SentencePiece models in pure Java, with no native
+        library. <code>SentencePieceTokenizer</code> in the package <code>opennlp.subword.sentencepiece</code>
+        implements the <code>SubwordTokenizer</code> interface from <code>opennlp-api</code>. It supports
+        unigram and byte-pair encoding models, the normalizer stored in the model, and byte fallback.
+        No model is bundled.</para>
+  <section xml:id="addons.subword.dependency">
+    <title>Dependency</title>
+    <programlisting language="xml"><![CDATA[<dependency>
+  <groupId>org.apache.opennlp.addons</groupId>
+  <artifactId>subword</artifactId>
+  <version>${opennlp-addons.version}</version>
+</dependency>]]></programlisting>
+    <para>The module needs OpenNLP 3.0.0-M6 or later, the first release with
+          <code>SubwordTokenizer</code>.</para>
+  </section>
+  <section xml:id="addons.subword.usage">
+    <title>Usage</title>
+    <para>Load a SentencePiece <code>.model</code> file. The file holds the vocabulary with piece scores and
+          types, the segmentation algorithm, and the normalizer the model was trained with. The loaded
+          tokenizer is immutable and thread-safe.</para>
+    <programlisting language="java"><![CDATA[SentencePieceTokenizer tokenizer = SentencePieceTokenizer.load(Path.of("spiece.model"));
+
+for (SubwordPiece piece : tokenizer.encode("Subword pieces keep their original offsets.")) {
+  System.out.println(piece.piece() + " -> id " + piece.id()
+      + ", original text [" + piece.start() + ", " + piece.end() + ")");
+}
+
+int[] ids = tokenizer.encodeToIds("Ready for the embedding layer.");]]></programlisting>
+    <para><code>SentencePieceUsageExampleTest</code> runs this example. <code>vocabularySize</code>,
+          <code>idToPiece</code>, <code>pieceToId</code> and <code>score</code> inspect the vocabulary, and
+          <code>algorithm</code> reports whether the model uses unigram or byte-pair encoding.</para>
+    <para><code>SentencePieceTokenizer</code> also implements <code>OffsetAwareNormalizer</code>.
+          <code>normalize</code> applies the model's normalization rules to any text, and
+          <code>normalizeAligned</code> also returns the alignment to the source text.</para>
+  </section>
+  <section xml:id="addons.subword.offsets">
+    <title>Offsets</title>
+    <para>Every non-empty span indexes the input string before normalization, so a model can replace, remove
+          or combine characters without losing the mapping to the source. Control pieces, and continuation
+          bytes that add no source text, have empty spans.</para>
+  </section>
+  <section xml:id="addons.subword.models">
+    <title>Model loading and serialization</title>
+    <para>Model parsing rejects fields that cross an enclosing message boundary, malformed UTF-8, oversized
+          varints, invalid field numbers and non-ASCII hexadecimal byte pieces.</para>
+    <para><code>serialize(OutputStream)</code> writes a Java object stream. <code>deserialize(InputStream)</code>
+          restores it with a fixed class allow-list and resource limits. Both methods close the stream. Only
+          deserialize trusted data: a plain <code>ObjectInputStream</code> does not install this filter.</para>
+    <para>The default limits are depth 64, 5,000,000 references and 10,000,000 elements per array. The overload
+          that takes <code>DeserializationLimits</code> accepts other positive limits with the same class
+          allow-list. The limits do not cap the total stream size or validate every field of a forged
+          object. To move a model between versions, load it again from its <code>.model</code> file.</para>
+  </section>
+  <section xml:id="addons.subword.verification">
+    <title>Verification</title>
+    <para>The test fixtures compare pieces, ids, spans and normalized text with output from the reference
+          <link xlink:href="https://github.com/google/sentencepiece">sentencepiece</link> package.
+          <code>SentencePieceAlignmentTest</code> checks the span rules, including supplementary characters,
+          collapsed whitespace and ligature replacement. <code>SentencePieceParityTest</code> checks pieces,
+          ids and spans against the fixtures. The fixture README under
+          <code>subword/src/test/resources/opennlp/subword/sentencepiece</code> describes how the test models
+          were made and how to check published models with <code>-Dopennlp.subword.eval.dir</code>.</para>
+  </section>
+</chapter>

@@ -67,4 +67,6 @@
   <xi:include href="predicate-annotators.xml" />
   <xi:include href="morfologik-fsa.xml" />
   <xi:include href="neural-postag.xml" />
+  <xi:include href="subword.xml" />
+  <xi:include href="embeddings.xml" />
 </book>
