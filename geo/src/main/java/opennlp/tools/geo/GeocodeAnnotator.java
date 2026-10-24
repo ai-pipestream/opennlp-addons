@@ -27,8 +27,10 @@ import java.util.Set;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
+import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -54,7 +56,7 @@ import opennlp.tools.util.StringUtil;
  *
  * @since 3.0.0
  */
-public class GeocodeAnnotator implements DocumentAnnotator {
+public final class GeocodeAnnotator implements DocumentAnnotator {
 
   /**
    * Resolved location mentions; each annotation covers one mention and carries its
@@ -86,25 +88,17 @@ public class GeocodeAnnotator implements DocumentAnnotator {
    *         {@code locationTypes} is empty or contains a {@code null} or blank entry.
    */
   public GeocodeAnnotator(Geocoder geocoder, Set<String> locationTypes) {
-    if (geocoder == null) {
-      throw new IllegalArgumentException("geocoder must not be null");
-    }
-    if (locationTypes == null || locationTypes.isEmpty()) {
-      throw new IllegalArgumentException("locationTypes must not be null or empty");
-    }
+    this.geocoder = ParamChecks.requireNonNullArg(geocoder, "geocoder");
+    ParamChecks.requireNonEmpty(locationTypes, "locationTypes");
     final Set<String> lowered = new HashSet<>(locationTypes.size());
     for (final String type : locationTypes) {
-      if (StringUtil.isUnicodeBlank(type)) {
-        throw new IllegalArgumentException("locationTypes must not contain blank entries");
-      }
-      lowered.add(StringUtil.toLowerCase(type));
+      lowered.add(StringUtil.toLowerCase(ParamChecks.requireNonBlank(type, "locationTypes entry")));
     }
-    this.geocoder = geocoder;
     this.locationTypes = Set.copyOf(lowered);
   }
 
   /**
-   * Annotates the document with the {@link #LOCATIONS} layer.
+   * {@inheritDoc}
    *
    * <p>Entities whose type is in the configured set, compared case-insensitively,
    * become the mention spans of one geocoder call, and every returned resolution
@@ -126,13 +120,7 @@ public class GeocodeAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
-    if (!document.layers().contains(Layers.ENTITIES)) {
-      throw new IllegalArgumentException("document lacks the required layer "
-          + Layers.ENTITIES);
-    }
+    DocumentAnnotators.requireLayers(document, Layers.ENTITIES);
     final List<Span> mentions = new ArrayList<>();
     for (final Annotation<String> entity : document.get(Layers.ENTITIES)) {
       if (locationTypes.contains(StringUtil.toLowerCase(entity.value()))) {
@@ -177,11 +165,13 @@ public class GeocodeAnnotator implements DocumentAnnotator {
     return ((long) span.getStart() << 32) | span.getEnd();
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> requires() {
     return Set.of(Layers.ENTITIES);
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> provides() {
     return Set.of(LOCATIONS);

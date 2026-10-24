@@ -81,18 +81,6 @@ public class GeocodeAnnotatorTest {
     };
   }
 
-  /**
-   * Builds a geocoder that fails the test when it is called, for documents whose
-   * entities must never reach the geocoder.
-   *
-   * @return The failing geocoder. Never {@code null}.
-   */
-  private static Geocoder unreachableGeocoder() {
-    return (text, mentions) -> {
-      throw new IllegalStateException("The geocoder must not be called here");
-    };
-  }
-
   @Test
   void testUsageExamplePipelineFromEntitiesToRegionBallot() {
     // Two location entities go in; the geocoder knows Berlin and not Atlantis, so the
@@ -154,7 +142,7 @@ public class GeocodeAnnotatorTest {
         new Annotation<>(new Span(0, 12), "person"),
         new Annotation<>(new Span(21, 40), "organization")));
 
-    final Document document = new GeocodeAnnotator(unreachableGeocoder()).annotate(input);
+    final Document document = new GeocodeAnnotator(GeoTestUtil.unreachableGeocoder()).annotate(input);
     assertTrue(document.get(GeocodeAnnotator.LOCATIONS).isEmpty());
     assertTrue(document.layers().contains(GeocodeAnnotator.LOCATIONS));
   }
@@ -163,7 +151,7 @@ public class GeocodeAnnotatorTest {
   void testZeroEntitiesYieldAnEmptyLocationsLayer() {
     // A present-but-empty entity layer reads as zero entities; the locations layer is
     // still provided, just empty, and the geocoder is never called.
-    final Document document = new GeocodeAnnotator(unreachableGeocoder())
+    final Document document = new GeocodeAnnotator(GeoTestUtil.unreachableGeocoder())
         .annotate(Document.of("no places").with(Layers.ENTITIES, List.of()));
     assertTrue(document.get(GeocodeAnnotator.LOCATIONS).isEmpty());
     assertTrue(document.layers().contains(GeocodeAnnotator.LOCATIONS));
@@ -178,7 +166,7 @@ public class GeocodeAnnotatorTest {
   @Test
   void testAbsentEntityLayerThrowsWithExactMessage() {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> new GeocodeAnnotator(unreachableGeocoder()).annotate(Document.of("bare")));
+        () -> new GeocodeAnnotator(GeoTestUtil.unreachableGeocoder()).annotate(Document.of("bare")));
     assertEquals("document lacks the required layer opennlp:entities<String>", e.getMessage());
   }
 

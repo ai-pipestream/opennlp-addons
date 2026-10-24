@@ -17,20 +17,18 @@
 
 # Gazetteer-backed geocoding annotator
 
-This feature resolves location mentions to gazetteer places and records the selected geographic identities in an OpenNLP Document layer.
+`GeocodeAnnotator` resolves the location entities of a document against a
+`Geocoder` and records every resolution, with its gazetteer entry, coordinates
+and confidence, under the `GeocodeAnnotator.LOCATIONS` layer. All mentions of a
+document go to the geocoder in one call, so an implementation can use the
+co-occurring mentions to disambiguate. A mention the geocoder cannot resolve has
+no annotation; a mention ranked against several candidates has one annotation
+per candidate, best first.
 
-## Human definition
-
-It turns a place name in text into a specific real-world place instead of leaving it as an unlinked name.
-
-## Prior art and comparable products
-
-- [Mordecai](https://github.com/openeventdata/mordecai) performs full-text geoparsing and event geocoding.
-- [Nominatim](https://nominatim.osm.org/ui/about.html) resolves names and addresses against OpenStreetMap data.
-
-## Addon modules
+## Modules
 
 The `geo` module provides geocoding and region voting. Run `GeocodeAnnotator`
 before `DocumentRegionAnnotator`: the ballot consumes the locations layer and
-adds country-name and flag evidence. The `numeric` module supplies the downstream
-region-aware currency adapter. Core supplies Document and the flag decoder.
+adds country-name and flag evidence. The `numeric` module supplies the
+downstream region-aware currency adapter. Core supplies `Document` and the flag
+decoder.

@@ -136,7 +136,7 @@ public final class DocumentRegionAnnotator implements DocumentAnnotator {
   }
 
   /**
-   * Annotates the document with the {@link #REGIONS} ballot.
+   * {@inheritDoc}
    *
    * <p>Every location entity casts at most one vote. A mention is matched to the
    * locations layer by exact span and votes for its best candidate's country with that
@@ -161,9 +161,6 @@ public final class DocumentRegionAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
     DocumentAnnotators.requireLayers(document, Layers.ENTITIES, GeocodeAnnotator.LOCATIONS);
     final CharSequence text = document.text();
     // The layer holds a mention's candidates in the geocoder's ranking, best first, so
@@ -204,7 +201,7 @@ public final class DocumentRegionAnnotator implements DocumentAnnotator {
    * @param text The document text.
    * @param weights The running weight sums by country code.
    */
-  private static void flagVotes(CharSequence text, Map<String, Double> weights) {
+  private void flagVotes(CharSequence text, Map<String, Double> weights) {
     int i = 0;
     while (i < text.length()) {
       final int first = Character.codePointAt(text, i);
@@ -233,7 +230,7 @@ public final class DocumentRegionAnnotator implements DocumentAnnotator {
    * @param codePoint The code point to examine.
    * @return {@code true} if the code point is a regional indicator symbol.
    */
-  private static boolean isRegionalIndicator(int codePoint) {
+  private boolean isRegionalIndicator(int codePoint) {
     return codePoint >= FIRST_REGIONAL_INDICATOR && codePoint <= LAST_REGIONAL_INDICATOR;
   }
 
