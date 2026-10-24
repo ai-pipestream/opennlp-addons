@@ -92,6 +92,9 @@ public final class CursorQuantityExtractor implements QuantityExtractor {
   private final Set<String> units;
 
   private final NumberNotation notation;
+  /** The number scanner for the configured notation. */
+  private final NumberScan scan;
+
   private final MoneyExtractor moneyExtractor;
 
   /**
@@ -149,6 +152,7 @@ public final class CursorQuantityExtractor implements QuantityExtractor {
     ParamChecks.requireNonNullArg(notation, "notation");
     this.units = Set.copyOf(units);
     this.notation = notation;
+    this.scan = new NumberScan(notation);
     this.moneyExtractor = new CursorMoneyExtractor(notation);
   }
 
@@ -219,17 +223,17 @@ public final class CursorQuantityExtractor implements QuantityExtractor {
   private Quantity matchAt(CharSequence text, int start) {
     int i = start;
     boolean negative = false;
-    if (NumberScan.charAt(text, i) == '-') {
+    if (scan.charAt(text, i) == '-') {
       negative = true;
       i++;
     }
-    if (!Character.isDigit(NumberScan.codePointAt(text, i))
-        || NumberScan.continuesNumber(text, i, notation)
-        || !(negative ? NumberScan.signBoundaryBefore(text, start)
-            : NumberScan.boundaryBefore(text, start))) {
+    if (!Character.isDigit(scan.codePointAt(text, i))
+        || scan.continuesNumber(text, i)
+        || !(negative ? scan.signBoundaryBefore(text, start)
+            : scan.boundaryBefore(text, start))) {
       return null;
     }
-    final NumberScan.Result number = NumberScan.parse(text, i, false, notation);
+    final NumberScan.Result number = scan.parse(text, i, false);
     if (number == null) {
       return null;
     }
@@ -254,7 +258,7 @@ public final class CursorQuantityExtractor implements QuantityExtractor {
     if (immediate != null) {
       return immediate;
     }
-    if (NumberScan.whitespaceAt(text, numberEnd)) {
+    if (scan.whitespaceAt(text, numberEnd)) {
       return unitAt(text, numberEnd + 1);
     }
     return null;
@@ -269,10 +273,10 @@ public final class CursorQuantityExtractor implements QuantityExtractor {
    *         known unit token.
    */
   private Unit unitAt(CharSequence text, int start) {
-    if (NumberScan.charAt(text, start) == '%') {
-      return NumberScan.boundaryAfter(text, start + 1) ? new Unit(PERCENT, start + 1) : null;
+    if (scan.charAt(text, start) == '%') {
+      return scan.boundaryAfter(text, start + 1) ? new Unit(PERCENT, start + 1) : null;
     }
-    final int end = NumberScan.wordEnd(text, start, MAX_TOKEN_LENGTH);
+    final int end = scan.wordEnd(text, start, MAX_TOKEN_LENGTH);
     if (end < 0) {
       return null;
     }

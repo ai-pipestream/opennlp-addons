@@ -181,10 +181,11 @@ class NumericTokenIntegrityTest {
       "\uD83D\uDCE6|true|true", "$|true|false", "%|true|false"}, delimiter = '|')
   void testCombiningMarkRuns(String base, boolean boundary, boolean signed) {
     final String prefix = base + "\u0301\u0903\u20DD\uD834\uDD65\uFE0F";
+    final NumberScan scan = new NumberScan(NumberNotation.LATIN_US);
     Assertions.assertEquals(base.isEmpty() ? NumberScan.NO_CODE_POINT : base.codePointAt(0),
-        NumberScan.baseCodePointBefore(prefix, prefix.length()));
-    Assertions.assertEquals(boundary, NumberScan.boundaryBefore(prefix, prefix.length()));
-    Assertions.assertEquals(signed, NumberScan.signBoundaryBefore(prefix, prefix.length()));
+        scan.baseCodePointBefore(prefix, prefix.length()));
+    Assertions.assertEquals(boundary, scan.boundaryBefore(prefix, prefix.length()));
+    Assertions.assertEquals(signed, scan.signBoundaryBefore(prefix, prefix.length()));
   }
 
   /**

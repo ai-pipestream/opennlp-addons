@@ -66,8 +66,8 @@ class NumericBoundaryTest {
   @ParameterizedTest
   @MethodSource("unsupportedSeparators")
   void testUnsupportedSeparatorRejectsScan(String separator, NumberNotation notation) {
-    Assertions.assertNull(NumberScan.parse("1" + separator + "234", 0, false, notation));
-    Assertions.assertTrue(NumberScan.continuesNumber("1" + separator + "234", 2, notation));
+    Assertions.assertNull(new NumberScan(notation).parse("1" + separator + "234", 0, false));
+    Assertions.assertTrue(new NumberScan(notation).continuesNumber("1" + separator + "234", 2));
   }
 
   /**
@@ -120,9 +120,9 @@ class NumericBoundaryTest {
   @ParameterizedTest
   @ValueSource(strings = {"a", "2", "\uD801\uDC00", "\uD835\uDFD9"})
   void testScaleSuffix(String suffix) {
-    Assertions.assertNull(NumberScan.parse("5m" + suffix, 0, true, NumberNotation.LATIN_US));
+    Assertions.assertNull(new NumberScan(NumberNotation.LATIN_US).parse("5m" + suffix, 0, true));
     final NumberScan.Result word =
-        NumberScan.parse("5 million" + suffix, 0, true, NumberNotation.LATIN_US);
+        new NumberScan(NumberNotation.LATIN_US).parse("5 million" + suffix, 0, true);
     Assertions.assertEquals(1, word.end());
     Assertions.assertEquals(0, BigDecimal.valueOf(5).compareTo(word.value()));
   }
@@ -213,7 +213,7 @@ class NumericBoundaryTest {
       "\uD835\uDC8Ex!; 0; 3; 3", "\uD835\uDC8Ex!; 0; 2; -1", "cat; 3; 3; -1"
   })
   void testBoundedWord(String text, int start, int limit, int end) {
-    Assertions.assertEquals(end, NumberScan.wordEnd(text, start, limit));
+    Assertions.assertEquals(end, new NumberScan(NumberNotation.LATIN_US).wordEnd(text, start, limit));
   }
 
   /**
@@ -231,11 +231,11 @@ class NumericBoundaryTest {
     for (int i = 0; i < 1000; i++) {
       final BigDecimal expected = BigDecimal.valueOf(random.nextLong(1_000_000_000_000L), 4);
       final String text = format.format(expected);
-      final NumberScan.Result actual = NumberScan.parse(text, 0, false, notation);
+      final NumberScan.Result actual = new NumberScan(notation).parse(text, 0, false);
       Assertions.assertNotNull(actual, text);
       Assertions.assertEquals(0, expected.compareTo(actual.value()), text);
       Assertions.assertEquals(text.length(), actual.end());
-      final NumberScan.Result scaled = NumberScan.parse(text + "M", 0, true, notation);
+      final NumberScan.Result scaled = new NumberScan(notation).parse(text + "M", 0, true);
       Assertions.assertNotNull(scaled, text);
       Assertions.assertEquals(0, expected.movePointRight(6).compareTo(scaled.value()), text);
       Assertions.assertEquals(text.length() + 1, scaled.end());

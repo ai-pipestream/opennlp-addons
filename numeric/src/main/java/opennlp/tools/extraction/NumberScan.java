@@ -20,6 +20,7 @@ package opennlp.tools.extraction;
 import java.math.BigDecimal;
 
 import opennlp.tools.commons.Internal;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -29,9 +30,9 @@ import opennlp.tools.util.StringUtil;
  * <p>Digits are the decimal digits of every script, the Unicode category {@code Nd}, so
  * Arabic-Indic, Devanagari or fullwidth digits read like ASCII ones; the normalized value
  * is always written in ASCII digits. Which character groups digits and which marks the
- * fraction is the caller's
- * {@link NumberNotation}. Grouping is strict: once a group separator appears, the leading
- * group must have at most three digits and every further group exactly three. A scan that
+ * fraction is the {@link NumberNotation} the scanner is constructed with. Grouping is
+ * strict: once a group separator appears, the leading group must have at most three digits
+ * and every further group exactly three. A scan that
  * stops at another numeric separator directly followed by a digit fails entirely instead
  * of truncating, because the text continues a number this scanner cannot parse, for
  * example the Indian-grouped {@code 1,00,000}, a repeated decimal separator, or a European
@@ -56,8 +57,17 @@ public final class NumberScan {
   /** The length of the longest recognized scale word, {@code thousand} and {@code trillion}. */
   private static final int MAX_SCALE_WORD_LENGTH = 8;
 
-  /** Prevents utility instances. */
-  private NumberScan() {
+  private final NumberNotation notation;
+
+  /**
+   * Initializes a scanner for one written convention.
+   *
+   * @param notation The convention the text groups digits and marks fractions in. Must
+   *                 not be {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code notation} is {@code null}.
+   */
+  public NumberScan(NumberNotation notation) {
+    this.notation = ParamChecks.requireNonNullArg(notation, "notation");
   }
 
   /**
@@ -77,15 +87,12 @@ public final class NumberScan {
    * @param applyScale {@code true} to consume and apply scale markers, in which case an
    *                   immediate letter that is no scale marker fails the scan;
    *                   {@code false} to stop after the decimal part.
-   * @param notation The written convention the text groups digits and marks fractions in.
-   *                 Must not be {@code null}.
    * @return The scanned {@link Result}, with a dot decimal
    *         separator, or {@code null} when no number starts at {@code start}, the scan
    *         stops at another separator directly followed by a digit, or an immediate
    *         letter suffix is not a scale marker, or a scientific-notation exponent follows.
    */
-  public static Result parse(CharSequence text, int start, boolean applyScale,
-      NumberNotation notation) {
+  public Result parse(CharSequence text, int start, boolean applyScale) {
     final char group = notation.groupSeparator();
     final char decimal = notation.decimalSeparator();
     final StringBuilder normalized = new StringBuilder();
@@ -124,12 +131,10 @@ public final class NumberScan {
    *
    * @param text The text. Must not be {@code null}.
    * @param index The candidate start offset.
-   * @param notation The number notation. Must not be {@code null}.
    * @return {@code true} if a number starting at {@code index} would continue an earlier
    *         one.
    */
-  public static boolean continuesNumber(CharSequence text, int index,
-      NumberNotation notation) {
+  public boolean continuesNumber(CharSequence text, int index) {
     final char before = charAt(text, index - 1);
     if ((before == notation.groupSeparator() || before == notation.decimalSeparator()
         || unsupportedSeparator(before))
@@ -154,7 +159,7 @@ public final class NumberScan {
    * @param index The exclusive end offset of the candidate digit.
    * @return {@code true} if a decimal digit ends at {@code index}.
    */
-  private static boolean digitBefore(CharSequence text, int index) {
+  private boolean digitBefore(CharSequence text, int index) {
     return index > 0 && index <= text.length() && Character.isDigit(Character.codePointBefore(text, index));
   }
 
@@ -168,7 +173,7 @@ public final class NumberScan {
    * @return The exclusive end offset of the run, equal to {@code start} when no digit
    *         starts there.
    */
-  private static int appendDigits(CharSequence text, int start, StringBuilder normalized) {
+  private int appendDigits(CharSequence text, int start, StringBuilder normalized) {
     int i = start;
     int cp = codePointAt(text, i);
     while (Character.isDigit(cp)) {
@@ -186,7 +191,7 @@ public final class NumberScan {
    * @param start The candidate exponent marker offset.
    * @return Whether a scientific-notation exponent starts at the offset.
    */
-  private static boolean exponentAt(CharSequence text, int start) {
+  private boolean exponentAt(CharSequence text, int start) {
     final char marker = charAt(text, start);
     if (marker != 'e' && marker != 'E') {
       return false;
@@ -201,7 +206,7 @@ public final class NumberScan {
    * @param separator The character between digits.
    * @return Whether the character indicates unsupported grouping or a decimal separator.
    */
-  private static boolean unsupportedSeparator(char separator) {
+  private boolean unsupportedSeparator(char separator) {
     return switch (separator) {
       case '\u00A0', '\u2009', '\u202F', '\'', '\u2019', '\u066B', '\u066C' -> true;
       default -> false;
@@ -217,7 +222,7 @@ public final class NumberScan {
    * @return The scaled {@link Result}, the unscaled one when no scale marker follows, or
    *         {@code null} when an immediate letter suffix is not a scale marker.
    */
-  private static Result parseScale(CharSequence text, int end, BigDecimal value) {
+  private Result parseScale(CharSequence text, int end, BigDecimal value) {
     final int suffix = codePointAt(text, end);
     if (Character.isLetter(suffix)) {
       final boolean bn = (suffix == 'b' || suffix == 'B')
@@ -252,7 +257,7 @@ public final class NumberScan {
    * @return The scaled {@link Result}, or {@code null} when no scale word starts at
    *         {@code start}.
    */
-  private static Result parseScaleWord(CharSequence text, int start, BigDecimal value) {
+  private Result parseScaleWord(CharSequence text, int start, BigDecimal value) {
     final int end = wordEnd(text, start, MAX_SCALE_WORD_LENGTH);
     if (end < 0) {
       return null;
@@ -279,7 +284,7 @@ public final class NumberScan {
    * @return The exclusive end offset, or {@code -1} for an empty or overlong token,
    *         or a token followed by a number, combining mark, or identifier connector.
    */
-  public static int wordEnd(CharSequence text, int start, int maxLength) {
+  public int wordEnd(CharSequence text, int start, int maxLength) {
     int i = start;
     while (Character.isLetter(codePointAt(text, i)) && i - start < maxLength) {
       i += Character.charCount(codePointAt(text, i));
@@ -294,7 +299,7 @@ public final class NumberScan {
    * @param start The offset of the first digit of the candidate group.
    * @return {@code true} if a complete group of three digits starts at {@code start}.
    */
-  private static boolean groupOfThree(CharSequence text, int start) {
+  private boolean groupOfThree(CharSequence text, int start) {
     int i = start;
     for (int count = 0; count < 3; count++) {
       final int cp = codePointAt(text, i);
@@ -314,7 +319,7 @@ public final class NumberScan {
    * @param index The candidate start offset.
    * @return {@code true} if a match may start at {@code index}.
    */
-  public static boolean boundaryBefore(CharSequence text, int index) {
+  public boolean boundaryBefore(CharSequence text, int index) {
     return !wordContinuation(baseCodePointBefore(text, index));
   }
 
@@ -330,7 +335,7 @@ public final class NumberScan {
    * @param index The offset of the minus sign.
    * @return {@code true} if a negative amount may start at {@code index}.
    */
-  public static boolean signBoundaryBefore(CharSequence text, int index) {
+  public boolean signBoundaryBefore(CharSequence text, int index) {
     final int cp = baseCodePointBefore(text, index);
     return !wordContinuation(cp)
         && Character.getType(cp) != Character.CURRENCY_SYMBOL
@@ -345,7 +350,7 @@ public final class NumberScan {
    * @param index The candidate exclusive end offset.
    * @return {@code true} if a match may end at {@code index}.
    */
-  public static boolean boundaryAfter(CharSequence text, int index) {
+  public boolean boundaryAfter(CharSequence text, int index) {
     final int cp = codePointAt(text, index);
     return cp == NO_CODE_POINT || !wordContinuation(cp);
   }
@@ -357,7 +362,7 @@ public final class NumberScan {
    * @param index The UTF-16 offset between zero and the text length, inclusive.
    * @return The preceding non-mark code point, or {@link #NO_CODE_POINT} if unavailable.
    */
-  public static int baseCodePointBefore(CharSequence text, int index) {
+  public int baseCodePointBefore(CharSequence text, int index) {
     int previous = index;
     while (previous > 0) {
       final int cp = Character.codePointBefore(text, previous);
@@ -375,7 +380,7 @@ public final class NumberScan {
    * @param cp The code point to classify.
    * @return Whether the code point is a combining mark.
    */
-  private static boolean combiningMark(int cp) {
+  private boolean combiningMark(int cp) {
     return switch (Character.getType(cp)) {
       case Character.NON_SPACING_MARK, Character.COMBINING_SPACING_MARK,
           Character.ENCLOSING_MARK -> true;
@@ -389,7 +394,7 @@ public final class NumberScan {
    * @param cp The code point at a candidate boundary.
    * @return Whether the code point continues a token.
    */
-  private static boolean wordContinuation(int cp) {
+  private boolean wordContinuation(int cp) {
     if (Character.isLetterOrDigit(cp) || combiningMark(cp)) {
       return true;
     }
@@ -410,7 +415,7 @@ public final class NumberScan {
    * @param index The offset to read.
    * @return {@code true} if the char at {@code index} is whitespace or out of bounds.
    */
-  public static boolean whitespaceAt(CharSequence text, int index) {
+  public boolean whitespaceAt(CharSequence text, int index) {
     return StringUtil.isUnicodeWhitespace(charAt(text, index));
   }
 
@@ -422,7 +427,7 @@ public final class NumberScan {
    * @param index The offset to read.
    * @return The char at {@code index}, or a space when out of bounds.
    */
-  public static char charAt(CharSequence text, int index) {
+  public char charAt(CharSequence text, int index) {
     return index >= 0 && index < text.length() ? text.charAt(index) : ' ';
   }
 
@@ -434,7 +439,7 @@ public final class NumberScan {
    * @return The code point at {@code index}, or {@link #NO_CODE_POINT} when out of
    *         bounds.
    */
-  public static int codePointAt(CharSequence text, int index) {
+  public int codePointAt(CharSequence text, int index) {
     return index >= 0 && index < text.length()
         ? Character.codePointAt(text, index) : NO_CODE_POINT;
   }

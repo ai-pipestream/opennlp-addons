@@ -128,6 +128,9 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private static final int MAX_WORD_LENGTH = 10;
 
+  /** The number scanner; calendar forms are written in the US notation. */
+  private final NumberScan scan = new NumberScan(NumberNotation.LATIN_US);
+
   /**
    * {@inheritDoc}
    *
@@ -186,13 +189,13 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private TemporalExpression matchAt(CharSequence text, int start, LocalDate reference) {
     // ISO 8601 writes dates in ASCII digits, and so do the English calendar forms read here.
-    final char c = NumberScan.charAt(text, start);
+    final char c = scan.charAt(text, start);
     if ((!StringUtil.isAsciiDigit(c) && !Character.isLetter(c))
-        || !NumberScan.boundaryBefore(text, start)) {
+        || !scan.boundaryBefore(text, start)) {
       return null;
     }
     if (StringUtil.isAsciiDigit(c)) {
-      if (NumberScan.continuesNumber(text, start, NumberNotation.LATIN_US)) {
+      if (scan.continuesNumber(text, start)) {
         return null;
       }
       final TemporalExpression iso = isoDate(text, start);
@@ -205,7 +208,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
       }
       return reference == null ? null : countAgo(text, start, reference);
     }
-    if ((c == 'Q' || c == 'q') && StringUtil.isAsciiDigit(NumberScan.charAt(text, start + 1))) {
+    if ((c == 'Q' || c == 'q') && StringUtil.isAsciiDigit(scan.charAt(text, start + 1))) {
       return quarter(text, start);
     }
     if (Character.isLetter(c)) {
@@ -244,7 +247,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
       case "last":
       case "this":
       case "next": {
-        if (!NumberScan.whitespaceAt(text, keyword.end())) {
+        if (!scan.whitespaceAt(text, keyword.end())) {
           return null;
         }
         final Word unit = word(text, keyword.end() + 1);
@@ -259,11 +262,11 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
         return shifted(start, unit.end(), unit.lower(), steps, reference);
       }
       case "in": {
-        if (!NumberScan.whitespaceAt(text, keyword.end())) {
+        if (!scan.whitespaceAt(text, keyword.end())) {
           return null;
         }
         final NumberInText count = shortNumber(text, keyword.end() + 1);
-        if (count == null || !NumberScan.whitespaceAt(text, count.end())) {
+        if (count == null || !scan.whitespaceAt(text, count.end())) {
           return null;
         }
         final Word unit = word(text, count.end() + 1);
@@ -288,11 +291,11 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private TemporalExpression countAgo(CharSequence text, int start, LocalDate reference) {
     final NumberInText count = shortNumber(text, start);
-    if (count == null || !NumberScan.whitespaceAt(text, count.end())) {
+    if (count == null || !scan.whitespaceAt(text, count.end())) {
       return null;
     }
     final Word unit = word(text, count.end() + 1);
-    if (unit == null || !NumberScan.whitespaceAt(text, unit.end())) {
+    if (unit == null || !scan.whitespaceAt(text, unit.end())) {
       return null;
     }
     final Word ago = word(text, unit.end() + 1);
@@ -384,11 +387,11 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private TemporalExpression isoDate(CharSequence text, int start) {
     final int year = digits(text, start, 4);
-    if (year < 0 || NumberScan.charAt(text, start + 4) != '-') {
+    if (year < 0 || scan.charAt(text, start + 4) != '-') {
       return null;
     }
     final int month = digits(text, start + 5, 2);
-    if (month < 0 || NumberScan.charAt(text, start + 7) != '-') {
+    if (month < 0 || scan.charAt(text, start + 7) != '-') {
       return null;
     }
     final int day = digits(text, start + 8, 2);
@@ -396,7 +399,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
       return null;
     }
     final int end = start + ISO_DATE_LENGTH;
-    if (!NumberScan.boundaryAfter(text, end) && !timeOfDayAt(text, end)) {
+    if (!scan.boundaryAfter(text, end) && !timeOfDayAt(text, end)) {
       return null;
     }
     return day(start, end, year, month, day);
@@ -410,9 +413,9 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    * @return {@code true} if a time of day starts at {@code start}.
    */
   private boolean timeOfDayAt(CharSequence text, int start) {
-    final char separator = NumberScan.charAt(text, start);
+    final char separator = scan.charAt(text, start);
     if ((separator != 'T' && separator != 't')
-        || NumberScan.charAt(text, start + 3) != TIME_SEPARATOR) {
+        || scan.charAt(text, start + 3) != TIME_SEPARATOR) {
       return false;
     }
     final int hour = digits(text, start + 1, 2);
@@ -422,35 +425,35 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
     }
     int i = start + 6;
     int second = 0;
-    if (NumberScan.charAt(text, i) == TIME_SEPARATOR
-        && StringUtil.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
+    if (scan.charAt(text, i) == TIME_SEPARATOR
+        && StringUtil.isAsciiDigit(scan.charAt(text, i + 1))) {
       second = digits(text, i + 1, 2);
       if (second < 0 || second > SECONDS_PER_MINUTE) {
         return false;
       }
       i += 3;
     }
-    final char decimal = NumberScan.charAt(text, i);
+    final char decimal = scan.charAt(text, i);
     boolean nonzeroFraction = false;
     if ((decimal == FRACTION_DOT || decimal == FRACTION_COMMA)
-        && StringUtil.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
+        && StringUtil.isAsciiDigit(scan.charAt(text, i + 1))) {
       i++;
-      while (StringUtil.isAsciiDigit(NumberScan.charAt(text, i))) {
-        nonzeroFraction |= NumberScan.charAt(text, i) != '0';
+      while (StringUtil.isAsciiDigit(scan.charAt(text, i))) {
+        nonzeroFraction |= scan.charAt(text, i) != '0';
         i++;
       }
     }
     if (hour == HOURS_PER_DAY && (minute != 0 || second != 0 || nonzeroFraction)) {
       return false;
     }
-    final char zone = NumberScan.charAt(text, i);
+    final char zone = scan.charAt(text, i);
     if (zone == 'Z' || zone == 'z') {
       i++;
     } else if (zone == '+' || zone == '-') {
       final int offsetHour = digits(text, i + 1, 2);
       final int offsetMinute = digits(text, i + 4, 2);
       if (offsetHour < 0 || offsetHour >= HOURS_PER_DAY
-          || NumberScan.charAt(text, i + 3) != TIME_SEPARATOR
+          || scan.charAt(text, i + 3) != TIME_SEPARATOR
           || offsetMinute < 0 || offsetMinute >= MINUTES_PER_HOUR) {
         return false;
       }
@@ -468,11 +471,11 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private boolean timeBoundaryAfter(CharSequence text, int start) {
     int i = start;
-    char next = NumberScan.charAt(text, i);
+    char next = scan.charAt(text, i);
     while (next == TIME_SEPARATOR || next == FRACTION_DOT || next == FRACTION_COMMA) {
-      next = NumberScan.charAt(text, ++i);
+      next = scan.charAt(text, ++i);
     }
-    return next != '+' && next != '-' && NumberScan.boundaryAfter(text, i);
+    return next != '+' && next != '-' && scan.boundaryAfter(text, i);
   }
 
   /**
@@ -488,12 +491,12 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
       return null;
     }
     int i = skipOrdinal(text, day.end());
-    if (!NumberScan.whitespaceAt(text, i)) {
+    if (!scan.whitespaceAt(text, i)) {
       return null;
     }
     final Word month = word(text, i + 1);
     if (month == null || !MONTHS.containsKey(month.lower())
-        || !NumberScan.whitespaceAt(text, month.end())) {
+        || !scan.whitespaceAt(text, month.end())) {
       return null;
     }
     final NumberInText year = yearAt(text, month.end() + 1);
@@ -513,7 +516,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
   private TemporalExpression monthFirst(CharSequence text, int start) {
     final Word month = word(text, start);
     if (month == null || !MONTHS.containsKey(month.lower())
-        || !NumberScan.whitespaceAt(text, month.end())) {
+        || !scan.whitespaceAt(text, month.end())) {
       return null;
     }
     final int monthOfYear = MONTHS.get(month.lower());
@@ -528,10 +531,10 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
       return null;
     }
     int i = skipOrdinal(text, day.end());
-    if (NumberScan.charAt(text, i) == ',') {
+    if (scan.charAt(text, i) == ',') {
       i++;
     }
-    if (!NumberScan.whitespaceAt(text, i)) {
+    if (!scan.whitespaceAt(text, i)) {
       return null;
     }
     final NumberInText dayYear = yearAt(text, i + 1);
@@ -549,8 +552,8 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    * @return The mention, or {@code null} when no valid quarter starts here.
    */
   private TemporalExpression quarter(CharSequence text, int start) {
-    final int number = NumberScan.charAt(text, start + 1) - '0';
-    if (number < 1 || number > 4 || !NumberScan.whitespaceAt(text, start + 2)) {
+    final int number = scan.charAt(text, start + 1) - '0';
+    if (number < 1 || number > 4 || !scan.whitespaceAt(text, start + 2)) {
       return null;
     }
     final NumberInText year = yearAt(text, start + 3);
@@ -598,7 +601,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    */
   private NumberInText yearAt(CharSequence text, int start) {
     final int year = digits(text, start, 4);
-    if (year < MIN_YEAR || year > MAX_YEAR || !NumberScan.boundaryAfter(text, start + 4)) {
+    if (year < MIN_YEAR || year > MAX_YEAR || !scan.boundaryAfter(text, start + 4)) {
       return null;
     }
     return new NumberInText(year, start + 4);
@@ -614,12 +617,12 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
   private NumberInText shortNumber(CharSequence text, int start) {
     int i = start;
     int value = 0;
-    while (StringUtil.isAsciiDigit(NumberScan.charAt(text, i)) && i - start < 3) {
-      value = value * 10 + (NumberScan.charAt(text, i) - '0');
+    while (StringUtil.isAsciiDigit(scan.charAt(text, i)) && i - start < 3) {
+      value = value * 10 + (scan.charAt(text, i) - '0');
       i++;
     }
     final int length = i - start;
-    if (length < 1 || length > 2 || StringUtil.isAsciiDigit(NumberScan.charAt(text, i))) {
+    if (length < 1 || length > 2 || StringUtil.isAsciiDigit(scan.charAt(text, i))) {
       return null;
     }
     return new NumberInText(value, i);
@@ -655,13 +658,13 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
   private int digits(CharSequence text, int start, int width) {
     int value = 0;
     for (int i = start; i < start + width; i++) {
-      final char c = NumberScan.charAt(text, i);
+      final char c = scan.charAt(text, i);
       if (!StringUtil.isAsciiDigit(c)) {
         return -1;
       }
       value = value * 10 + (c - '0');
     }
-    return StringUtil.isAsciiDigit(NumberScan.charAt(text, start + width)) ? -1 : value;
+    return StringUtil.isAsciiDigit(scan.charAt(text, start + width)) ? -1 : value;
   }
 
   /**
@@ -673,7 +676,7 @@ public final class CursorTemporalExtractor implements TemporalExtractor {
    *         continues past {@link #MAX_WORD_LENGTH}.
    */
   private Word word(CharSequence text, int start) {
-    final int end = NumberScan.wordEnd(text, start, MAX_WORD_LENGTH);
+    final int end = scan.wordEnd(text, start, MAX_WORD_LENGTH);
     if (end < 0) {
       return null;
     }

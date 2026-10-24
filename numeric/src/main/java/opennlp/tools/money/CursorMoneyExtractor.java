@@ -149,6 +149,9 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
   private final String[] currencyCodes;
 
   private final NumberNotation notation;
+  /** The number scanner for the configured notation. */
+  private final NumberScan scan;
+
 
   /**
    * Initializes the extractor with the default symbol table and
@@ -203,6 +206,7 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
     }
     ParamChecks.requireNonNullArg(notation, "notation");
     this.notation = notation;
+    this.scan = new NumberScan(notation);
     final List<Map.Entry<Integer, String>> symbols =
         new ArrayList<>(symbolCurrencies.entrySet());
     for (final Map.Entry<Integer, String> symbol : symbols) {
@@ -319,27 +323,27 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
   private MoneyAmount matchAt(CharSequence text, int start) {
     int i = start;
     boolean negative = false;
-    if (NumberScan.charAt(text, i) == '-') {
+    if (scan.charAt(text, i) == '-') {
       negative = true;
       i++;
     }
-    final int cp = NumberScan.codePointAt(text, i);
+    final int cp = scan.codePointAt(text, i);
     final String symbolCurrency = currencyFor(cp);
     if (symbolCurrency != null
         && !asciiLetterBefore(text, i)
-        && (!negative || NumberScan.signBoundaryBefore(text, start))) {
+        && (!negative || scan.signBoundaryBefore(text, start))) {
       return symbolFirst(text, start, i, symbolCurrency, negative);
     }
-    if (!negative && isUpperAscii(cp) && NumberScan.boundaryBefore(text, i)) {
+    if (!negative && isUpperAscii(cp) && scan.boundaryBefore(text, i)) {
       final MoneyAmount isoFirst = isoFirst(text, start, i);
       if (isoFirst != null) {
         return isoFirst;
       }
     }
     if (Character.isDigit(cp)
-        && !NumberScan.continuesNumber(text, i, notation)
-        && (negative ? NumberScan.signBoundaryBefore(text, start)
-            : NumberScan.boundaryBefore(text, i))) {
+        && !scan.continuesNumber(text, i)
+        && (negative ? scan.signBoundaryBefore(text, start)
+            : scan.boundaryBefore(text, i))) {
       return numberFirst(text, start, i, negative);
     }
     return null;
@@ -357,11 +361,11 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    */
   private MoneyAmount symbolFirst(CharSequence text, int start, int symbolIndex,
       String currency, boolean negative) {
-    int i = symbolIndex + Character.charCount(NumberScan.codePointAt(text, symbolIndex));
-    if (NumberScan.whitespaceAt(text, i)) {
+    int i = symbolIndex + Character.charCount(scan.codePointAt(text, symbolIndex));
+    if (scan.whitespaceAt(text, i)) {
       i++;
     }
-    return mention(text, start, NumberScan.parse(text, i, true, notation), currency, negative);
+    return mention(text, start, scan.parse(text, i, true), currency, negative);
   }
 
   /**
@@ -374,10 +378,10 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    */
   private MoneyAmount isoFirst(CharSequence text, int start, int codeIndex) {
     final String code = isoCodeAt(text, codeIndex);
-    if (code == null || !NumberScan.whitespaceAt(text, codeIndex + 3)) {
+    if (code == null || !scan.whitespaceAt(text, codeIndex + 3)) {
       return null;
     }
-    return mention(text, start, NumberScan.parse(text, codeIndex + 4, true, notation),
+    return mention(text, start, scan.parse(text, codeIndex + 4, true),
         code, false);
   }
 
@@ -393,18 +397,18 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    */
   private MoneyAmount numberFirst(CharSequence text, int start, int digitIndex,
       boolean negative) {
-    final NumberScan.Result number = NumberScan.parse(text, digitIndex, true, notation);
+    final NumberScan.Result number = scan.parse(text, digitIndex, true);
     if (number == null) {
       return null;
     }
-    final int cp = NumberScan.codePointAt(text, number.end());
+    final int cp = scan.codePointAt(text, number.end());
     final String currency = currencyFor(cp);
     if (currency != null) {
       final NumberScan.Result extended = new NumberScan.Result(number.value(),
           number.end() + Character.charCount(cp));
       return mention(text, start, extended, currency, negative);
     }
-    if (cp != NumberScan.NO_CODE_POINT && NumberScan.whitespaceAt(text, number.end())) {
+    if (cp != NumberScan.NO_CODE_POINT && scan.whitespaceAt(text, number.end())) {
       final String code = isoCodeAt(text, number.end() + 1);
       if (code != null) {
         return mention(text, start,
@@ -435,8 +439,8 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    *         or are part of a longer token.
    */
   private CurrencyWord currencyWordAt(CharSequence text, int start) {
-    final int end = NumberScan.wordEnd(text, start, MAX_CURRENCY_WORD_LENGTH);
-    if (end < 0 || NumberScan.charAt(text, end) == '-') {
+    final int end = scan.wordEnd(text, start, MAX_CURRENCY_WORD_LENGTH);
+    if (end < 0 || scan.charAt(text, end) == '-') {
       return null;
     }
     final String currency = CURRENCY_WORDS.get(StringUtil.toLowerCase(text.subSequence(start, end)));
@@ -456,7 +460,7 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    */
   private MoneyAmount mention(CharSequence text, int start, NumberScan.Result number,
       String currency, boolean negative) {
-    if (number == null || !NumberScan.boundaryAfter(text, number.end())) {
+    if (number == null || !scan.boundaryAfter(text, number.end())) {
       return null;
     }
     final BigDecimal amount = negative ? number.value().negate() : number.value();
@@ -472,7 +476,7 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    *         known code or are part of a longer run.
    */
   private String isoCodeAt(CharSequence text, int start) {
-    if (start + 3 > text.length() || !NumberScan.boundaryBefore(text, start)) {
+    if (start + 3 > text.length() || !scan.boundaryBefore(text, start)) {
       return null;
     }
     for (int i = start; i < start + 3; i++) {
@@ -480,7 +484,7 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
         return null;
       }
     }
-    if (!NumberScan.boundaryAfter(text, start + 3)) {
+    if (!scan.boundaryAfter(text, start + 3)) {
       return null;
     }
     final String code = text.subSequence(start, start + 3).toString();
@@ -518,7 +522,7 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
    * @return {@code true} if an ASCII letter, with optional combining marks, precedes the symbol.
    */
   private boolean asciiLetterBefore(CharSequence text, int index) {
-    final int cp = NumberScan.baseCodePointBefore(text, index);
+    final int cp = scan.baseCodePointBefore(text, index);
     return isUpperAscii(cp) || (cp >= 'a' && cp <= 'z');
   }
 

@@ -104,10 +104,10 @@ public class NumberNotationTest {
   })
   void testTheSameTextMeansOneNumberPerNotation(String text, String unitedStates,
       String european) {
-    final NumberScan.Result us = NumberScan.parse(text, 0, false, NumberNotation.LATIN_US);
+    final NumberScan.Result us = new NumberScan(NumberNotation.LATIN_US).parse(text, 0, false);
     Assertions.assertEquals(0, new BigDecimal(unitedStates).compareTo(us.value()), text);
 
-    final NumberScan.Result eu = NumberScan.parse(text, 0, false, NumberNotation.LATIN_EU);
+    final NumberScan.Result eu = new NumberScan(NumberNotation.LATIN_EU).parse(text, 0, false);
     Assertions.assertEquals(0, new BigDecimal(european).compareTo(eu.value()), text);
   }
 
@@ -127,13 +127,13 @@ public class NumberNotationTest {
   })
   void testTextCarryingBothSeparatorsScansWholeInOneNotationOnly(String text,
       NumberNotation written, String value) {
-    final NumberScan.Result scanned = NumberScan.parse(text, 0, false, written);
+    final NumberScan.Result scanned = new NumberScan(written).parse(text, 0, false);
     Assertions.assertEquals(0, new BigDecimal(value).compareTo(scanned.value()), text);
     Assertions.assertEquals(text.length(), scanned.end(), text);
 
     final NumberNotation other =
         written == NumberNotation.LATIN_EU ? NumberNotation.LATIN_US : NumberNotation.LATIN_EU;
-    final NumberScan.Result misread = NumberScan.parse(text, 0, false, other);
+    final NumberScan.Result misread = new NumberScan(other).parse(text, 0, false);
     Assertions.assertTrue(misread == null || misread.end() < text.length(),
         () -> "misread as a whole number: " + text);
   }
@@ -152,7 +152,7 @@ public class NumberNotationTest {
   })
   void testGroupingNeitherNotationKnowsIsNeverReadWhole(String text) {
     for (final NumberNotation notation : NumberNotation.values()) {
-      final NumberScan.Result scanned = NumberScan.parse(text, 0, false, notation);
+      final NumberScan.Result scanned = new NumberScan(notation).parse(text, 0, false);
       Assertions.assertTrue(scanned == null || scanned.end() < text.length(),
           () -> "read as a whole number in " + notation + ": " + text);
     }
@@ -169,7 +169,7 @@ public class NumberNotationTest {
   })
   void testRepeatedDecimalSeparatorRejectsTheWholeScan(String text,
       NumberNotation notation) {
-    Assertions.assertNull(NumberScan.parse(text, 0, false, notation), text);
+    Assertions.assertNull(new NumberScan(notation).parse(text, 0, false), text);
   }
 
   /**
@@ -185,12 +185,12 @@ public class NumberNotationTest {
   })
   void testOverLongGroupIsAFractionInTheOtherNotation(String text, NumberNotation fraction,
       String value) {
-    final NumberScan.Result scanned = NumberScan.parse(text, 0, false, fraction);
+    final NumberScan.Result scanned = new NumberScan(fraction).parse(text, 0, false);
     Assertions.assertEquals(0, new BigDecimal(value).compareTo(scanned.value()), text);
 
     final NumberNotation grouping =
         fraction == NumberNotation.LATIN_EU ? NumberNotation.LATIN_US : NumberNotation.LATIN_EU;
-    Assertions.assertNull(NumberScan.parse(text, 0, false, grouping), text);
+    Assertions.assertNull(new NumberScan(grouping).parse(text, 0, false), text);
   }
 
   /**
@@ -202,18 +202,25 @@ public class NumberNotationTest {
   @Test
   void testTailOfAnEarlierNumberIsRecognizedInEachNotation() {
     for (final NumberNotation notation : NumberNotation.values()) {
-      Assertions.assertTrue(NumberScan.continuesNumber("1,00,000", 5, notation),
+      Assertions.assertTrue(new NumberScan(notation).continuesNumber("1,00,000", 5),
           notation.name());
-      Assertions.assertTrue(NumberScan.continuesNumber("1.00.000", 5, notation),
+      Assertions.assertTrue(new NumberScan(notation).continuesNumber("1.00.000", 5),
           notation.name());
-      Assertions.assertTrue(NumberScan.continuesNumber("1.2.3", 4, notation),
+      Assertions.assertTrue(new NumberScan(notation).continuesNumber("1.2.3", 4),
           notation.name());
-      Assertions.assertFalse(NumberScan.continuesNumber("1 000", 2, notation),
+      Assertions.assertFalse(new NumberScan(notation).continuesNumber("1 000", 2),
           notation.name());
-      Assertions.assertFalse(NumberScan.continuesNumber(",000", 1, notation),
+      Assertions.assertFalse(new NumberScan(notation).continuesNumber(",000", 1),
           notation.name());
-      Assertions.assertFalse(NumberScan.continuesNumber("id,000", 3, notation),
+      Assertions.assertFalse(new NumberScan(notation).continuesNumber("id,000", 3),
           notation.name());
     }
+  }
+
+  @Test
+  void testScannerRequiresANotation() {
+    final IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> new NumberScan(null));
+    Assertions.assertEquals("notation must not be null", e.getMessage());
   }
 }
