@@ -143,6 +143,20 @@ String internationalMasked = Masker.mask(internationalPhones, PiiAnnotator.PII, 
 			cases.
 		</para>
 		<para>
+			Digit groups of phone numbers, cards, IBANs and the national identifiers
+			may be separated by any Unicode space separator, such as a no-break space
+			or a narrow no-break space, which counts as the ASCII space; tabs and
+			line breaks end a candidate. Digits are ASCII digits, since E.164,
+			ISO/IEC 7812, ISO 13616 and the national formats are defined over them,
+			so fullwidth or Arabic-Indic digits are not values. Characters of the
+			Unicode Format category, such as a zero width space or a bidirectional
+			mark, and the soft hyphen are neither digits nor separators: a value
+			split by one is not reported, while such a character next to a value
+			leaves it detected with exact offsets.
+			<code>UnicodeSpaceSeparatorTest</code> and
+			<code>AdversarialInputTest</code> pin these cases.
+		</para>
+		<para>
 			A <code>MaskPolicy</code> controls how the covered characters are
 			replaced while staying length preserving. <code>keepingFormat()</code>
 			leaves separators visible so the kind of value stays recognizable, and
@@ -349,7 +363,7 @@ String masked = Masker.mask(result, PiiAnnotator.PII, '*');
 					final group from <code>0001</code> to <code>9999</code>; ITINs permit
 					<code>0000</code> to <code>9999</code>, as specified in
 					<ulink url="https://www.irs.gov/pub/irs-pdf/p4164.pdf#page=253">IRS Publication 4164, table 13-16</ulink>.
-					It requires matching single ASCII spaces or hyphens; compact digits
+					It requires matching single spaces or hyphens; compact digits
 					and other separators are rejected. This example masks a grouped ITIN:
 					<programlisting language="java"><![CDATA[
 Document taxpayer = new PiiAnnotator(PiiPacks.usIdentity())
@@ -364,7 +378,7 @@ String masked = Masker.mask(taxpayer, PiiAnnotator.PII, '*');
 					<code>EuIdentityPiiExtractor</code>: United Kingdom NHS numbers and
 					German tax identifiers. It accepts compact ASCII digits or the
 					<code>3-3-4</code> NHS and <code>2-3-3-3</code> tax identifier groupings.
-					Groups require matching single ASCII spaces or hyphens. Control
+					Groups require matching single spaces or hyphens. Control
 					characters, mixed delimiters and other separators are rejected.
 					Both types require valid check digits; German identifiers also have
 					digit-repetition checks. Uniform NHS digit runs are rejected.
