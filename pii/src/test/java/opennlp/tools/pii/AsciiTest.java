@@ -17,13 +17,13 @@
 
 package opennlp.tools.pii;
 
-import java.util.Locale;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import opennlp.tools.util.StringUtil;
 
 public class AsciiTest {
 
@@ -71,20 +71,16 @@ public class AsciiTest {
       "0xAbCdEf0123456789",
       "MiXeD case With SPACES",
       ""})
-  void testSequenceFoldingMatchesTheRootLocaleForAsciiInput(String value) {
-    Assertions.assertEquals(value.toUpperCase(Locale.ROOT), Ascii.toUpper(value));
+  void testSequenceFoldingMatchesTheUnicodeFoldForAsciiInput(String value) {
+    Assertions.assertEquals(StringUtil.toUpperCase(value), Ascii.toUpper(value));
   }
 
-  /**
-   * Verifies that folding stays ASCII-only and length preserving, unlike a Unicode fold:
-   * the German sharp s becomes two letters there, one character more than the input.
-   */
+  /** Verifies that folding stays ASCII-only, unlike the Unicode fold of {@link StringUtil}. */
   @Test
   void testFoldingLeavesNonAsciiLettersUnchanged() {
     Assertions.assertEquals("STRAßE", Ascii.toUpper("straße"));
     Assertions.assertEquals("éCOLE", Ascii.toUpper("école"));
-    Assertions.assertEquals(6, Ascii.toUpper("straße").length());
-    Assertions.assertEquals(7, "straße".toUpperCase(Locale.ROOT).length());
+    Assertions.assertEquals("ÉCOLE", StringUtil.toUpperCase("école"));
   }
 
   @ParameterizedTest

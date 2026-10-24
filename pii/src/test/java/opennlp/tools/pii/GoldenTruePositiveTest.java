@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /** Verifies exact spans, types, and normalized forms from the positive golden corpus. */
 public class GoldenTruePositiveTest {
@@ -73,7 +74,7 @@ public class GoldenTruePositiveTest {
         new InputStreamReader(stream, StandardCharsets.UTF_8))) {
       final Map<String, List<PiiMention>> grouped = new LinkedHashMap<>();
       reader.lines()
-          .filter(line -> !line.isBlank() && line.charAt(0) != '#')
+          .filter(line -> !StringUtil.isUnicodeBlank(line) && line.charAt(0) != '#')
           .map(GoldenTruePositiveTest::parse)
           .forEach(fields -> {
             final String covered = fields[1];

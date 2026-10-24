@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 public class CursorPiiExtractorTest {
 
@@ -149,7 +150,7 @@ public class CursorPiiExtractorTest {
     final int at = normalized.indexOf('@');
     Assertions.assertEquals(text.substring(start, start + at), normalized.substring(0, at));
     Assertions.assertEquals(
-        text.substring(start + at, end).toLowerCase(java.util.Locale.ROOT),
+        StringUtil.toLowerCase(text.substring(start + at, end)),
         normalized.substring(at));
   }
 
@@ -212,7 +213,7 @@ public class CursorPiiExtractorTest {
     final List<PiiMention> mentions = extractor.extract(text);
     Assertions.assertEquals(1, mentions.size(), text);
     Assertions.assertEquals(PiiMention.TYPE_EMAIL, mentions.get(0).type());
-    Assertions.assertEquals(text.toLowerCase(java.util.Locale.ROOT),
+    Assertions.assertEquals(StringUtil.toLowerCase(text),
         mentions.get(0).normalized());
   }
 

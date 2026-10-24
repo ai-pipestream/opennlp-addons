@@ -31,6 +31,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Holds the extractors to the golden false positive corpus: every fixture in
  * {@code golden-false-positives.txt} must stay unmatched by the widest configuration the
@@ -57,7 +59,7 @@ public class GoldenFalsePositiveTest {
           new InputStreamReader(in, StandardCharsets.UTF_8));
       String line;
       while ((line = reader.readLine()) != null) {
-        if (!line.isBlank() && !line.startsWith("#")) {
+        if (!StringUtil.isUnicodeBlank(line) && !line.startsWith("#")) {
           fixtures.add(line);
         }
       }

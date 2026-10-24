@@ -41,7 +41,13 @@ import org.w3c.dom.DocumentType;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-/** JDK-only source launcher for validating and regenerating PII reference tables. */
+/**
+ * JDK-only source launcher for validating and regenerating PII reference tables.
+ *
+ * <p>The {@code dev} scripts run this file with {@code java <source file>} and no class
+ * path, so it uses the JDK {@link String} methods where the rest of the module uses
+ * {@code StringUtil}.</p>
+ */
 final class ReferenceDataGenerator {
   private ReferenceDataGenerator() {
   }
