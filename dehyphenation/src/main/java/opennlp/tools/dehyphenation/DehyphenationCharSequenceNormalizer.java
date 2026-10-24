@@ -32,8 +32,13 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * <p>The hyphen must have a letter, optionally followed by combining marks, immediately
  * before it and a forced line break immediately after it. Horizontal whitespace may
  * precede the next letter.
- * Supported hyphens are {@code U+002D}, {@code U+00AD} and {@code U+2010}.
- * {@code U+2011 NON-BREAKING HYPHEN} is excluded.</p>
+ * Supported hyphens are {@code U+002D HYPHEN-MINUS}, {@code U+00AD SOFT HYPHEN},
+ * {@code U+2010 HYPHEN}, and the hyphens other scripts use at a line end:
+ * {@code U+058A ARMENIAN HYPHEN}, {@code U+1400 CANADIAN SYLLABICS HYPHEN},
+ * {@code U+2E17 DOUBLE OBLIQUE HYPHEN} (Fraktur) and
+ * {@code U+10EAD YEZIDI HYPHENATION MARK}. Dashes, {@code U+2011 NON-BREAKING HYPHEN},
+ * and the hyphens that join compounds or names, such as {@code U+05BE} and
+ * {@code U+30A0}, are excluded.</p>
  *
  * <p>Breaks follow {@link UnicodeWhitespace#lineBreaks()}; CRLF counts as one.
  * Additional line breaks prevent a join. Indentation follows
@@ -55,11 +60,9 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
 
   private static final String NULL_TEXT_MESSAGE = "The text must not be null.";
 
-  private static final char HYPHEN_MINUS = '-';
-  private static final char SOFT_HYPHEN = '\u00AD';
-
-  /** U+2010 HYPHEN. */
-  private static final char TYPESET_HYPHEN = '\u2010';
+  /** The hyphens that may end a line inside a hyphenated word. */
+  private static final CodePointSet HYPHENS =
+      CodePointSet.of(0x002D, 0x00AD, 0x058A, 0x1400, 0x2010, 0x2E17, 0x10EAD);
 
   private static final CodePointSet LINE_BREAKS = UnicodeWhitespace.lineBreakCodePointSet();
 
@@ -146,8 +149,8 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
    * @return The offset after the deletion, or {@code -1} if no join is possible.
    */
   private int joinEditEnd(CharSequence text, int hyphen) {
-    final char c = text.charAt(hyphen);
-    if (c != HYPHEN_MINUS && c != SOFT_HYPHEN && c != TYPESET_HYPHEN) {
+    final int codePoint = Character.codePointAt(text, hyphen);
+    if (!HYPHENS.contains(codePoint)) {
       return -1;
     }
     final int letterEnd = skipMarksBackward(text, hyphen);
@@ -155,7 +158,7 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       return -1;
     }
     final int length = text.length();
-    int end = hyphen + 1;
+    int end = hyphen + Character.charCount(codePoint);
     if (end >= length) {
       return -1;
     }

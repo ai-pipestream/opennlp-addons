@@ -23,8 +23,12 @@
 			A letter, optionally followed by combining marks, must precede the hyphen,
 			and a letter must follow the break, with optional horizontal whitespace
 			before the continuation. The supported hyphens are
-			<code>U+002D</code>, <code>U+00AD</code> and <code>U+2010</code>.
-			The non-breaking hyphen <code>U+2011</code> is excluded.
+			<code>U+002D</code>, the soft hyphen <code>U+00AD</code>, <code>U+2010</code>,
+			and the hyphens other scripts use at a line end: <code>U+058A</code> (Armenian),
+			<code>U+1400</code> (Canadian syllabics), <code>U+2E17</code> (Fraktur) and
+			<code>U+10EAD</code> (Yezidi). Dashes, the non-breaking hyphen <code>U+2011</code>,
+			and the hyphens that join compounds or names, such as the Hebrew maqaf
+			<code>U+05BE</code> and <code>U+30A0</code>, are excluded.
 		</para>
 		<para>
 			Breaks use <code>UnicodeWhitespace.lineBreaks()</code>: <code>U+000A</code>,
