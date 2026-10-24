@@ -30,7 +30,7 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>After surrounding punctuation, ASCII or not, is trimmed, cores shorter than 3 characters or
  * containing non-ASCII characters are skipped. Signals include consonant runs,
- * repeated characters, low vowel proportions, and letter-digit transitions. One
+ * repeated letters, low vowel proportions, and letter-digit transitions. One
  * signal produces {@link NoiseSpan#SEVERITY_DAMAGED}; multiple signals produce
  * {@link NoiseSpan#SEVERITY_GIBBERISH}. Long base64-alphabet tokens with symbols or
  * frequent case changes produce {@link NoiseSpan#SEVERITY_BINARYISH}.</p>
@@ -69,7 +69,7 @@ public final class StructuralNoiseScorer implements NoiseScorer {
   /** Minimum consecutive consonants for a structural signal. */
   private static final int CONSONANT_RUN_SIGNAL = 7;
 
-  /** Minimum consecutive repetitions for a structural signal. */
+  /** Minimum consecutive repetitions of one letter for a structural signal. */
   private static final int REPEAT_RUN_SIGNAL = 4;
 
   /** Maximum positive vowel proportion for a structural signal. */
@@ -281,7 +281,8 @@ public final class StructuralNoiseScorer implements NoiseScorer {
       if ((letter && lastDigit) || (digit && lastLetter)) {
         interleave++;
       }
-      repeatRun = c == last ? repeatRun + 1 : 1;
+      // Repeated digits are round numbers and zero-filled fields, not damage.
+      repeatRun = letter && c == last ? repeatRun + 1 : 1;
       maxRepeatRun = Math.max(maxRepeatRun, repeatRun);
       last = c;
       lastDigit = digit;

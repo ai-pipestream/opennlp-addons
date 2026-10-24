@@ -34,9 +34,11 @@
 			ASCII sentence marks, quotes and brackets, and any quote, bracket or other
 			punctuation outside ASCII, such as curly quotes or guillemets.
 			Cores shorter than 3 characters or containing non-ASCII characters are skipped.
-			The rules count consonant runs, repeated characters, vowel proportions, and
-			letter-digit transitions. Binary-content detection also checks length and
-			case changes. A digit in a long identifier is insufficient for that category.
+			The rules count consonant runs, repeated letters, vowel proportions, and
+			letter-digit transitions. Repeated digits are not a signal, so round numbers
+			such as <code>10000</code> stay clean. Binary-content detection also checks
+			length and case changes. A digit in a long identifier is insufficient for that
+			category.
 		</para>
 		<para>
 			These heuristics can mark technical identifiers or unfamiliar words as noise
