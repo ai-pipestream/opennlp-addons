@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -72,11 +73,10 @@ public final class PlaceProfiles {
      *         is non-finite or outside {@code [-1, 1]}.
      */
     public Neighbor {
-      if (id == null || id.isEmpty()) {
-        throw new IllegalArgumentException("id must not be null or empty");
-      }
-      if (!Double.isFinite(similarity) || similarity < -1.0 || similarity > 1.0) {
-        throw new IllegalArgumentException("similarity must be finite and in [-1, 1]");
+      ParamChecks.requireNonEmpty(id, "id");
+      ParamChecks.requireFinite(similarity, "similarity");
+      if (similarity < -1.0 || similarity > 1.0) {
+        throw new IllegalArgumentException("similarity must be in [-1, 1]");
       }
     }
   }
@@ -84,11 +84,11 @@ public final class PlaceProfiles {
   /** The header cell naming the identifier column. */
   private static final String ID_COLUMN = "id";
 
+  /** The ASCII tab the table format defines between the cells of one line. */
+  private static final char FIELD_SEPARATOR = '\t';
+
   /** The prefix of the failure naming a cell that is not usable table data. */
   private static final String MALFORMED_VALUE = "malformed value in row ";
-
-  /** The failure for a missing place identifier. */
-  private static final String ID_REQUIRED = "id must not be null";
 
   /** Precision for load-time division and square roots. */
   private static final MathContext STATISTICS_PRECISION = MathContext.DECIMAL128;
@@ -119,9 +119,7 @@ public final class PlaceProfiles {
    * @throws IllegalArgumentException Thrown if {@code table} is {@code null}.
    */
   public static PlaceProfiles load(Path table) throws IOException {
-    if (table == null) {
-      throw new IllegalArgumentException("table must not be null");
-    }
+    ParamChecks.requireNonNullArg(table, "table");
     try (InputStream in = Files.newInputStream(table)) {
       return load(in);
     }
@@ -147,203 +145,183 @@ public final class PlaceProfiles {
    * @throws IllegalArgumentException Thrown if {@code tableStream} is {@code null}.
    */
   public static PlaceProfiles load(InputStream tableStream) throws IOException {
-    if (tableStream == null) {
-      throw new IllegalArgumentException("tableStream must not be null");
-    }
+    ParamChecks.requireNonNullArg(tableStream, "tableStream");
     try {
-      return readTable(GazetteerIndex.utf8Reader(tableStream));
+      return new TableReader(GazetteerIndex.utf8Reader(tableStream)).read();
     } catch (CharacterCodingException e) {
       throw new InvalidFormatException("profile table is not valid UTF-8", e);
     }
   }
 
   /**
-   * Parses a table without closing the reader.
-   *
-   * @param reader The UTF-8 reader.
-   * @return Standardized profiles.
-   * @throws IOException Thrown if reading fails.
-   * @throws InvalidFormatException Thrown if the table is malformed.
+   * Reads one profile table from a reader it does not close, keeping the current row
+   * number for failure messages.
    */
-  private static PlaceProfiles readTable(BufferedReader reader) throws IOException {
-    String line;
-    int row = 0;
-    do {
-      line = reader.readLine();
-      row++;
-      if (line == null) {
-        throw new InvalidFormatException("the profile table has no header");
-      }
-      if (row == 1) {
-        line = StringUtil.stripByteOrderMark(line);
-      }
-    } while (isIgnored(line));
-    final String[] header = GazetteerIndex.split(line, '\t');
-    if (header.length < 2 || !ID_COLUMN.equals(strip(header[0]))) {
-      throw new InvalidFormatException("the header must be: id, then at least one metric");
+  private static final class TableReader {
+
+    private final BufferedReader reader;
+    private int row;
+
+    /**
+     * @param reader The UTF-8 reader positioned at the start of the table.
+     */
+    TableReader(BufferedReader reader) {
+      this.reader = reader;
     }
-    final int width = header.length - 1;
-    final List<String> strippedNames = new ArrayList<>(width);
-    final Set<String> uniqueNames = new HashSet<>();
-    for (int m = 1; m < header.length; m++) {
-      final String name = strip(header[m]);
-      if (name.isEmpty()) {
-        throw new InvalidFormatException("empty metric name in header column " + (m + 1));
-      }
-      if (!uniqueNames.add(name)) {
-        throw new InvalidFormatException(
-            "duplicate metric name in header column " + (m + 1) + ": " + name);
-      }
-      strippedNames.add(name);
-    }
-    final List<String> metricNames = List.copyOf(strippedNames);
-    final Map<String, double[]> raw = new HashMap<>();
-    while ((line = reader.readLine()) != null) {
-      row++;
-      if (isIgnored(line)) {
-        continue;
-      }
-      final String[] fields = GazetteerIndex.split(line, '\t');
-      if (fields.length != header.length) {
-        throw new InvalidFormatException("row " + row + " has " + fields.length
-            + " fields, expected " + header.length);
-      }
-      final String id = strip(fields[0]);
-      if (id.isEmpty()) {
-        throw new InvalidFormatException("empty id in row " + row);
-      }
-      if (raw.containsKey(id)) {
-        throw new InvalidFormatException("duplicate id in row " + row + ": " + id);
-      }
-      final double[] profile = new double[width];
-      for (int m = 0; m < width; m++) {
-        final String value = strip(fields[m + 1]);
-        if (value.isEmpty()) {
-          throw new InvalidFormatException("empty value in row " + row + ", column "
-              + (m + 2) + " (" + metricNames.get(m) + ")");
+
+    /**
+     * Parses the table.
+     *
+     * @return Standardized profiles.
+     * @throws IOException Thrown if reading fails.
+     * @throws InvalidFormatException Thrown if the table is malformed.
+     */
+    PlaceProfiles read() throws IOException {
+      String line;
+      do {
+        line = reader.readLine();
+        row++;
+        if (line == null) {
+          throw new InvalidFormatException("the profile table has no header");
         }
-        profile[m] = metricValue(value, row);
+        if (row == 1) {
+          line = StringUtil.stripByteOrderMark(line);
+        }
+      } while (isIgnored(line));
+      final String[] header = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
+      if (header.length < 2 || !ID_COLUMN.equals(StringUtil.trimUnicodeWhitespace(header[0]))) {
+        throw new InvalidFormatException("the header must be: id, then at least one metric");
       }
-      raw.put(id, profile);
-    }
-    if (raw.isEmpty()) {
-      throw new InvalidFormatException("the profile table lists no places");
-    }
-    standardize(raw, width);
-    return new PlaceProfiles(Map.copyOf(raw), metricNames);
-  }
-
-  /**
-   * Parses one metric cell, accepting only finite numbers.
-   *
-   * @param text The cell content, already stripped of surrounding whitespace.
-   * @param row The one-based line number of the row, for the failure message.
-   * @return The parsed value, always finite.
-   * @throws InvalidFormatException Thrown if the cell is not a number, has a Java literal
-   *         suffix, or is not finite.
-   */
-  private static double metricValue(String text, int row) throws InvalidFormatException {
-    if (hasJavaLiteralSuffix(text) || hasHexMarker(text)) {
-      throw new InvalidFormatException(MALFORMED_VALUE + row + ": " + text);
-    }
-    final double value;
-    try {
-      value = Double.parseDouble(text);
-    } catch (NumberFormatException e) {
-      throw new InvalidFormatException(MALFORMED_VALUE + row + ": " + text, e);
-    }
-    if (!Double.isFinite(value)) {
-      throw new InvalidFormatException("non-finite value in row " + row + ": " + text);
-    }
-    return value;
-  }
-
-  /**
-   * Checks for a Java float or double type suffix.
-   *
-   * @param text The cell content, already stripped of surrounding whitespace.
-   * @return {@code true} if the final character is {@code f}, {@code F}, {@code d} or
-   *         {@code D}.
-   */
-  private static boolean hasJavaLiteralSuffix(String text) {
-    if (text.isEmpty()) {
-      return false;
-    }
-    final char last = text.charAt(text.length() - 1);
-    return last == 'f' || last == 'F' || last == 'd' || last == 'D';
-  }
-
-  /**
-   * Checks for a hexadecimal number marker.
-   *
-   * @param text The cell content, already stripped of surrounding whitespace.
-   * @return {@code true} if the cell contains {@code x} or {@code X}.
-   */
-  private static boolean hasHexMarker(String text) {
-    return text.indexOf('x') >= 0 || text.indexOf('X') >= 0;
-  }
-
-  /**
-   * Checks for a blank line or comment.
-   *
-   * @param line The raw line, without its line ending.
-   * @return {@code true} if the line must be skipped.
-   */
-  private static boolean isIgnored(String line) {
-    final String stripped = strip(line);
-    return stripped.isEmpty() || stripped.charAt(0) == '#';
-  }
-
-  /**
-   * Removes leading and trailing whitespace by the Unicode White_Space property, whatever
-   * the active whitespace mode, so padding with a no-break or ideographic space is removed
-   * like ASCII padding.
-   *
-   * @param text The text to strip.
-   * @return The text without surrounding whitespace. Never {@code null}.
-   */
-  private static String strip(String text) {
-    return StringUtil.trimUnicodeWhitespace(text);
-  }
-
-  /**
-   * Standardizes metric columns and rescales each profile for double-precision cosine.
-   * Centering uses {@code count * value - sum} to avoid rounding the column mean.
-   * Constant columns become zero. Per-profile rescaling does not change cosine.
-   *
-   * @param profiles The raw profiles, keyed by place identifier; mutated in place.
-   * @param width The number of metric columns.
-   */
-  private static void standardize(Map<String, double[]> profiles, int width) {
-    final List<double[]> rows = new ArrayList<>(profiles.values());
-    final BigDecimal count = BigDecimal.valueOf(rows.size());
-    final BigDecimal[][] standardized = new BigDecimal[rows.size()][width];
-    for (int m = 0; m < width; m++) {
-      BigDecimal sum = BigDecimal.ZERO;
-      for (int row = 0; row < rows.size(); row++) {
-        standardized[row][m] = new BigDecimal(rows.get(row)[m]);
-        sum = sum.add(standardized[row][m]);
+      final int width = header.length - 1;
+      final List<String> strippedNames = new ArrayList<>(width);
+      final Set<String> uniqueNames = new HashSet<>();
+      for (int m = 1; m < header.length; m++) {
+        final String name = StringUtil.trimUnicodeWhitespace(header[m]);
+        if (name.isEmpty()) {
+          throw new InvalidFormatException("empty metric name in header column " + (m + 1));
+        }
+        if (!uniqueNames.add(name)) {
+          throw new InvalidFormatException(
+              "duplicate metric name in header column " + (m + 1) + ": " + name);
+        }
+        strippedNames.add(name);
       }
-      BigDecimal squares = BigDecimal.ZERO;
-      for (final BigDecimal[] profile : standardized) {
-        profile[m] = profile[m].multiply(count).subtract(sum);
-        squares = squares.add(profile[m].multiply(profile[m]));
+      final List<String> metricNames = List.copyOf(strippedNames);
+      final Map<String, double[]> raw = new HashMap<>();
+      while ((line = reader.readLine()) != null) {
+        row++;
+        if (isIgnored(line)) {
+          continue;
+        }
+        final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
+        if (fields.length != header.length) {
+          throw new InvalidFormatException("row " + row + " has " + fields.length
+              + " fields, expected " + header.length);
+        }
+        final String id = StringUtil.trimUnicodeWhitespace(fields[0]);
+        if (id.isEmpty()) {
+          throw new InvalidFormatException("empty id in row " + row);
+        }
+        if (raw.containsKey(id)) {
+          throw new InvalidFormatException("duplicate id in row " + row + ": " + id);
+        }
+        final double[] profile = new double[width];
+        for (int m = 0; m < width; m++) {
+          final String value = StringUtil.trimUnicodeWhitespace(fields[m + 1]);
+          if (value.isEmpty()) {
+            throw new InvalidFormatException("empty value in row " + row + ", column "
+                + (m + 2) + " (" + metricNames.get(m) + ")");
+          }
+          profile[m] = metricValue(value);
+        }
+        raw.put(id, profile);
       }
-      final BigDecimal deviation = squares.divide(count, STATISTICS_PRECISION)
-          .sqrt(STATISTICS_PRECISION);
-      for (final BigDecimal[] profile : standardized) {
-        profile[m] = deviation.signum() == 0 ? BigDecimal.ZERO
-            : profile[m].divide(deviation, STATISTICS_PRECISION);
+      if (raw.isEmpty()) {
+        throw new InvalidFormatException("the profile table lists no places");
       }
+      standardize(raw, width);
+      return new PlaceProfiles(Map.copyOf(raw), metricNames);
     }
-    for (int row = 0; row < rows.size(); row++) {
-      BigDecimal scale = BigDecimal.ZERO;
-      for (final BigDecimal value : standardized[row]) {
-        scale = scale.max(value.abs());
+
+    /**
+     * Parses one metric cell, accepting only finite numbers. A Java float or double type
+     * suffix and a hexadecimal marker are rejected before parsing, since
+     * {@link Double#parseDouble(String)} would accept them.
+     *
+     * @param text The cell content, already stripped of surrounding whitespace and not empty.
+     * @return The parsed value, always finite.
+     * @throws InvalidFormatException Thrown if the cell is not a number, has a Java literal
+     *         suffix, or is not finite.
+     */
+    private double metricValue(String text) throws InvalidFormatException {
+      final char last = text.charAt(text.length() - 1);
+      if (last == 'f' || last == 'F' || last == 'd' || last == 'D'
+          || text.indexOf('x') >= 0 || text.indexOf('X') >= 0) {
+        throw new InvalidFormatException(MALFORMED_VALUE + row + ": " + text);
       }
+      final double value;
+      try {
+        value = Double.parseDouble(text);
+      } catch (NumberFormatException e) {
+        throw new InvalidFormatException(MALFORMED_VALUE + row + ": " + text, e);
+      }
+      if (!Double.isFinite(value)) {
+        throw new InvalidFormatException("non-finite value in row " + row + ": " + text);
+      }
+      return value;
+    }
+
+    /**
+     * Checks for a blank line or comment. Whitespace is the Unicode White_Space property,
+     * whatever the active whitespace mode.
+     *
+     * @param line The raw line, without its line ending.
+     * @return {@code true} if the line must be skipped.
+     */
+    private boolean isIgnored(String line) {
+      final String stripped = StringUtil.trimUnicodeWhitespace(line);
+      return stripped.isEmpty() || stripped.charAt(0) == '#';
+    }
+
+    /**
+     * Standardizes metric columns and rescales each profile for double-precision cosine.
+     * Centering uses {@code count * value - sum} to avoid rounding the column mean.
+     * Constant columns become zero. Per-profile rescaling does not change cosine.
+     *
+     * @param profiles The raw profiles, keyed by place identifier; mutated in place.
+     * @param width The number of metric columns.
+     */
+    private void standardize(Map<String, double[]> profiles, int width) {
+      final List<double[]> rows = new ArrayList<>(profiles.values());
+      final BigDecimal count = BigDecimal.valueOf(rows.size());
+      final BigDecimal[][] standardized = new BigDecimal[rows.size()][width];
       for (int m = 0; m < width; m++) {
-        rows.get(row)[m] = scale.signum() == 0 ? 0.0
-            : standardized[row][m].divide(scale, STATISTICS_PRECISION).doubleValue();
+        BigDecimal sum = BigDecimal.ZERO;
+        for (int r = 0; r < rows.size(); r++) {
+          standardized[r][m] = new BigDecimal(rows.get(r)[m]);
+          sum = sum.add(standardized[r][m]);
+        }
+        BigDecimal squares = BigDecimal.ZERO;
+        for (final BigDecimal[] profile : standardized) {
+          profile[m] = profile[m].multiply(count).subtract(sum);
+          squares = squares.add(profile[m].multiply(profile[m]));
+        }
+        final BigDecimal deviation = squares.divide(count, STATISTICS_PRECISION)
+            .sqrt(STATISTICS_PRECISION);
+        for (final BigDecimal[] profile : standardized) {
+          profile[m] = deviation.signum() == 0 ? BigDecimal.ZERO
+              : profile[m].divide(deviation, STATISTICS_PRECISION);
+        }
+      }
+      for (int r = 0; r < rows.size(); r++) {
+        BigDecimal scale = BigDecimal.ZERO;
+        for (final BigDecimal value : standardized[r]) {
+          scale = scale.max(value.abs());
+        }
+        for (int m = 0; m < width; m++) {
+          rows.get(r)[m] = scale.signum() == 0 ? 0.0
+              : standardized[r][m].divide(scale, STATISTICS_PRECISION).doubleValue();
+        }
       }
     }
   }
@@ -365,9 +343,7 @@ public final class PlaceProfiles {
    * @throws IllegalArgumentException Thrown if {@code id} is {@code null}.
    */
   public boolean contains(String id) {
-    if (id == null) {
-      throw new IllegalArgumentException(ID_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(id, "id");
     return profiles.containsKey(id);
   }
 
@@ -383,12 +359,8 @@ public final class PlaceProfiles {
    *         listed.
    */
   public double similarity(String id, String otherId) {
-    if (id == null) {
-      throw new IllegalArgumentException(ID_REQUIRED);
-    }
-    if (otherId == null) {
-      throw new IllegalArgumentException("otherId must not be null");
-    }
+    ParamChecks.requireNonNullArg(id, "id");
+    ParamChecks.requireNonNullArg(otherId, "otherId");
     return cosine(profile(id), profile(otherId));
   }
 
@@ -405,12 +377,8 @@ public final class PlaceProfiles {
    *         listed, or {@code count} is not positive.
    */
   public List<Neighbor> mostSimilar(String id, int count) {
-    if (id == null) {
-      throw new IllegalArgumentException(ID_REQUIRED);
-    }
-    if (count <= 0) {
-      throw new IllegalArgumentException("count must be positive: " + count);
-    }
+    ParamChecks.requireNonNullArg(id, "id");
+    ParamChecks.requirePositive(count, "count");
     final double[] query = profile(id);
     final List<Neighbor> neighbors = new ArrayList<>();
     for (final Map.Entry<String, double[]> candidate : profiles.entrySet()) {

@@ -17,22 +17,16 @@ limitations under the License.
 
 # Numeric place profiles
 
-This feature compares places using a user-supplied table of numeric measurements.
-It standardizes each column and ranks places by cosine similarity. It does not
-encode categorical data or load measurement datasets automatically.
+`PlaceProfiles` compares places by a user-supplied table of numeric
+measurements, such as population density, income or elevation, instead of by
+their names. Each column is standardized to mean zero and unit variance at load,
+and places are compared and ranked by the cosine similarity of their
+standardized profiles. Place identifiers and metric names must be unique; the
+choice of metrics and places determines the scores. Categorical data is not
+encoded.
 
-## Human definition
+## Module
 
-Compare places by measurements such as population density, income, or elevation,
-not by matching their names. Place identifiers and metric names must be unique.
-The choice of metrics and places determines the scores.
-
-## Prior art and comparable products
-
-- [GeoNames](https://www.geonames.org/export/web-services.html) exposes place metadata including feature classes, population, elevation, and administrative data.
-- [Elasticsearch function scoring](https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-function-score-query) supports relevance functions that decay with numeric or geographic distance from a target value.
-
-## Addon module
-
-This feature is part of `org.apache.opennlp.addons:geo`. It builds on the
-gazetteer research branch and adds no measurement datasets or dependencies.
+`org.apache.opennlp.addons:geo` provides the class. No measurement data is
+bundled and no dependency is added; users are responsible for the licenses of
+their sources.
