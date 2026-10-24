@@ -83,7 +83,7 @@ public class StaticEmbeddingUsageExampleTest {
    *
    * @param vector The vector to measure.
    */
-  private static void assertUnitLength(float[] vector) {
+  private void assertUnitLength(float[] vector) {
     double normSquared = 0;
     for (final float v : vector) {
       normSquared += (double) v * v;

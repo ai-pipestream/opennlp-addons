@@ -51,13 +51,13 @@ class StaticEmbeddingModelTest {
       {5f, 50f, 500f},    // cat
   };
 
-  private static Path writeVocab(Path dir) throws IOException {
+  private Path writeVocab(Path dir) throws IOException {
     final Path file = dir.resolve("vocab.txt");
     Files.write(file, VOCAB_TOKENS);
     return file;
   }
 
-  private static Path writeSafetensors(Path dir, boolean withWeights) throws IOException {
+  private Path writeSafetensors(Path dir, boolean withWeights) throws IOException {
     final Path file = dir.resolve("model.safetensors");
     if (withWeights) {
       // Weight per row: [1, 1, 1, 2, 1, 1] so "hello" (row 3) counts double in the sum but not
@@ -71,7 +71,7 @@ class StaticEmbeddingModelTest {
     return file;
   }
 
-  private static Path writeSafetensorsF16(Path dir) throws IOException {
+  private Path writeSafetensorsF16(Path dir) throws IOException {
     final Path file = dir.resolve("model.safetensors");
     SafetensorsTestFiles.write(file, "F16", SafetensorsTestFiles.matrix("embeddings", ROWS));
     return file;
@@ -456,7 +456,7 @@ class StaticEmbeddingModelTest {
   // Writes the two JSON configuration files of a published model directory alongside the
   // vocab/safetensors fixtures, with the shapes real releases use (extra fields, floats,
   // nested objects, an explicit strip_accents null).
-  private static void writeConfigs(Path dir, String normalize, String doLowerCase)
+  private void writeConfigs(Path dir, String normalize, String doLowerCase)
       throws IOException {
     Files.writeString(dir.resolve("config.json"),
         "{\"model_type\":\"model2vec\",\"architectures\":[\"StaticModel\"],"

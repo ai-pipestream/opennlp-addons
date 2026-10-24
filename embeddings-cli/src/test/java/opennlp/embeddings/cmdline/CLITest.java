@@ -95,7 +95,7 @@ class CLITest {
     Files.writeString(file, space + "alpha" + space + "\n" + space + "\nbeta\t3\n",
         StandardCharsets.UTF_8);
 
-    assertEquals(List.of("alpha", "beta"), DistillModelTool.readTerms(file));
+    assertEquals(List.of("alpha", "beta"), new DistillModelTool().readTerms(file));
   }
 
   @Test

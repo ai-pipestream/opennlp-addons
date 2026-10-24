@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class StaticEmbeddingModelSimilarityTest {
 
-  private static StaticEmbeddingModel load(Path dir) throws IOException {
+  private StaticEmbeddingModel load(Path dir) throws IOException {
     return EmbeddingTestFixtures.loadAnalogyModel(dir, Normalization.NONE);
   }
 

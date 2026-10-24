@@ -84,7 +84,7 @@ class TeacherTokenizerTest {
           + "\"vocab\":[[\"<s>\",0.0],[\"<pad>\",0.0],[\"</s>\",0.0],[\"<unk>\",0.0],"
           + "[\"a\",-1.5],[\"b\",-2.5],[\"<mask>\",0.0]]}}";
 
-  private static Path write(Path dir, String name, String content) throws IOException {
+  private Path write(Path dir, String name, String content) throws IOException {
     final Path file = dir.resolve(name);
     Files.writeString(file, content);
     return file;

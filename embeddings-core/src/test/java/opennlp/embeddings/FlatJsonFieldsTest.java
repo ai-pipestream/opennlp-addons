@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlatJsonFieldsTest {
 
-  private static Path write(Path dir, String json) throws IOException {
+  private Path write(Path dir, String json) throws IOException {
     final Path file = dir.resolve("config.json");
     Files.writeString(file, json);
     return file;

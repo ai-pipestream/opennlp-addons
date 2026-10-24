@@ -48,7 +48,7 @@ class RandomizedPcaTest {
    * {@return an exactly rank-{@link #RANK} matrix: a random factor times a random loading
    * matrix, plus a non-zero column mean so centering is exercised}
    */
-  private static float[] lowRankData() {
+  private float[] lowRankData() {
     final Random random = new Random(7);
     final float[][] factors = new float[ROWS][RANK];
     final float[][] loadings = new float[RANK][COLS];
@@ -75,7 +75,7 @@ class RandomizedPcaTest {
     return data;
   }
 
-  private static double dot(float[] data, int rowA, int rowB, int cols) {
+  private double dot(float[] data, int rowA, int rowB, int cols) {
     double dot = 0;
     for (int c = 0; c < cols; c++) {
       dot += (double) data[rowA * cols + c] * data[rowB * cols + c];

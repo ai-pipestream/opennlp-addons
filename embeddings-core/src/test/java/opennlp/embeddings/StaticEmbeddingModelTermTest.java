@@ -66,7 +66,7 @@ class StaticEmbeddingModelTermTest {
    * @return The loaded model.
    * @throws IOException Thrown if writing or loading fails.
    */
-  private static StaticEmbeddingModel model(Path dir, boolean withTerms) throws IOException {
+  private StaticEmbeddingModel model(Path dir, boolean withTerms) throws IOException {
     Files.write(dir.resolve("vocab.txt"), VOCABULARY);
     final int rows = withTerms ? ROWS.length : VOCABULARY.size();
     final float[][] matrix = new float[rows][];

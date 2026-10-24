@@ -37,7 +37,7 @@ class TermTableTest {
 
   private static final String SOURCE = "terms.txt";
 
-  private static TermTable table(String... terms) throws InvalidFormatException {
+  private TermTable table(String... terms) throws InvalidFormatException {
     return TermTable.of(List.of(terms), 10, SOURCE);
   }
 

@@ -46,7 +46,7 @@ class TermSegmenterTest {
           + "\"vocab\":{\"[UNK]\":0,\"[CLS]\":1,\"[SEP]\":2,"
           + "\"habeas\":3,\"corpus\":4,\"##es\":5}}}";
 
-  private static TeacherTokenizer wordpieceTeacher(Path dir) throws IOException {
+  private TeacherTokenizer wordpieceTeacher(Path dir) throws IOException {
     Files.writeString(dir.resolve(ModelFileNames.TOKENIZER_JSON), WORDPIECE_TEACHER);
     return TeacherTokenizer.read(dir.resolve(ModelFileNames.TOKENIZER_JSON), null);
   }

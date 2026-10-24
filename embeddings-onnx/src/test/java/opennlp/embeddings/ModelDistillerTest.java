@@ -63,7 +63,7 @@ class ModelDistillerTest {
    * @return The created teacher directory.
    * @throws IOException Thrown if a fixture file cannot be written.
    */
-  private static Path writeTinyTeacher(Path directory) throws IOException {
+  private Path writeTinyTeacher(Path directory) throws IOException {
     EmbeddingTestFixtures.writeTinyOnnxModel(Files.createDirectories(directory.resolve("onnx")));
     Files.writeString(directory.resolve("tokenizer.json"), TINY_TEACHER_TOKENIZER);
     Files.writeString(directory.resolve("tokenizer_config.json"),

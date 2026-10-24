@@ -46,7 +46,7 @@ class SafetensorsFileTest {
 
   // Builds the header JSON of a file holding one tensor, for tests that create headers with
   // invalid dtypes, shapes, or data_offsets.
-  private static String singleTensorHeader(String name, String dtype, String shape,
+  private String singleTensorHeader(String name, String dtype, String shape,
                                            long begin, long end) {
     return "{\"" + name + "\":{\"dtype\":\"" + dtype + "\",\"shape\":" + shape
         + ",\"data_offsets\":[" + begin + "," + end + "]}}";
@@ -55,7 +55,7 @@ class SafetensorsFileTest {
   // Builds a safetensors file byte for byte: an 8-byte little-endian header length, the header
   // JSON verbatim, then the raw data bytes. Used by the negative tests whose headers
   // SafetensorsTestFiles validates its input; malformed fixtures are written directly here.
-  private static Path writeFile(Path dir, String name, String headerJson, byte[] data)
+  private Path writeFile(Path dir, String name, String headerJson, byte[] data)
       throws IOException {
     final byte[] headerBytes = headerJson.getBytes(StandardCharsets.UTF_8);
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -68,7 +68,7 @@ class SafetensorsFileTest {
     return file;
   }
 
-  private static byte[] floatsToLittleEndianBytes(float... values) {
+  private byte[] floatsToLittleEndianBytes(float... values) {
     final ByteBuffer buffer = ByteBuffer.allocate(values.length * 4).order(ByteOrder.LITTLE_ENDIAN);
     for (float value : values) {
       buffer.putFloat(value);

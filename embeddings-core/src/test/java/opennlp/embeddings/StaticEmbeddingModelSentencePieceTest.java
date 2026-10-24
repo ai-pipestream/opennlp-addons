@@ -79,7 +79,7 @@ class StaticEmbeddingModelSentencePieceTest {
    * @param row The matrix row.
    * @param d   The dimension index.
    */
-  private static float cell(int row, int d) {
+  private float cell(int row, int d) {
     return row + d * 0.25f;
   }
 
@@ -94,7 +94,7 @@ class StaticEmbeddingModelSentencePieceTest {
    * @return The directory.
    * @throws IOException Thrown if writing fails.
    */
-  private static Path writeModelDirectory(Path dir, Boolean normalize) throws IOException {
+  private Path writeModelDirectory(Path dir, Boolean normalize) throws IOException {
     Files.write(dir.resolve("sentencepiece.bpe.model"), modelBytes);
     Files.writeString(dir.resolve("tokenizer.json"), tokenizerJson(rows));
     final float[][] matrix = new float[rows.size() + 1][DIMENSION];
@@ -121,7 +121,7 @@ class StaticEmbeddingModelSentencePieceTest {
    *
    * @param pieces The {@code model.vocab} pieces in row order.
    */
-  private static String tokenizerJson(List<String> pieces) {
+  private String tokenizerJson(List<String> pieces) {
     final StringBuilder json = new StringBuilder("{\"version\":\"1.0\",\"added_tokens\":[");
     json.append("{\"id\":0,\"content\":\"<pad>\",\"special\":true},");
     json.append("{\"id\":").append(pieces.size()).append(",\"content\":\"<extra_special>\","
@@ -306,7 +306,7 @@ class StaticEmbeddingModelSentencePieceTest {
    * @return The loaded model.
    * @throws IOException Thrown if reading fails.
    */
-  private static StaticEmbeddingModel loadFromDirectory(Path dir) throws IOException {
+  private StaticEmbeddingModel loadFromDirectory(Path dir) throws IOException {
     return StaticEmbeddingModel.loadSentencePiece(dir.resolve("sentencepiece.bpe.model"),
         dir.resolve("tokenizer.json"), dir.resolve("model.safetensors"), Normalization.NONE);
   }
