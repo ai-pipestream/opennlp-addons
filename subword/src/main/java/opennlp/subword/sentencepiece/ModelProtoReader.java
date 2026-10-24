@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Reads the binary {@code ModelProto} serialization of a SentencePiece {@code .model} file.
@@ -95,22 +96,26 @@ final class ModelProtoReader {
    * @throws InvalidFormatException Thrown if the bytes are not a well-formed model.
    */
   static RawModel read(byte[] data) throws InvalidFormatException {
-    if (data == null) {
-      throw new IllegalArgumentException("data must not be null");
-    }
-    final ModelProtoReader reader = new ModelProtoReader(data);
+    ParamChecks.requireNonNullArg(data, "data");
+    return new ModelProtoReader(data).parse();
+  }
+
+  /**
+   * Walks the top-level tag stream of the {@code ModelProto} message.
+   *
+   * @return The parsed model description.
+   * @throws InvalidFormatException Thrown if the bytes are not a well-formed model.
+   */
+  private RawModel parse() throws InvalidFormatException {
     final RawModel model = new RawModel();
-    while (reader.pos < data.length) {
-      final long tag = reader.readTag(data.length);
+    while (pos < data.length) {
+      final long tag = readTag(data.length);
       switch (fieldOf(tag)) {
-        case FIELD_MODEL_PIECES -> reader.piece(model, reader.lenPayload(tag, data.length));
-        case FIELD_MODEL_TRAINER_SPEC ->
-            reader.trainerSpec(model, reader.lenPayload(tag, data.length));
-        case FIELD_MODEL_NORMALIZER_SPEC ->
-            reader.normalizerSpec(model, reader.lenPayload(tag, data.length));
-        case FIELD_MODEL_SELF_TEST_DATA ->
-            reader.selfTestData(model, reader.lenPayload(tag, data.length));
-        default -> reader.skip(tag, data.length);
+        case FIELD_MODEL_PIECES -> piece(model, lenPayload(tag, data.length));
+        case FIELD_MODEL_TRAINER_SPEC -> trainerSpec(model, lenPayload(tag, data.length));
+        case FIELD_MODEL_NORMALIZER_SPEC -> normalizerSpec(model, lenPayload(tag, data.length));
+        case FIELD_MODEL_SELF_TEST_DATA -> selfTestData(model, lenPayload(tag, data.length));
+        default -> skip(tag, data.length);
       }
     }
     if (model.pieces.isEmpty()) {
@@ -125,7 +130,7 @@ final class ModelProtoReader {
    * @param tag The field tag.
    * @return The field number.
    */
-  private static int fieldOf(long tag) {
+  private int fieldOf(long tag) {
     return (int) (tag >>> 3);
   }
 
@@ -135,7 +140,7 @@ final class ModelProtoReader {
    * @param tag The field tag.
    * @return The wire type.
    */
-  private static int wireTypeOf(long tag) {
+  private int wireTypeOf(long tag) {
     return (int) (tag & 7);
   }
 

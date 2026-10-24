@@ -26,6 +26,7 @@ import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -137,18 +138,31 @@ class SentencePieceFilteredSerializationTest {
    * API boundary.
    */
   @Test
-  void testNullArgumentsAreRejected() throws IOException {
+  void testNullArgumentsAreRejected() {
     final SentencePieceTokenizer tokenizer = SentencePieceFixtures.tokenizer("tiny-unigram");
-    assertThrows(IllegalArgumentException.class, () -> tokenizer.serialize(null));
-    assertThrows(IllegalArgumentException.class, () ->
-        SentencePieceTokenizer.deserialize(null));
-    assertThrows(IllegalArgumentException.class, () ->
-        SentencePieceTokenizer.deserialize(new ByteArrayInputStream(new byte[0]), null));
-    assertThrows(IllegalArgumentException.class, () ->
-        new SentencePieceTokenizer.DeserializationLimits(0, 1, 1));
-    assertThrows(IllegalArgumentException.class, () ->
-        new SentencePieceTokenizer.DeserializationLimits(1, 0, 1));
-    assertThrows(IllegalArgumentException.class, () ->
-        new SentencePieceTokenizer.DeserializationLimits(1, 1, 0));
+    assertEquals("out must not be null", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.serialize(null)).getMessage());
+    assertEquals("in must not be null", assertThrows(IllegalArgumentException.class,
+        () -> SentencePieceTokenizer.deserialize(null)).getMessage());
+    assertEquals("limits must not be null", assertThrows(IllegalArgumentException.class,
+        () -> SentencePieceTokenizer.deserialize(new ByteArrayInputStream(new byte[0]), null))
+        .getMessage());
+  }
+
+  /**
+   * Verifies that every limit must be positive and that the message names the offending one.
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "0, 1, 1, maxDepth",
+      "-1, 1, 1, maxDepth",
+      "1, 0, 1, maxRefs",
+      "1, 1, 0, maxArrayLength",
+      "1, 1, -5, maxArrayLength"})
+  void testNonPositiveLimitsAreRejected(long maxDepth, long maxRefs, long maxArrayLength,
+                                        String name) {
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
+        new SentencePieceTokenizer.DeserializationLimits(maxDepth, maxRefs, maxArrayLength));
+    assertEquals(name + " must be positive", e.getMessage());
   }
 }

@@ -38,6 +38,7 @@ import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.tokenize.SubwordPiece;
 import opennlp.tools.tokenize.SubwordTokenizer;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.normalizer.AlignedText;
 import opennlp.tools.util.normalizer.Alignment;
 import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
@@ -56,13 +57,18 @@ import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
  * @see <a href="https://aclanthology.org/D18-2012/">Kudo &amp; Richardson (EMNLP 2018),
  *     "SentencePiece: A simple and language independent subword tokenizer and detokenizer for
  *     Neural Text Processing"</a>
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwareNormalizer {
 
   private static final long serialVersionUID = 7751888381608757475L;
 
-  /** The segmentation algorithm a model was trained with. */
+  /**
+   * The segmentation algorithm a model was trained with.
+   *
+   * @since 3.0.0
+   */
   public enum Algorithm {
     /** Unigram language model, decoded by best-path search. */
     UNIGRAM,
@@ -252,9 +258,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    * @throws IllegalArgumentException Thrown if {@code modelFile} is {@code null}.
    */
   public static SentencePieceTokenizer load(Path modelFile) throws IOException {
-    if (modelFile == null) {
-      throw new IllegalArgumentException("modelFile must not be null");
-    }
+    ParamChecks.requireNonNullArg(modelFile, "modelFile");
     return new SentencePieceTokenizer(ModelProtoReader.read(Files.readAllBytes(modelFile)));
   }
 
@@ -269,9 +273,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
    */
   public static SentencePieceTokenizer load(InputStream in) throws IOException {
-    if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
-    }
+    ParamChecks.requireNonNullArg(in, "in");
     return new SentencePieceTokenizer(ModelProtoReader.read(in.readAllBytes()));
   }
 
@@ -284,9 +286,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    * @throws IllegalArgumentException Thrown if {@code out} is null.
    */
   public void serialize(OutputStream out) throws IOException {
-    if (out == null) {
-      throw new IllegalArgumentException("out must not be null");
-    }
+    ParamChecks.requireNonNullArg(out, "out");
     try (ObjectOutputStream oos = new ObjectOutputStream(out)) {
       oos.writeObject(this);
     }
@@ -341,12 +341,8 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    */
   public static SentencePieceTokenizer deserialize(InputStream in, DeserializationLimits limits)
       throws IOException, ClassNotFoundException {
-    if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
-    }
-    if (limits == null) {
-      throw new IllegalArgumentException("limits must not be null");
-    }
+    ParamChecks.requireNonNullArg(in, "in");
+    ParamChecks.requireNonNullArg(limits, "limits");
     try (ObjectInputStream ois = new ObjectInputStream(in)) {
       ois.setObjectInputFilter(buildFilter(limits));
       final Object value = ois.readObject();
@@ -371,6 +367,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    *                Must be {@code > 0}.
    * @param maxArrayLength Maximum length of any single array allocation requested by the stream.
    *                       Must be {@code > 0}.
+   * @since 3.0.0
    */
   public record DeserializationLimits(long maxDepth, long maxRefs, long maxArrayLength) {
 
@@ -388,14 +385,23 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
      *         {@code maxArrayLength} is {@code <= 0}.
      */
     public DeserializationLimits {
-      if (maxDepth <= 0) {
-        throw new IllegalArgumentException("maxDepth must be > 0");
-      }
-      if (maxRefs <= 0) {
-        throw new IllegalArgumentException("maxRefs must be > 0");
-      }
-      if (maxArrayLength <= 0) {
-        throw new IllegalArgumentException("maxArrayLength must be > 0");
+      // The limits are long values, which ParamChecks.requirePositive does not take, so the
+      // checks repeat its wording here.
+      requirePositive(maxDepth, "maxDepth");
+      requirePositive(maxRefs, "maxRefs");
+      requirePositive(maxArrayLength, "maxArrayLength");
+    }
+
+    /**
+     * Checks that a limit is positive.
+     *
+     * @param value The limit value.
+     * @param name  The parameter name used in the exception message.
+     * @throws IllegalArgumentException Thrown if {@code value} is {@code <= 0}.
+     */
+    private static void requirePositive(long value, String name) {
+      if (value <= 0) {
+        throw new IllegalArgumentException(name + " must be positive");
       }
     }
   }
@@ -463,9 +469,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
   /** {@inheritDoc} */
   @Override
   public List<SubwordPiece> encode(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final Utf8Text input = Utf8Text.of(text);
     final SentencePieceNormalizer.Normalized normalized =
         normalizer.normalize(input.bytes(), input.byteLength());
@@ -545,9 +549,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
   /** {@inheritDoc} */
   @Override
   public AlignedText normalizeAligned(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final Utf8Text input = Utf8Text.of(text);
     final SentencePieceNormalizer.Normalized result =
         normalizer.normalize(input.bytes(), input.byteLength());
@@ -641,9 +643,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    * @throws IllegalArgumentException Thrown if {@code piece} is {@code null}.
    */
   public int pieceToId(String piece) {
-    if (piece == null) {
-      throw new IllegalArgumentException("piece must not be null");
-    }
+    ParamChecks.requireNonNullArg(piece, "piece");
     final Integer reserved = reservedPieces.get(piece);
     if (reserved != null) {
       return reserved;
@@ -746,7 +746,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
    * @param piece The piece string.
    * @return The byte value in {@code [0, 255]}, or {@code -1} when the string is not a byte piece.
    */
-  private static int parseBytePiece(String piece) {
+  private int parseBytePiece(String piece) {
     if (piece.length() != 6 || !piece.startsWith(BYTE_PIECE_PREFIX) || piece.charAt(5) != '>') {
       return -1;
     }
@@ -755,8 +755,14 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
     return high < 0 || low < 0 ? -1 : (high << 4) | low;
   }
 
-  /** {@return the value of an ASCII hexadecimal digit, or {@code -1} for another character} */
-  private static int asciiHexValue(char c) {
+  /**
+   * Returns the value of a hexadecimal digit. The SentencePiece model format spells byte pieces
+   * with ASCII digits only, so digits from other scripts are rejected.
+   *
+   * @param c The character to convert.
+   * @return The digit value in {@code [0, 15]}, or {@code -1} for any other character.
+   */
+  private int asciiHexValue(char c) {
     if (c >= '0' && c <= '9') {
       return c - '0';
     }

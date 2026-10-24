@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Viterbi segmentation under a unigram language model: of all ways to cover the normalized text
  * with vocabulary pieces, it finds the one with the highest total log-probability.
@@ -74,9 +76,7 @@ final class UnigramEncoder implements Serializable {
    * @throws IllegalArgumentException Thrown if {@code normalized} is {@code null}.
    */
   List<Segment> encode(byte[] normalized, int size) {
-    if (normalized == null) {
-      throw new IllegalArgumentException("normalized must not be null");
-    }
+    ParamChecks.requireNonNullArg(normalized, "normalized");
     if (size == 0) {
       return List.of();
     }

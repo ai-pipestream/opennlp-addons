@@ -26,6 +26,8 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
+import opennlp.tools.util.StringUtil;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -42,7 +44,7 @@ class SentencePieceRealModelEvalTest {
   @Test
   void testRealModelParity() throws IOException {
     final String dir = System.getProperty("opennlp.subword.eval.dir");
-    assumeTrue(dir != null && !dir.isBlank(),
+    assumeTrue(dir != null && !StringUtil.isUnicodeBlank(dir),
         "set -Dopennlp.subword.eval.dir to run the real-model parity check");
 
     int models = 0;

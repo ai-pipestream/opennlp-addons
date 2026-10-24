@@ -49,12 +49,14 @@ class SentencePieceModelValidationTest {
 
   @Test
   void testNullAndEmptyInputAreRejected() {
-    assertThrows(IllegalArgumentException.class,
-        () -> SentencePieceTokenizer.load((Path) null));
-    assertThrows(IllegalArgumentException.class,
-        () -> SentencePieceTokenizer.load((InputStream) null));
-    assertThrows(InvalidFormatException.class,
-        () -> SentencePieceTokenizer.load(new ByteArrayInputStream(new byte[0])));
+    assertEquals("modelFile must not be null", assertThrows(IllegalArgumentException.class,
+        () -> SentencePieceTokenizer.load((Path) null)).getMessage());
+    assertEquals("in must not be null", assertThrows(IllegalArgumentException.class,
+        () -> SentencePieceTokenizer.load((InputStream) null)).getMessage());
+    assertEquals("data must not be null", assertThrows(IllegalArgumentException.class,
+        () -> ModelProtoReader.read(null)).getMessage());
+    assertEquals("The model defines no pieces.", assertThrows(InvalidFormatException.class,
+        () -> SentencePieceTokenizer.load(new ByteArrayInputStream(new byte[0]))).getMessage());
   }
 
   @Test
@@ -158,7 +160,8 @@ class SentencePieceModelValidationTest {
     assertThrows(IllegalArgumentException.class, () -> tokenizer.idToPiece(-1));
     assertThrows(IllegalArgumentException.class,
         () -> tokenizer.idToPiece(tokenizer.vocabularySize()));
-    assertThrows(IllegalArgumentException.class, () -> tokenizer.pieceToId(null));
+    assertEquals("piece must not be null", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.pieceToId(null)).getMessage());
   }
 
   @Test

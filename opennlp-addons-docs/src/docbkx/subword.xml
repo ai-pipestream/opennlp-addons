@@ -33,8 +33,8 @@
   <artifactId>subword</artifactId>
   <version>${opennlp-addons.version}</version>
 </dependency>]]></programlisting>
-    <para>The module needs OpenNLP 3.0.0-M6 or later, the first release with
-          <code>SubwordTokenizer</code>.</para>
+    <para>The module needs OpenNLP 3.0.0 or later, which provides the
+          <code>SubwordTokenizer</code> interface.</para>
   </section>
   <section xml:id="addons.subword.usage">
     <title>Usage</title>

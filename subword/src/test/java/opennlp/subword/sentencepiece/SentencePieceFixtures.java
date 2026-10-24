@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import opennlp.tools.tokenize.SubwordPiece;
+import opennlp.tools.util.StringUtil;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -88,9 +89,19 @@ final class SentencePieceFixtures {
    * @throws IOException Thrown if the fixture resource cannot be read.
    */
   static List<Fixture> fixtures(String model) throws IOException {
-    try (InputStream in =
-             SentencePieceFixtures.class.getResourceAsStream(model + FIXTURES_SUFFIX)) {
-      assertNotNull(in, "missing test resource " + model + FIXTURES_SUFFIX);
+    return readResource(model + FIXTURES_SUFFIX);
+  }
+
+  /**
+   * Reads a fixture resource next to this class.
+   *
+   * @param resource The resource name.
+   * @return The parsed fixtures in file order.
+   * @throws IOException Thrown if the fixture resource cannot be read.
+   */
+  private static List<Fixture> readResource(String resource) throws IOException {
+    try (InputStream in = SentencePieceFixtures.class.getResourceAsStream(resource)) {
+      assertNotNull(in, "missing test resource " + resource);
       return read(new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
     }
   }
@@ -117,7 +128,8 @@ final class SentencePieceFixtures {
     final List<Fixture> fixtures = new ArrayList<>();
     String line;
     while ((line = reader.readLine()) != null) {
-      final String[] cols = tabSeparated(line);
+      // A negative limit keeps empty trailing cells, so every column keeps its index.
+      final String[] cols = StringUtil.split(line, '\t', -1);
       final String input = unescape(cols[0]);
       final int count = Integer.parseInt(cols[1]);
       final List<SubwordPiece> pieces = new ArrayList<>(count);
@@ -129,26 +141,6 @@ final class SentencePieceFixtures {
       fixtures.add(new Fixture(input, pieces, unescape(cols[2 + count * 4])));
     }
     return fixtures;
-  }
-
-  /**
-   * Splits a fixture line at every tab, keeping empty cells so that an empty piece or an
-   * empty normalized form keeps its column.
-   *
-   * @param line The fixture line; must not be null.
-   * @return The cells in order, one more than the number of tabs.
-   */
-  private static String[] tabSeparated(String line) {
-    final List<String> cells = new ArrayList<>();
-    int start = 0;
-    int tab = line.indexOf('\t');
-    while (tab >= 0) {
-      cells.add(line.substring(start, tab));
-      start = tab + 1;
-      tab = line.indexOf('\t', start);
-    }
-    cells.add(line.substring(start));
-    return cells.toArray(new String[0]);
   }
 
   /**

@@ -138,8 +138,12 @@ class SentencePieceAlignmentTest {
 
   @Test
   void testNullInputsAreRejected() {
-    assertThrows(IllegalArgumentException.class, () -> unigram().encode(null));
-    assertThrows(IllegalArgumentException.class, () -> unigram().normalizeAligned(null));
-    assertThrows(IllegalArgumentException.class, () -> unigram().normalize(null));
+    final String expected = "text must not be null";
+    assertEquals(expected, assertThrows(IllegalArgumentException.class,
+        () -> unigram().encode(null)).getMessage());
+    assertEquals(expected, assertThrows(IllegalArgumentException.class,
+        () -> unigram().normalizeAligned(null)).getMessage());
+    assertEquals(expected, assertThrows(IllegalArgumentException.class,
+        () -> unigram().normalize(null)).getMessage());
   }
 }

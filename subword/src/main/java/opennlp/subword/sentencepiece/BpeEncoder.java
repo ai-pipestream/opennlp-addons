@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Byte-pair-encoding segmentation: the normalized text starts as single characters (or
  * user-defined symbols, which are kept intact) and adjacent pairs merge greedily, highest piece
@@ -83,9 +85,7 @@ final class BpeEncoder implements Serializable {
    * @throws IllegalArgumentException Thrown if {@code normalized} is {@code null}.
    */
   List<Segment> encode(byte[] normalized, int size) {
-    if (normalized == null) {
-      throw new IllegalArgumentException("normalized must not be null");
-    }
+    ParamChecks.requireNonNullArg(normalized, "normalized");
     if (size == 0) {
       return List.of();
     }
