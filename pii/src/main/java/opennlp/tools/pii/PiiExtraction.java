@@ -19,23 +19,33 @@ package opennlp.tools.pii;
 
 import java.util.List;
 
-/** Validates delegate output before composition or annotation. */
+/**
+ * Runs one delegate extractor and validates its output before composition or annotation.
+ *
+ * <p>Instances have no per-call state and may be shared between threads.</p>
+ */
 final class PiiExtraction {
 
-  /** Prevents construction of this utility class. */
-  private PiiExtraction() {
+  private final PiiExtractor extractor;
+
+  /**
+   * Initializes the validated view of a delegate.
+   *
+   * @param extractor The non-null delegate.
+   */
+  PiiExtraction(PiiExtractor extractor) {
+    this.extractor = extractor;
   }
 
   /**
-   * Runs an extractor and validates mention presence and text bounds.
+   * Runs the delegate and validates mention presence and text bounds.
    *
-   * @param extractor The non-null delegate.
    * @param text The non-null input text.
    * @return The validated delegate result, without reordering or filtering.
    * @throws IllegalArgumentException Thrown if the result or a mention is null, or a
    *         mention lies outside the input text.
    */
-  static List<PiiMention> extract(PiiExtractor extractor, CharSequence text) {
+  List<PiiMention> extract(CharSequence text) {
     final List<PiiMention> mentions = extractor.extract(text);
     if (mentions == null) {
       throw new IllegalArgumentException("extractor result must not be null");

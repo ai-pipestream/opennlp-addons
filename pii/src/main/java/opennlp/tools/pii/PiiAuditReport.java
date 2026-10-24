@@ -151,7 +151,7 @@ public final class PiiAuditReport {
    *         sampled mention's type or normalized value contains an unpaired surrogate.
    */
   public static PiiAuditReport of(Document document, HmacTokenizer tokenizer) {
-    return of(PiiLayer.mentions(document), tokenizer);
+    return of(new PiiLayer(document).mentions(), tokenizer);
   }
 
   /**

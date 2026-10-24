@@ -25,25 +25,31 @@ import opennlp.tools.document.Document;
 import opennlp.tools.util.ParamChecks;
 
 /**
- * Retrieves validated mentions from a document's {@link PiiAnnotator#PII} layer.
+ * Reads validated mentions from a document's {@link PiiAnnotator#PII} layer.
  */
 final class PiiLayer {
 
-  /** Prevents construction of this utility class. */
-  private PiiLayer() {
+  private final Document document;
+
+  /**
+   * Initializes the reader of one document's PII layer.
+   *
+   * @param document The document. Must not be {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code document} is null.
+   */
+  PiiLayer(Document document) {
+    ParamChecks.requireNonNullArg(document, "document");
+    this.document = document;
   }
 
   /**
-   * Retrieves the PII mentions of a document.
+   * Retrieves the PII mentions of the document.
    *
-   * @param document The document. Must be non-null and have a PII layer with matching
-   *                 annotation and mention offsets.
    * @return The mentions in annotation order.
-   * @throws IllegalArgumentException Thrown if {@code document} is null, lacks the PII
-   *         layer, or contains a mention with offsets that do not match the annotation.
+   * @throws IllegalArgumentException Thrown if the document lacks the PII layer or
+   *         contains a mention with offsets that do not match the annotation.
    */
-  static List<PiiMention> mentions(Document document) {
-    ParamChecks.requireNonNullArg(document, "document");
+  List<PiiMention> mentions() {
     if (!document.layers().contains(PiiAnnotator.PII)) {
       throw new IllegalArgumentException("document does not carry the "
           + PiiAnnotator.PII.id() + " layer");

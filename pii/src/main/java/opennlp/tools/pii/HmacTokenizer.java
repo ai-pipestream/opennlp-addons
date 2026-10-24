@@ -173,7 +173,7 @@ public final class HmacTokenizer {
    *         or normalized value contains an unpaired surrogate.
    */
   public PiiRewrite rewrite(Document document) {
-    final List<PiiMention> mentions = PiiLayer.mentions(document);
+    final List<PiiMention> mentions = new PiiLayer(document).mentions();
     return rewrite(document.text(), mentions);
   }
 

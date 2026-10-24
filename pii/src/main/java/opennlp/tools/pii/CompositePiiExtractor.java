@@ -17,9 +17,8 @@
 
 package opennlp.tools.pii;
 
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 
 import opennlp.tools.util.ParamChecks;
@@ -45,6 +44,9 @@ import opennlp.tools.util.ParamChecks;
 public final class CompositePiiExtractor implements PiiExtractor {
 
   private final List<PiiExtractor> extractors;
+
+  /** The validated leaf extractors, with nested composites flattened in order. */
+  private final List<PiiExtraction> leaves;
 
   /**
    * Initializes a composite over the given extractors.
@@ -76,6 +78,25 @@ public final class CompositePiiExtractor implements PiiExtractor {
       }
     }
     this.extractors = List.copyOf(extractors);
+    final List<PiiExtraction> flattened = new ArrayList<>();
+    collectLeaves(this.extractors, flattened);
+    this.leaves = List.copyOf(flattened);
+  }
+
+  /**
+   * Collects the leaf extractors of a delegate list, flattening nested composites in order.
+   *
+   * @param delegates The delegates to walk.
+   * @param leaves Receives one validated view per leaf.
+   */
+  private void collectLeaves(List<PiiExtractor> delegates, List<PiiExtraction> leaves) {
+    for (final PiiExtractor delegate : delegates) {
+      if (delegate instanceof CompositePiiExtractor composite) {
+        collectLeaves(composite.extractors, leaves);
+      } else {
+        leaves.add(new PiiExtraction(delegate));
+      }
+    }
   }
 
   /**
@@ -99,17 +120,9 @@ public final class CompositePiiExtractor implements PiiExtractor {
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
     final Hits hits = new Hits();
-    final Deque<PiiExtractor> pending = new ArrayDeque<>(extractors);
-    while (!pending.isEmpty()) {
-      final PiiExtractor extractor = pending.removeFirst();
-      if (extractor instanceof CompositePiiExtractor composite) {
-        for (int i = composite.extractors.size() - 1; i >= 0; i--) {
-          pending.addFirst(composite.extractors.get(i));
-        }
-      } else {
-        for (final PiiMention mention : PiiExtraction.extract(extractor, text)) {
-          hits.add(mention);
-        }
+    for (final PiiExtraction leaf : leaves) {
+      for (final PiiMention mention : leaf.extract(text)) {
+        hits.add(mention);
       }
     }
     return hits.resolve();

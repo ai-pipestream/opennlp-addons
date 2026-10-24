@@ -45,7 +45,7 @@ public final class PiiAnnotator implements DocumentAnnotator {
    */
   public static final LayerKey<PiiMention> PII = Layers.key("pii", PiiMention.class);
 
-  private final PiiExtractor extractor;
+  private final PiiExtraction extraction;
 
   /**
    * Initializes the adapter.
@@ -55,7 +55,7 @@ public final class PiiAnnotator implements DocumentAnnotator {
    */
   public PiiAnnotator(PiiExtractor extractor) {
     ParamChecks.requireNonNullArg(extractor, "extractor");
-    this.extractor = extractor;
+    this.extraction = new PiiExtraction(extractor);
   }
 
   /**
@@ -70,7 +70,7 @@ public final class PiiAnnotator implements DocumentAnnotator {
   public Document annotate(Document document) {
     ParamChecks.requireNonNullArg(document, "document");
     final List<Annotation<PiiMention>> mentions = new ArrayList<>();
-    for (final PiiMention mention : PiiExtraction.extract(extractor, document.text())) {
+    for (final PiiMention mention : extraction.extract(document.text())) {
       mentions.add(new Annotation<>(mention.span(), mention));
     }
     return document.with(PII, mentions);
