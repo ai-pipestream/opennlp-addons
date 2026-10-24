@@ -52,8 +52,8 @@
 		<para>
 			The Unicode-tag exception requires U+1F3F4 BLACK FLAG, a region or subdivision
 			code, and U+E007F CANCEL TAG. The code syntax follows
-			<ulink url="https://www.unicode.org/reports/tr51/#flag-emoji-tag-sequences">UTS #51</ulink>
-			and <ulink url="https://www.unicode.org/reports/tr35/#unicode_subdivision_id">UTS #35</ulink>:
+			<link xlink:href="https://www.unicode.org/reports/tr51/#flag-emoji-tag-sequences">UTS #51</link>
+			and <link xlink:href="https://www.unicode.org/reports/tr35/#unicode_subdivision_id">UTS #35</link>:
 			two lowercase region letters followed by one to four lowercase letters or digits,
 			or three region digits with an optional suffix of one to four lowercase letters
 			or digits. Longer tag runs are reported. The detector does not check whether
@@ -91,7 +91,11 @@ replacement [12..13)]]>
 			sign read through Latin-1 is reported as one mojibake span, not a separate control.
 			Controls outside the mojibake span remain separate findings.
 			Text such as <code>déjà vu</code> produces no finding because its reverse mapping
-			is not valid UTF-8. This check does not prove which decoder was used.
+			is not valid UTF-8. This check does not prove which decoder was used. A short
+			run can be valid UTF-8 by coincidence: an upper-case accented letter or
+			<code>ß</code> directly followed by a curly quote, an ellipsis, a no-break space
+			or a sign such as <code>®</code>, as in <code>weiß“</code> or
+			<code>NESTLÉ®</code>, is reported as mojibake.
 			<code>ArtifactsManualExampleTest</code> verifies the behavior shown here.
 		</para>
 		<para>

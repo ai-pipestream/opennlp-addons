@@ -67,9 +67,10 @@ public class ArtifactAnnotatorTest {
   /** Rejects null detector and document arguments. */
   @Test
   void testRejectsContractViolations() {
-    assertThrows(IllegalArgumentException.class, () -> new ArtifactAnnotator(null));
-    assertThrows(IllegalArgumentException.class,
-        () -> new ArtifactAnnotator().annotate(null));
+    assertEquals("detector must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new ArtifactAnnotator(null)).getMessage());
+    assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new ArtifactAnnotator().annotate(null)).getMessage());
   }
 
   /** Rejects a custom detector result that is null, holds null or reaches past the text. */

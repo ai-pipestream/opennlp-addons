@@ -20,6 +20,7 @@ package opennlp.tools.artifacts;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import opennlp.tools.util.Span;
+import opennlp.tools.util.normalizer.UnicodeWhitespace;
 
 import static opennlp.tools.artifacts.ArtifactTestSupport.cp;
 import static opennlp.tools.artifacts.ArtifactTestSupport.tags;
@@ -365,7 +369,54 @@ public class CursorArtifactDetectorTest {
   /** Rejects a null character sequence. */
   @Test
   void testRejectsNull() {
-    assertThrows(IllegalArgumentException.class, () -> detector.detect(null));
+    assertEquals("text must not be null", assertThrows(IllegalArgumentException.class,
+        () -> detector.detect(null)).getMessage());
+  }
+
+  /**
+   * Supplies every Unicode {@code White_Space} code point.
+   *
+   * @return The code points from core's whitespace table.
+   */
+  private static IntStream whitespace() {
+    return IntStream.of(UnicodeWhitespace.codePoints());
+  }
+
+  /**
+   * No whitespace character, line terminator or space separator is an artifact.
+   *
+   * @param codePoint The whitespace code point.
+   */
+  @ParameterizedTest
+  @MethodSource("whitespace")
+  void testWhitespaceIsNotReported(int codePoint) {
+    assertEquals(List.of(), detector.detect(cp('a', codePoint, 'b')));
+  }
+
+  /**
+   * Every code point with the Unicode {@code Bidi_Control} property is reported.
+   *
+   * @param codePoint The bidi control.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0x061C, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
+      0x2066, 0x2067, 0x2068, 0x2069})
+  void testEveryBidiControlIsReported(int codePoint) {
+    assertEquals(List.of(new TextArtifact(new Span(1, 2), TextArtifact.TYPE_BIDI_CONTROL)),
+        detector.detect(cp('a', codePoint, 'b')));
+  }
+
+  /**
+   * Characters outside the built-in types are not reported: the object replacement
+   * character, the combining grapheme joiner, the Hangul filler, a variation selector after
+   * a letter, and an ideographic variation sequence.
+   *
+   * @param text The text to scan.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"\uFFFC", "a\u034Fb", "a\u3164b", "a\uFE00b", "\u845B\uDB40\uDD00"})
+  void testCharactersOutsideTheTypesAreNotReported(String text) {
+    assertEquals(List.of(), detector.detect(text));
   }
 
   /** Returns an empty result for empty text. */

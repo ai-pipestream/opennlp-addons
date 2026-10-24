@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -107,7 +108,8 @@ public class ArtifactEncodingTest {
         Arguments.of("bare continuation", cp(0x80)),
         Arguments.of("truncated two-byte form", cp(0xC2)),
         Arguments.of("truncated three-byte form", cp(0xE2, 0x82)),
-        Arguments.of("truncated four-byte form", cp(0xF0, 0x9F, 0x98)));
+        Arguments.of("truncated four-byte form", cp(0xF0, 0x9F, 0x98)),
+        Arguments.of("valid form then a truncated one", cp(0xC3, 0xA9, 0xC3)));
   }
 
   /**
@@ -122,10 +124,36 @@ public class ArtifactEncodingTest {
     assertEquals(List.of(), mojibake.detect(damage), reason);
   }
 
+  /** Decomposed text read through ISO-8859-1 shows its combining mark as mojibake. */
+  @Test
+  void testDecomposedTextDamage() {
+    final String damage = new String("cafe\u0301".getBytes(StandardCharsets.UTF_8),
+        StandardCharsets.ISO_8859_1);
+    assertEquals(List.of(new TextArtifact(new Span(4, 6), TextArtifact.TYPE_MOJIBAKE)),
+        mojibake.detect(damage));
+    assertEquals(List.of(), mojibake.detect("cafe\u0301 de\u0301ja\u0300 vu"));
+  }
+
+  /**
+   * An upper-case accented letter or sharp s directly before a Windows-1252 punctuation
+   * mark, a no-break space or a sign is valid UTF-8 by coincidence and reported, as the
+   * manual says.
+   *
+   * @param text The clean text.
+   * @param start The start of the reported run.
+   */
+  @ParameterizedTest
+  @CsvSource({"'wei\u00DF\u201C', 3", "'NESTL\u00C9\u00AE', 5", "'CAF\u00C9\u2026', 3",
+      "'CAF\u00C9\u00A0!', 3"})
+  void testCoincidentalUtf8IsReported(String text, int start) {
+    assertEquals(List.of(new TextArtifact(new Span(start, start + 2),
+        TextArtifact.TYPE_MOJIBAKE)), mojibake.detect(text));
+  }
+
   /**
    * Uses one configured detector concurrently without sharing cursor state.
    *
-   * @throws Exception If a worker fails or does not finish within the timeout.
+   * @throws Exception Thrown if a worker fails or does not finish within the timeout.
    */
   @Test
   void testConcurrentDetection() throws Exception {
