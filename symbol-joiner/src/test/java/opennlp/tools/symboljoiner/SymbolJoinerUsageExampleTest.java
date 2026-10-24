@@ -16,6 +16,11 @@
  */
 package opennlp.tools.symboljoiner;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -81,6 +86,35 @@ class SymbolJoinerUsageExampleTest {
         .normalize(" & ").toString());
     assertEquals("&", TextNormalizer.builder().with(SYMBOLS).whitespace().build()
         .normalize(" & ").toString());
+  }
+
+  /** NFKC folds the trademark sign to letters, so the joiner must run before it. */
+  @Test
+  void testJoinerRunsBeforeNfkc() {
+    assertEquals("trademark", TextNormalizer.builder().with(SYMBOLS).nfkc().build()
+        .normalize("\u2122").toString());
+    assertEquals("TM", TextNormalizer.builder().nfkc().with(SYMBOLS).build()
+        .normalize("\u2122").toString());
+  }
+
+  /**
+   * A serialized pipeline keeps the joiner.
+   *
+   * @throws IOException Thrown if serialization fails.
+   * @throws ClassNotFoundException Thrown if a serialized type cannot be loaded.
+   */
+  @Test
+  void testSerializedPipelineKeepsJoiner() throws IOException, ClassNotFoundException {
+    final CharSequenceNormalizer pipeline = TextNormalizer.builder().with(SYMBOLS).caseFold().build();
+    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+      output.writeObject(pipeline);
+    }
+    try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+      final CharSequenceNormalizer restored = (CharSequenceNormalizer) input.readObject();
+      assertEquals("and", restored.normalize("\uFF06").toString());
+      assertEquals("r&d", restored.normalize("R&D").toString());
+    }
   }
 
   /** The symbol normalizer does not supply character-level alignment. */

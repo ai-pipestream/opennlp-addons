@@ -23,8 +23,16 @@
 			an embedded symbol such as <code>R&amp;D</code>, padded input such as
 			<code>" &amp; "</code>, and ASCII forms such as <code>(TM)</code> are unchanged.
 			The fixed English replacements are matching conventions, not rules for reading
-			symbols in context. Currency symbols and symbols followed by variation selectors
-			are unchanged.
+			symbols in context. The fullwidth and small forms of <code>&amp;</code>,
+			<code>+</code>, <code>@</code> and <code>%</code>, such as <code>U+FF06</code>
+			and <code>U+FE60</code>, map to the same words. Currency symbols, other symbols
+			such as <code>U+2030</code> and <code>U+2117</code>, and symbols followed by a
+			variation selector or a combining mark are unchanged.
+		</para>
+		<para>
+			In a <code>TextNormalizer</code> pipeline, add the symbol joiner before
+			<code>nfkc()</code>: NFKC folds <code>U+2122</code> to the letters
+			<code>TM</code>, so the joiner would no longer see the trademark sign.
 		</para>
 		<para>
 			For per-token matching, use tokens that retain the symbols. The following example
@@ -54,7 +62,7 @@ for (int i = 0; i < spans.length; i++) {
 			<code>WordTokenizer</code>, used by default in <code>TermAnalyzer</code>, omits the
 			ampersand; applying a normalizer afterward cannot recover it. Choose a tokenizer
 			that retains the symbols needed for matching, or supply pretokenized input.
-			There is no built-in symbol-expansion term dimension; normalize token forms
+			<code>TermAnalyzer</code> has no dimension that expands symbols; normalize token forms
 			explicitly as above.
 			This normalizer does not implement <code>OffsetAwareNormalizer</code> and cannot
 			be included in <code>buildAligned()</code>. In the example, the spans refer to the

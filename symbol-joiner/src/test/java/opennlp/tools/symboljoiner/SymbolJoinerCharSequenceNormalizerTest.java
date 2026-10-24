@@ -96,7 +96,9 @@ public class SymbolJoinerCharSequenceNormalizerTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"R&D", "AT&T", "TSR®", "&&", "& ", " &", "(R)", "(TM)", "(C)",
-      "©\uFE0F", "®\uFE0F", "€", "$", "£", "&\u0301", "™ ", "\u00A0&"})
+      "©\uFE0F", "®\uFE0F", "€", "$", "£", "&\u0301", "™ ", "\u00A0&",
+      "\u200B&", "&\u200D", "\u2211", "\u2030", "\u2117", "\u2120", "\u2103", "\u214B",
+      "\uD83D\uDE74", "\u00BA", "\u02DA"})
   void testEmbeddedSymbolsAreLeftAlone(String token) {
     assertSame(token, NORMALIZER.normalize(token));
     final CharBuffer buffer = CharBuffer.wrap(token);
