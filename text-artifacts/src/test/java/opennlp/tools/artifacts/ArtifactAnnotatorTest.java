@@ -17,6 +17,7 @@
 
 package opennlp.tools.artifacts;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -69,6 +70,22 @@ public class ArtifactAnnotatorTest {
     assertThrows(IllegalArgumentException.class, () -> new ArtifactAnnotator(null));
     assertThrows(IllegalArgumentException.class,
         () -> new ArtifactAnnotator().annotate(null));
+  }
+
+  /** Rejects a custom detector result that is null, holds null or reaches past the text. */
+  @Test
+  void testRejectsMisbehavingDetectorResults() {
+    final Document document = Document.of("one example.");
+    assertEquals("detector result must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new ArtifactAnnotator(text -> null).annotate(document)).getMessage());
+    final List<TextArtifact> withNull = new ArrayList<>();
+    withNull.add(null);
+    assertEquals("detector result must not contain null", assertThrows(
+        IllegalArgumentException.class,
+        () -> new ArtifactAnnotator(text -> withNull).annotate(document)).getMessage());
+    assertEquals("detector artifact spans must lie within the text", assertThrows(
+        IllegalArgumentException.class, () -> new ArtifactAnnotator(text -> List.of(
+            new TextArtifact(new Span(4, 13), "custom"))).annotate(document)).getMessage());
   }
 
   /** Supports application-defined detectors and artifact types. */
