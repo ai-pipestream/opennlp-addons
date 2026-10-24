@@ -26,6 +26,7 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Adds an {@link #ARTIFACTS} layer by scanning document text with an
@@ -36,7 +37,7 @@ import opennlp.tools.document.Layers;
  *
  * @since 3.0.0
  */
-public class ArtifactAnnotator implements DocumentAnnotator {
+public final class ArtifactAnnotator implements DocumentAnnotator {
 
   /**
    * Character artifacts, with one {@link TextArtifact} per annotation.
@@ -58,10 +59,7 @@ public class ArtifactAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code detector} is {@code null}.
    */
   public ArtifactAnnotator(ArtifactDetector detector) {
-    if (detector == null) {
-      throw new IllegalArgumentException("detector must not be null");
-    }
-    this.detector = detector;
+    this.detector = ParamChecks.requireNonNullArg(detector, "detector");
   }
 
   /**
@@ -73,9 +71,7 @@ public class ArtifactAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     final CharSequence text = document.text();
     final List<TextArtifact> detected = detector.detect(text);
     if (detected == null) {

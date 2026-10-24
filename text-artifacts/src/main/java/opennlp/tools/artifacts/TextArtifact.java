@@ -17,8 +17,8 @@
 
 package opennlp.tools.artifacts;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * One damaged or suspicious character sequence in a text: the {@link Span} it covers in
@@ -40,7 +40,10 @@ public record TextArtifact(Span span, String type) {
   /** A run of U+FFFD replacement characters. */
   public static final String TYPE_REPLACEMENT = "replacement";
 
-  /** A run of C0 or C1 control characters that are not whitespace. */
+  /**
+   * A run of C0 or C1 control characters without the Unicode {@code White_Space} property,
+   * so tab, line feed, carriage return and U+0085 NEXT LINE are not reported.
+   */
   public static final String TYPE_CONTROL = "control";
 
   /** A run of Unicode noncharacters, code points reserved for internal use. */
@@ -83,11 +86,7 @@ public record TextArtifact(Span span, String type) {
    *         {@code type} is {@code null} or blank.
    */
   public TextArtifact {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(type)) {
-      throw new IllegalArgumentException("type must not be null or blank");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonBlank(type, "type");
   }
 }

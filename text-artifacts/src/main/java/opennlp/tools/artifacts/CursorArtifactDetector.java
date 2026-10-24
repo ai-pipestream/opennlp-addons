@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.tokenize.uax29.ExtendedPictographic;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.normalizer.CodePointSet;
@@ -54,6 +56,7 @@ import opennlp.tools.util.normalizer.CodePointSet;
  *
  * @since 3.0.0
  */
+@ThreadSafe
 public final class CursorArtifactDetector implements ArtifactDetector {
 
   private static final Set<String> ALL_TYPES = Set.of(
@@ -88,19 +91,6 @@ public final class CursorArtifactDetector implements ArtifactDetector {
   private final Set<String> types;
   private final boolean classesEnabled;
 
-  /**
-   * The characters <a href="https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT">
-   * Windows-1252</a> places at 0x80-0x9F, indexed by byte value minus 0x80; -1 marks the
-   * undefined bytes. Characters in the C1 range also fall back to their
-   * identity byte so the detector covers text damaged through ISO-8859-1.
-   */
-  private static final int[] SINGLE_BYTE_SPECIALS = {
-      0x20AC, -1, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
-      0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, -1, 0x017D, -1,
-      -1, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
-      0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, -1, 0x017E, 0x0178,
-  };
-
   /** Initializes a detector that reports every built-in type. */
   public CursorArtifactDetector() {
     types = ALL_TYPES;
@@ -117,9 +107,7 @@ public final class CursorArtifactDetector implements ArtifactDetector {
    *         or contains {@code null} or an unrecognized type.
    */
   public CursorArtifactDetector(Set<String> types) {
-    if (types == null || types.isEmpty()) {
-      throw new IllegalArgumentException("types must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(types, "types");
     boolean hasClassType = false;
     for (final String type : types) {
       if (type == null) {
@@ -141,9 +129,7 @@ public final class CursorArtifactDetector implements ArtifactDetector {
    */
   @Override
   public List<TextArtifact> detect(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<TextArtifact> classes = new ArrayList<>();
     final List<TextArtifact> mojibake = new ArrayList<>();
     if (classesEnabled) {
@@ -168,24 +154,9 @@ public final class CursorArtifactDetector implements ArtifactDetector {
     int runStart = 0;
     int i = 0;
     while (i < length) {
-      final char c = text.charAt(i);
-      final int codePoint;
-      final int width;
-      final String type;
-      if (Character.isHighSurrogate(c)
-          && i + 1 < length && Character.isLowSurrogate(text.charAt(i + 1))) {
-        codePoint = Character.toCodePoint(c, text.charAt(i + 1));
-        width = 2;
-        type = classify(codePoint);
-      } else if (Character.isSurrogate(c)) {
-        codePoint = c;
-        width = 1;
-        type = enabled(TextArtifact.TYPE_UNPAIRED_SURROGATE);
-      } else {
-        codePoint = c;
-        width = 1;
-        type = classify(codePoint);
-      }
+      final int codePoint = Character.codePointAt(text, i);
+      final String type = StringUtil.isUnpairedSurrogate(codePoint)
+          ? enabled(TextArtifact.TYPE_UNPAIRED_SURROGATE) : classify(codePoint);
       if (runType != null && !runType.equals(type)) {
         artifacts.add(new TextArtifact(new Span(runStart, i), runType));
         runType = null;
@@ -204,7 +175,7 @@ public final class CursorArtifactDetector implements ArtifactDetector {
         i = flushUnicodeTags(text, i, artifacts);
         continue;
       }
-      i += width;
+      i += Character.charCount(codePoint);
     }
     if (runType != null) {
       artifacts.add(new TextArtifact(new Span(runStart, length), runType));
@@ -484,27 +455,49 @@ public final class CursorArtifactDetector implements ArtifactDetector {
   }
 
   /**
-   * Maps a character to its single-byte encoding.
+   * Maps a character to its single-byte encoding. Characters up to U+00FF map to their
+   * identity byte, which covers ISO-8859-1 and keeps the C1 controls for text damaged
+   * through it. The other characters are the ones
+   * <a href="https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP1252.TXT">
+   * Windows-1252</a> places at 0x80 to 0x9F.
    *
    * @param c The character.
    * @return The byte value 0x00-0xFF, or -1 when the encoding has no byte for it.
    */
   private int singleByte(char c) {
-    if (c < 0x80) {
+    if (c <= 0xFF) {
       return c;
     }
-    if (c >= 0xA0 && c <= 0xFF) {
-      return c;
-    }
-    for (int b = 0; b < SINGLE_BYTE_SPECIALS.length; b++) {
-      if (SINGLE_BYTE_SPECIALS[b] == c) {
-        return 0x80 + b;
-      }
-    }
-    if (c >= 0x80 && c <= 0x9F) {
-      return c;
-    }
-    return -1;
+    return switch (c) {
+      case '\u20AC' -> 0x80;
+      case '\u201A' -> 0x82;
+      case '\u0192' -> 0x83;
+      case '\u201E' -> 0x84;
+      case '\u2026' -> 0x85;
+      case '\u2020' -> 0x86;
+      case '\u2021' -> 0x87;
+      case '\u02C6' -> 0x88;
+      case '\u2030' -> 0x89;
+      case '\u0160' -> 0x8A;
+      case '\u2039' -> 0x8B;
+      case '\u0152' -> 0x8C;
+      case '\u017D' -> 0x8E;
+      case '\u2018' -> 0x91;
+      case '\u2019' -> 0x92;
+      case '\u201C' -> 0x93;
+      case '\u201D' -> 0x94;
+      case '\u2022' -> 0x95;
+      case '\u2013' -> 0x96;
+      case '\u2014' -> 0x97;
+      case '\u02DC' -> 0x98;
+      case '\u2122' -> 0x99;
+      case '\u0161' -> 0x9A;
+      case '\u203A' -> 0x9B;
+      case '\u0153' -> 0x9C;
+      case '\u017E' -> 0x9E;
+      case '\u0178' -> 0x9F;
+      default -> -1;
+    };
   }
 
   /**

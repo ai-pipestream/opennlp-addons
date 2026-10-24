@@ -25,11 +25,16 @@ Build and run the module tests from the repository root:
 mvn -pl text-artifacts -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
-## Source
+## Contents
 
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-text-artifacts](https://github.com/ai-pipestream/opennlp/tree/a8660b07baed36b000dc7ddde5c309d0b9fc2624).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.
+`CursorArtifactDetector` reports replacement characters, controls, noncharacters,
+unpaired surrogates, private-use characters, bidi controls, zero-width and other
+invisible format characters, Unicode tag characters and mojibake as spans of the
+original text. `ArtifactAnnotator` writes them to the `opennlp:artifacts` layer. The
+manual chapter "Text Artifact Detection" describes each type and the context rules.
+
+The Windows-1252 mapping of bytes 0x80 to 0x9F comes from the Unicode mapping table
+`CP1252.TXT`, under the Unicode License V3 included in `LICENSE`.
