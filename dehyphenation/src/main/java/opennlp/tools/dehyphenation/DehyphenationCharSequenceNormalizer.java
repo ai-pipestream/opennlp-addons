@@ -50,6 +50,9 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * capitals, such as {@code "LITIGA-\nTION"}, joins, and so does a soft hyphen before any
  * letter, since it always marks a break inside one word.</p>
  *
+ * <p>Han, Hiragana, Katakana and Hangul text breaks lines between characters without
+ * hyphenation, so a hyphen next to a letter of these scripts is kept.</p>
+ *
  * <p>No dictionary is used: {@code "well-\nknown"} becomes {@code "wellknown"}.
  * Text without a matching break is returned without copying. Aligned normalization
  * maps joined-word spans back to the original text, including the deleted break.
@@ -187,11 +190,25 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       return -1;
     }
     final int after = Character.codePointAt(text, end);
-    if (!Character.isLetter(after)
+    if (!Character.isLetter(after) || breaksWithoutHyphen(before) || breaksWithoutHyphen(after)
         || (codePoint != SOFT_HYPHEN && isCapitalized(text, before, end, after))) {
       return -1;
     }
     return end;
+  }
+
+  /**
+   * Checks for a letter of a script whose lines break between any two characters without
+   * hyphenation.
+   *
+   * @param letter The letter to check.
+   * @return Whether the letter is Han, Hiragana, Katakana or Hangul.
+   */
+  private boolean breaksWithoutHyphen(int letter) {
+    return switch (Character.UnicodeScript.of(letter)) {
+      case HAN, HIRAGANA, KATAKANA, HANGUL -> true;
+      default -> false;
+    };
   }
 
   /**

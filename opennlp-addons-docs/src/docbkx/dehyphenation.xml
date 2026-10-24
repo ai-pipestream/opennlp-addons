@@ -42,7 +42,9 @@
 			the hyphen: <code>"Anglo-\nAmerican"</code>, <code>"non-\nEnglish"</code> and
 			<code>"NATO-\nGipfel"</code> are unchanged. Text in capitals, such as
 			<code>"LITIGA-\nTION"</code>, joins. The soft hyphen marks a break inside one
-			word, so it joins before a capital as well.
+			word, so it joins before a capital as well. Han, Hiragana, Katakana and Hangul
+			text breaks lines between characters without hyphenation, so a hyphen next
+			to a letter of these scripts is kept.
 			No dictionary is used: a lower-case compound split at a hyphen, such as
 			<code>"well-\nknown"</code>, becomes <code>"wellknown"</code>.
 		</para>
