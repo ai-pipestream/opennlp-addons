@@ -47,6 +47,8 @@ import opennlp.tools.util.ParamChecks;
  * with the addition and {@link #lookup(CharSequence)} lists the record once.</p>
  *
  * <p>Instances are immutable and thread-safe when the composed gazetteers are.</p>
+ *
+ * @since 3.0.0
  */
 public final class OverlayGazetteer implements Gazetteer {
 

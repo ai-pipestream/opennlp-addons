@@ -62,6 +62,8 @@ import opennlp.tools.util.StringUtil;
  * {@link GazetteerEntry#FEATURE_CLASS_ADMIN}.</p>
  *
  * <p>Instances are immutable after loading and safe to share between threads.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class OvertureGazetteer implements Gazetteer {

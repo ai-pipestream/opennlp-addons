@@ -51,6 +51,8 @@ import opennlp.tools.util.StringUtil;
  * parent, as in the source data. Parent identifiers must be signed decimal integers.</p>
  *
  * <p>Instances are immutable and safe to share between threads.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class ContainmentSpine implements PlaceHierarchy {

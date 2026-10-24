@@ -59,6 +59,8 @@ import opennlp.tools.util.StringUtil;
  * {@link GazetteerEntry#FEATURE_CLASS_POI}.</p>
  *
  * <p>Instances are immutable after loading and safe to share between threads.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class GeoNamesGazetteer implements Gazetteer {

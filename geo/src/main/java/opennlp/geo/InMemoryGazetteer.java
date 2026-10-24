@@ -38,6 +38,8 @@ import opennlp.tools.util.ParamChecks;
  * any number of independent gazetteers over their own place records.</p>
  *
  * <p>Instances are immutable and safe to share between threads.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class InMemoryGazetteer implements Gazetteer {

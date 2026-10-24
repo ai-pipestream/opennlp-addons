@@ -28,6 +28,8 @@ import java.util.Set;
  *
  * <p>Name matching semantics (case and accent folding, tokenization) are not fixed here and must
  * be documented by the implementation. Thread safety is implementation specific.</p>
+ *
+ * @since 3.0.0
  */
 public interface Gazetteer {
 

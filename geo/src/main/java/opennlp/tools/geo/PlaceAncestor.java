@@ -28,6 +28,7 @@ import opennlp.tools.util.ParamChecks;
  * @param name The place name. Must not be {@code null} or blank.
  * @param type The place type, for example {@code borough} or {@code country}. Must not
  *             be {@code null} or blank.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record PlaceAncestor(String id, String name, String type) {

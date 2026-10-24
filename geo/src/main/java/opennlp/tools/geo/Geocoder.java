@@ -29,6 +29,8 @@ import opennlp.tools.util.Span;
  * them so an implementation may use co-occurring mentions for disambiguation.</p>
  *
  * <p>Thread safety is implementation specific.</p>
+ *
+ * @since 3.0.0
  */
 public interface Geocoder {
 

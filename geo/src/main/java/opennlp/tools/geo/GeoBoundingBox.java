@@ -37,6 +37,7 @@ import opennlp.tools.util.ParamChecks;
  * @param east  The eastern longitude edge in decimal degrees, in {@code [-180, 180]}. May be less
  *              than {@code west}, which means the box crosses the antimeridian.
  * @param north The northern latitude edge in decimal degrees, in {@code [-90, 90]}.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record GeoBoundingBox(double west, double south, double east, double north) {

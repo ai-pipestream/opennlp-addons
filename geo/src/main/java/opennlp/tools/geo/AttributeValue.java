@@ -30,6 +30,7 @@ import opennlp.tools.util.ParamChecks;
  *               for a project judgment with no dataset behind it. Must not be {@code null} or blank.
  * @param notes  Free-text notes, for example the upstream field a value was derived from. Must not
  *               be {@code null}; may be empty.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record AttributeValue(String value, String source, String notes) {

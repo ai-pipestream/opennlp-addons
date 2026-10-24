@@ -32,6 +32,7 @@ import opennlp.tools.util.Span;
  * @param entry      The winning candidate. Must not be {@code null}.
  * @param confidence The resolver-defined confidence, in {@code [0, 1]}; how it is computed is the
  *                   {@link Geocoder} implementation's documented choice.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record GeoResolution(Span mention, GazetteerEntry entry, double confidence) {

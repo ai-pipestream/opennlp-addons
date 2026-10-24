@@ -27,6 +27,7 @@ import opennlp.tools.commons.ThreadSafe;
  *
  * @param latitude  The latitude in decimal degrees, in {@code [-90, 90]}.
  * @param longitude The longitude in decimal degrees, in {@code [-180, 180]}.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record GeoPoint(double latitude, double longitude) {

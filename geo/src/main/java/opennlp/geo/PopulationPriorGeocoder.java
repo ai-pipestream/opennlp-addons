@@ -44,6 +44,8 @@ import opennlp.tools.util.Span;
  * <p>Mentions are resolved independently and in input order; a mention with no candidates is
  * omitted from the result. Instances are immutable and thread-safe when the supplied
  * {@link Gazetteer} is.</p>
+ *
+ * @since 3.0.0
  */
 public final class PopulationPriorGeocoder implements Geocoder {
 

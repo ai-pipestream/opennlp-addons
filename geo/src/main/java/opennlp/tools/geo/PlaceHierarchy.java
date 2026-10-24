@@ -26,6 +26,7 @@ import java.util.List;
  * <p>Thread safety is implementation specific.</p>
  *
  * @see PlaceAncestor
+ * @since 3.0.0
  */
 public interface PlaceHierarchy {
 

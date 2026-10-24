@@ -66,6 +66,7 @@ import opennlp.tools.util.StringUtil;
  * @param attributes     The dataset-specific extras keyed by attribute name, each value carrying
  *                       its own provenance. Must not be {@code null} or contain {@code null} or
  *                       blank keys or {@code null} values.
+ * @since 3.0.0
  */
 @ThreadSafe
 public record GazetteerEntry(

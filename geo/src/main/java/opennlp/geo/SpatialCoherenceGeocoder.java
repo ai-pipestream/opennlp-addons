@@ -49,6 +49,8 @@ import opennlp.tools.util.Span;
  * distance, or between the top population priors when no coherence evidence exists.
  * Unresolved mentions are omitted. Instances are immutable and thread-safe when the supplied
  * {@link Gazetteer} is.</p>
+ *
+ * @since 3.0.0
  */
 public final class SpatialCoherenceGeocoder implements Geocoder {
 

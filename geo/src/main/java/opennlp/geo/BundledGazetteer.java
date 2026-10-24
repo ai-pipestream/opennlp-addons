@@ -56,6 +56,8 @@ import opennlp.tools.util.StringUtil;
  * the most populous bundled entry for the region. An {@link InMemoryGazetteer} indexes
  * caller-supplied entries the same way, without touching the bundled table or the shared
  * instance.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class BundledGazetteer implements Gazetteer {

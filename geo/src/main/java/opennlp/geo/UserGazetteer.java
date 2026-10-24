@@ -80,6 +80,8 @@ import opennlp.tools.util.StringUtil;
  * file is hand-written, so the author can correct it. Candidates are ranked like the other
  * loaders of this module, by population descending with the feature-class prior on ties. Instances are
  * immutable after loading and safe to share between threads.</p>
+ *
+ * @since 3.0.0
  */
 @ThreadSafe
 public final class UserGazetteer implements Gazetteer {
