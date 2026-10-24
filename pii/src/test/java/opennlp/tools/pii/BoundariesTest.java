@@ -35,7 +35,7 @@ public class BoundariesTest {
       "'a.bc', 2, true"
   })
   void testWordStart(String text, int start, boolean expected) {
-    Assertions.assertEquals(expected, Boundaries.onWordStart(text, start));
+    Assertions.assertEquals(expected, new Boundaries(text).onWordStart(start));
   }
 
   @ParameterizedTest
@@ -54,7 +54,7 @@ public class BoundariesTest {
       "'1- 23', 3, true"
   })
   void testNumberStart(String text, int start, boolean expected) {
-    Assertions.assertEquals(expected, Boundaries.onNumberStart(text, start));
+    Assertions.assertEquals(expected, new Boundaries(text).onNumberStart(start));
   }
 
   @ParameterizedTest
@@ -66,7 +66,7 @@ public class BoundariesTest {
       "'abc9', 3, false"
   })
   void testEnd(String text, int end, boolean expected) {
-    Assertions.assertEquals(expected, Boundaries.onEnd(text, end));
+    Assertions.assertEquals(expected, new Boundaries(text).onEnd(end));
   }
 
   @ParameterizedTest
@@ -77,7 +77,7 @@ public class BoundariesTest {
       "'1.2.3.4 and', 7, true"
   })
   void testEndBeforeSeparator(String text, int end, boolean expected) {
-    Assertions.assertEquals(expected, Boundaries.onEndBefore(text, end, '.'));
+    Assertions.assertEquals(expected, new Boundaries(text).onEndBefore(end, '.'));
   }
 
   @ParameterizedTest
@@ -95,7 +95,7 @@ public class BoundariesTest {
       "'1234', 3, '.', false"
   })
   void testNumberEnd(String text, int end, String continuations, boolean expected) {
-    Assertions.assertEquals(expected, Boundaries.onNumberEnd(text, end, continuations));
+    Assertions.assertEquals(expected, new Boundaries(text).onNumberEnd(end, continuations));
   }
 
   @ParameterizedTest
@@ -113,7 +113,7 @@ public class BoundariesTest {
   })
   void testPrecededByLabel(String text, int start, boolean expected) {
     final String[] labels = {"social insurance no", "sin"};
-    Assertions.assertEquals(expected, Boundaries.precededByLabel(text, start, labels, ":#=."));
+    Assertions.assertEquals(expected, new Boundaries(text).precededByLabel(start, labels, ":#=."));
   }
 
   /**
@@ -124,19 +124,19 @@ public class BoundariesTest {
   @Test
   void testJudgesSupplementaryCharactersAsWholeCodePoints() {
     final String letter = new String(Character.toChars(0x10400));
-    Assertions.assertFalse(Boundaries.onWordStart(letter + "abc", letter.length()));
-    Assertions.assertFalse(Boundaries.onNumberStart(letter + "123", letter.length()));
-    Assertions.assertFalse(Boundaries.onEnd("abc" + letter, 3));
+    Assertions.assertFalse(new Boundaries(letter + "abc").onWordStart(letter.length()));
+    Assertions.assertFalse(new Boundaries(letter + "123").onNumberStart(letter.length()));
+    Assertions.assertFalse(new Boundaries("abc" + letter).onEnd(3));
 
     final String symbol = new String(Character.toChars(0x1F600));
-    Assertions.assertTrue(Boundaries.onWordStart(symbol + "abc", symbol.length()));
-    Assertions.assertTrue(Boundaries.onEnd("abc" + symbol, 3));
+    Assertions.assertTrue(new Boundaries(symbol + "abc").onWordStart(symbol.length()));
+    Assertions.assertTrue(new Boundaries("abc" + symbol).onEnd(3));
   }
 
   @Test
   void testEmptyTextEndsAtZero() {
-    Assertions.assertTrue(Boundaries.onEnd("", 0));
-    Assertions.assertTrue(Boundaries.onWordStart("", 0));
-    Assertions.assertTrue(Boundaries.onNumberStart("", 0));
+    Assertions.assertTrue(new Boundaries("").onEnd(0));
+    Assertions.assertTrue(new Boundaries("").onWordStart(0));
+    Assertions.assertTrue(new Boundaries("").onNumberStart(0));
   }
 }

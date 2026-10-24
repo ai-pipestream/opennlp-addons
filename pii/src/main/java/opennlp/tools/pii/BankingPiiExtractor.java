@@ -72,14 +72,15 @@ public final class BankingPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     for (int i = 0; i + ROUTING_DIGITS <= text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)) {
         continue;
       }
       final int end = i + ROUTING_DIGITS;
       if (StringUtil.endOfAsciiDigits(text, i) < end
-          || !Boundaries.onNumberEnd(text, end, NUMBER_CONTINUATIONS)) {
+          || !boundaries.onNumberEnd(end, NUMBER_CONTINUATIONS)) {
         continue;
       }
       if (!allocatedPrefix(text, i) || !checkDigitValid(text, i)) {

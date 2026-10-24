@@ -71,14 +71,15 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     for (int i = 0; i < text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
-          || !Boundaries.precededByLabel(text, i, LABELS, LABEL_PUNCTUATION)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)
+          || !boundaries.precededByLabel(i, LABELS, LABEL_PUNCTUATION)) {
         continue;
       }
       final StringBuilder normalized = new StringBuilder(DIGITS);
-      final int end = readDigits(text, i, normalized);
+      final int end = readDigits(text, boundaries, i, normalized);
       if (end < 0 || !Luhn.valid(normalized, DIGITS)) {
         continue;
       }
@@ -92,11 +93,12 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
    * Parses a compact 9-digit candidate or 3 equal groups with matching separators.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The first digit.
    * @param normalized The digit collector.
    * @return The exclusive candidate end, or {@code -1} if the form is invalid.
    */
-  private int readDigits(CharSequence text, int start, StringBuilder normalized) {
+  private int readDigits(CharSequence text, Boundaries boundaries, int start, StringBuilder normalized) {
     int p = start;
     char separator = 0;
     for (int count = 0; count < DIGITS; count++) {
@@ -115,7 +117,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
       }
       normalized.append(text.charAt(p++));
     }
-    if (!Boundaries.onNumberEnd(text, p, GROUP_CONTINUATIONS)) {
+    if (!boundaries.onNumberEnd(p, GROUP_CONTINUATIONS)) {
       return -1;
     }
     return p;

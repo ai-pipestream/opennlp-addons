@@ -122,12 +122,13 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_DE_STEUER_ID)) {
-      scan(text, hits, STEUER_ID_GROUPS, STEUER_ID_DIGITS, PiiMention.TYPE_DE_STEUER_ID);
+      scan(text, boundaries, hits, STEUER_ID_GROUPS, STEUER_ID_DIGITS, PiiMention.TYPE_DE_STEUER_ID);
     }
     if (types.contains(PiiMention.TYPE_UK_NHS)) {
-      scan(text, hits, NHS_GROUPS, NHS_DIGITS, PiiMention.TYPE_UK_NHS);
+      scan(text, boundaries, hits, NHS_GROUPS, NHS_DIGITS, PiiMention.TYPE_UK_NHS);
     }
     return hits.resolve();
   }
@@ -136,21 +137,22 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    * Finds an identifier type, checking the grouped form before the compact form.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    * @param groups The digit counts of the grouped form.
    * @param digits The number of digits the identifier has.
    * @param type The type to report.
    */
-  private void scan(CharSequence text, Hits hits, int[] groups, int digits,
+  private void scan(CharSequence text, Boundaries boundaries, Hits hits, int[] groups, int digits,
       String type) {
     final int[] value = new int[digits];
     for (int i = 0; i < text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)) {
         continue;
       }
-      int end = readGrouped(text, i, groups, value);
+      int end = readGrouped(text, boundaries, i, groups, value);
       if (end < 0) {
-        end = readBare(text, i, digits, value);
+        end = readBare(text, boundaries, i, digits, value);
       }
       if (end < 0 || !valid(value, type)) {
         continue;
@@ -169,12 +171,13 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    * Parses an identifier in the printed grouping.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The offset to read from.
    * @param groups The digit counts of the groups.
    * @param value Receives the digits when the read succeeds.
    * @return The exclusive end offset, or {@code -1} if the grouped form does not start here.
    */
-  private int readGrouped(CharSequence text, int start, int[] groups, int[] value) {
+  private int readGrouped(CharSequence text, Boundaries boundaries, int start, int[] groups, int[] value) {
     int p = start;
     int digits = 0;
     char separator = 0;
@@ -198,23 +201,24 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
         p++;
       }
     }
-    return Boundaries.onNumberEnd(text, p, NUMBER_CONTINUATIONS) ? p : -1;
+    return boundaries.onNumberEnd(p, NUMBER_CONTINUATIONS) ? p : -1;
   }
 
   /**
    * Parses an identifier written as a continuous run of digits.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The offset to read from.
    * @param digits The number of digits the identifier has.
    * @param value Receives the digits when the read succeeds.
    * @return The exclusive end offset, or {@code -1} if a run of the requested length does not
    *         start here.
    */
-  private int readBare(CharSequence text, int start, int digits, int[] value) {
+  private int readBare(CharSequence text, Boundaries boundaries, int start, int digits, int[] value) {
     final int end = start + digits;
     if (end > text.length() || StringUtil.endOfAsciiDigits(text, start) < end
-        || !Boundaries.onNumberEnd(text, end, NUMBER_CONTINUATIONS)) {
+        || !boundaries.onNumberEnd(end, NUMBER_CONTINUATIONS)) {
       return -1;
     }
     for (int i = start; i < end; i++) {

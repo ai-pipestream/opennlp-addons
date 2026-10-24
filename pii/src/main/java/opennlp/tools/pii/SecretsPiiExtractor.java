@@ -141,18 +141,19 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_URL_CREDENTIAL)) {
-      scanUrlCredentials(text, hits);
+      scanUrlCredentials(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_JWT)) {
-      scanJwts(text, hits);
+      scanJwts(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_AWS_ACCESS_KEY)) {
-      scanAwsKeys(text, hits);
+      scanAwsKeys(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_GITHUB_TOKEN)) {
-      scanGithubTokens(text, hits);
+      scanGithubTokens(text, boundaries, hits);
     }
     return hits.resolve();
   }
@@ -162,11 +163,12 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * letters and digits.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanAwsKeys(CharSequence text, Hits hits) {
+  private void scanAwsKeys(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
-      if (text.charAt(i) != 'A' || !onTokenStart(text, i, false)) {
+      if (text.charAt(i) != 'A' || !onTokenStart(text, boundaries, i, false)) {
         continue;
       }
       for (final String prefix : AWS_KEY_PREFIXES) {
@@ -174,7 +176,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
           continue;
         }
         final int end = i + prefix.length() + AWS_BODY_LENGTH;
-        if (end > text.length() || !onTokenEnd(text, end)) {
+        if (end > text.length() || !onTokenEnd(text, boundaries, end)) {
           continue;
         }
         boolean body = true;
@@ -197,11 +199,12 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Finds GitHub access tokens, including dotted installation tokens.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanGithubTokens(CharSequence text, Hits hits) {
+  private void scanGithubTokens(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
-      if (text.charAt(i) != 'g' || !onTokenStart(text, i, false)) {
+      if (text.charAt(i) != 'g' || !onTokenStart(text, boundaries, i, false)) {
         continue;
       }
       int start = -1;
@@ -231,7 +234,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
         }
       }
       if (candidateEnd - start >= minimumLength
-          && (installation || candidateEnd - i <= GITHUB_MAX_LENGTH) && onTokenEnd(text, end)) {
+          && (installation || candidateEnd - i <= GITHUB_MAX_LENGTH) && onTokenEnd(text, boundaries, end)) {
         hits.add(i, candidateEnd, PiiMention.TYPE_GITHUB_TOKEN,
             text.subSequence(i, candidateEnd).toString());
       }
@@ -265,11 +268,12 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Finds JSON Web Tokens in compact serialization.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanJwts(CharSequence text, Hits hits) {
+  private void scanJwts(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
-      if (!canStartJsonHeader(text.charAt(i)) || !onJwtStart(text, i)) {
+      if (!canStartJsonHeader(text.charAt(i)) || !onJwtStart(text, boundaries, i)) {
         continue;
       }
       int p = i;
@@ -293,7 +297,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
           headerEnd = p;
         }
       }
-      if (!segments || !onJwtEnd(text, p) || !isJwsHeader(text, i, headerEnd)) {
+      if (!segments || !onJwtEnd(text, boundaries, p) || !isJwsHeader(text, i, headerEnd)) {
         continue;
       }
       hits.add(i, p, PiiMention.TYPE_JWT, text.subSequence(i, p).toString());
@@ -355,26 +359,28 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Rejects candidates inside a longer base64url or dotted value.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The candidate start.
    * @return {@code true} if the candidate may start here.
    */
-  private boolean onJwtStart(CharSequence text, int start) {
+  private boolean onJwtStart(CharSequence text, Boundaries boundaries, int start) {
     int p = start;
     while (p > 0 && text.charAt(p - 1) == '.') {
       p--;
     }
-    return onTokenStart(text, start, true) && onTokenStart(text, p, true);
+    return onTokenStart(text, boundaries, start, true) && onTokenStart(text, boundaries, p, true);
   }
 
   /**
    * Rejects extra segments, padding and non-URL base64 continuations.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param end The exclusive candidate end.
    * @return {@code true} if the candidate may end here.
    */
-  private boolean onJwtEnd(CharSequence text, int end) {
-    if (!onTokenEnd(text, end)) {
+  private boolean onJwtEnd(CharSequence text, Boundaries boundaries, int end) {
+    if (!onTokenEnd(text, boundaries, end)) {
       return false;
     }
     if (end < text.length()) {
@@ -387,7 +393,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
     while (p < text.length() && text.charAt(p) == '.') {
       p++;
     }
-    return onTokenEnd(text, p) && (p == text.length() || text.charAt(p) != '-');
+    return onTokenEnd(text, boundaries, p) && (p == text.length() || text.charAt(p) != '-');
   }
 
   /**
@@ -418,12 +424,13 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Finds credentials in the userinfo component of a URL.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanUrlCredentials(CharSequence text, Hits hits) {
+  private void scanUrlCredentials(CharSequence text, Boundaries boundaries, Hits hits) {
     // A scheme is at least one letter long, so no credential can start before offset 1.
     for (int i = 1; i + SCHEME_SEPARATOR.length() < text.length(); i++) {
-      if (!startsWith(text, i, SCHEME_SEPARATOR) || !hasScheme(text, i)) {
+      if (!startsWith(text, i, SCHEME_SEPARATOR) || !hasScheme(text, boundaries, i)) {
         continue;
       }
       final int start = i + SCHEME_SEPARATOR.length();
@@ -458,15 +465,17 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Checks the complete scheme before an authority separator.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param end The offset of the scheme's colon.
    * @return {@code true} for an ASCII scheme starting at an identifier boundary.
    */
-  private boolean hasScheme(CharSequence text, int end) {
+  private boolean hasScheme(CharSequence text, Boundaries boundaries, int end) {
     int start = end;
     while (start > 0 && isSchemeChar(text.charAt(start - 1))) {
       start--;
     }
-    return start < end && StringUtil.isAsciiLetter(text.charAt(start)) && onTokenStart(text, start, false);
+    return start < end && StringUtil.isAsciiLetter(text.charAt(start))
+        && onTokenStart(text, boundaries, start, false);
   }
 
   /**
@@ -530,11 +539,12 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * Checks that no Unicode letter, digit or underscore follows the candidate.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param end The candidate end, exclusive.
    * @return {@code true} if the token may end here.
    */
-  private boolean onTokenEnd(CharSequence text, int end) {
-    return Boundaries.onEnd(text, end)
+  private boolean onTokenEnd(CharSequence text, Boundaries boundaries, int end) {
+    return boundaries.onEnd(end)
         && (end >= text.length() || text.charAt(end) != '_');
   }
 
@@ -543,16 +553,17 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * a preceding hyphen.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The candidate start.
    * @param base64Url Whether hyphen is part of the candidate alphabet.
    * @return {@code true} if the candidate may start here.
    */
-  private boolean onTokenStart(CharSequence text, int start, boolean base64Url) {
+  private boolean onTokenStart(CharSequence text, Boundaries boundaries, int start, boolean base64Url) {
     if (start == 0) {
       return true;
     }
     final char previous = text.charAt(start - 1);
-    return Boundaries.onWordStart(text, start) && previous != '_'
+    return boundaries.onWordStart(start) && previous != '_'
         && (!base64Url || previous != '-');
   }
 

@@ -156,18 +156,19 @@ public final class CursorPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_EMAIL)) {
-      scanEmails(text, hits);
+      scanEmails(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_IBAN)) {
-      scanIbans(text, hits);
+      scanIbans(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_CARD)) {
-      scanCards(text, hits);
+      scanCards(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_PHONE)) {
-      scanPhones(text, hits);
+      scanPhones(text, boundaries, hits);
     }
     return hits.resolve();
   }
@@ -177,9 +178,10 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * boundary before removing terminal punctuation.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanEmails(CharSequence text, Hits hits) {
+  private void scanEmails(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) != '@') {
         continue;
@@ -195,7 +197,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       while (end < text.length() && isDomainChar(text.charAt(end))) {
         end++;
       }
-      if (!Boundaries.onEnd(text, end)) {
+      if (!boundaries.onEnd(end)) {
         continue;
       }
       while (end > i + 1 && (text.charAt(end - 1) == '.' || text.charAt(end - 1) == '-')) {
@@ -278,9 +280,10 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * restricts an IBAN to ASCII capital letters and digits.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanIbans(CharSequence text, Hits hits) {
+  private void scanIbans(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (!Ascii.isUpper(text.charAt(i))
           || (i > 0 && Character.isLetterOrDigit(Character.codePointBefore(text, i)))
@@ -312,7 +315,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       for (int g = groupEnds.size() - 1; g >= 0; g--) {
         final int textEnd = groupEnds.get(g)[0];
         final int length = groupEnds.get(g)[1];
-        if (length != registeredLength || !Boundaries.onEnd(text, textEnd)) {
+        if (length != registeredLength || !boundaries.onEnd(textEnd)) {
           continue;
         }
         if (mod97(compact, length) == 1) {
@@ -332,13 +335,14 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * are tried longest first at separator boundaries.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanCards(CharSequence text, Hits hits) {
+  private void scanCards(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       final char first = text.charAt(i);
       if (((first < '2' || first > '6') && first != UNIONPAY_LEADING_DIGIT)
-          || !Boundaries.onNumberStart(text, i)) {
+          || !boundaries.onNumberStart(i)) {
         continue;
       }
       final StringBuilder digits = new StringBuilder();
@@ -367,7 +371,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
         final int length = groupEnds.get(g)[1];
         if (length < CARD_MIN_DIGITS || length > CARD_MAX_DIGITS
             || (first == UNIONPAY_LEADING_DIGIT && digits.charAt(1) != '1')
-            || !Boundaries.onEnd(text, end)
+            || !boundaries.onEnd(end)
             || !Luhn.valid(digits, length)) {
           continue;
         }
@@ -386,16 +390,17 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * are tried longest first. Paired parentheses are included in the selected span.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanPhones(CharSequence text, Hits hits) {
+  private void scanPhones(CharSequence text, Boundaries boundaries, Hits hits) {
     int lastEnd = -1;
     for (int i = 0; i < text.length(); i++) {
       final char c = text.charAt(i);
       final boolean plus = c == '+';
       // Adjacent phones may start at the preceding phone's exclusive end.
       if ((!plus && !StringUtil.isAsciiDigit(c) && c != '(')
-          || (i != lastEnd && !Boundaries.onNumberStart(text, i))
+          || (i != lastEnd && !boundaries.onNumberStart(i))
           || (i > 0 && text.charAt(i - 1) == '+')) {
         continue;
       }
@@ -451,7 +456,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
             ? count <= PHONE_MAX_DIGITS && PhoneNumberLengths.plausibleInternational(candidate)
             : count >= PHONE_DOMESTIC_MIN_DIGITS && count <= PHONE_DOMESTIC_MAX_DIGITS
                 && visiblySeparated && !endsInSingleDigitGroup(groups, g);
-        if (!lengthOk || !Boundaries.onNumberEnd(text, end, PHONE_CONTINUATIONS)) {
+        if (!lengthOk || !boundaries.onNumberEnd(end, PHONE_CONTINUATIONS)) {
           continue;
         }
         hits.add(i, end, PiiMention.TYPE_PHONE,

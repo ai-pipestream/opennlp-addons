@@ -20,24 +20,32 @@ package opennlp.tools.pii;
 import opennlp.tools.util.StringUtil;
 
 /**
- * Unicode letter/digit boundary and context checks shared by PII scanners.
+ * Unicode letter/digit boundary and context checks over one text, shared by the PII
+ * scanners.
  *
- * <p>Word boundaries use complete code points, including supplementary characters.</p>
+ * <p>Word boundaries use complete code points, including supplementary characters. An
+ * instance belongs to one scan of its text and holds no other state.</p>
  */
 final class Boundaries {
 
-  /** Prevents construction of this utility class. */
-  private Boundaries() {
+  private final CharSequence text;
+
+  /**
+   * Initializes the checks over a text.
+   *
+   * @param text The text being scanned.
+   */
+  Boundaries(CharSequence text) {
+    this.text = text;
   }
 
   /**
    * Checks that a candidate does not continue a word on the left.
    *
-   * @param text The text being scanned.
    * @param start The candidate start.
    * @return {@code true} if the candidate may start here.
    */
-  static boolean onWordStart(CharSequence text, int start) {
+  boolean onWordStart(int start) {
     return start == 0
         || !Character.isLetterOrDigit(Character.codePointBefore(text, start));
   }
@@ -52,11 +60,10 @@ final class Boundaries {
    * {@code 001-555-123-4567}: its national part is not a candidate either, while the
    * international form {@code +1 555-123-4567} is reported.</p>
    *
-   * @param text The text being scanned.
    * @param start The candidate start.
    * @return {@code true} if the candidate may start here.
    */
-  static boolean onNumberStart(CharSequence text, int start) {
+  boolean onNumberStart(int start) {
     if (start == 0) {
       return true;
     }
@@ -72,11 +79,10 @@ final class Boundaries {
    * Checks that a candidate ending at {@code end} does not continue into a letter or
    * digit.
    *
-   * @param text The text being scanned.
    * @param end The candidate end, exclusive.
    * @return {@code true} if the candidate may end here.
    */
-  static boolean onEnd(CharSequence text, int end) {
+  boolean onEnd(int end) {
     return end >= text.length()
         || !Character.isLetterOrDigit(Character.codePointAt(text, end));
   }
@@ -85,20 +91,19 @@ final class Boundaries {
    * Checks the word boundary and rejects a following separator run continued by a
    * Unicode letter or digit. A terminal separator run may be punctuation.
    *
-   * @param text The text being scanned.
    * @param end The candidate end, exclusive.
    * @param separator The separator that continues the structure.
    * @return {@code true} if the candidate may end here.
    */
-  static boolean onEndBefore(CharSequence text, int end, char separator) {
-    if (!onEnd(text, end)) {
+  boolean onEndBefore(int end, char separator) {
+    if (!onEnd(end)) {
       return false;
     }
     int p = end;
     while (p < text.length() && text.charAt(p) == separator) {
       p++;
     }
-    return p == end || onEnd(text, p);
+    return p == end || onEnd(p);
   }
 
   /**
@@ -106,15 +111,14 @@ final class Boundaries {
    * further digit group, such as a decimal fraction, a comma-grouped number or the next
    * group of a hyphenated identifier.
    *
-   * @param text The text being scanned.
    * @param end The candidate end, exclusive.
    * @param continuations The separators that continue the number when a digit follows them;
    *                      an ASCII space in it stands for every {@link #isGroupSpace(char)
    *                      group space}.
    * @return {@code true} if the candidate may end here.
    */
-  static boolean onNumberEnd(CharSequence text, int end, String continuations) {
-    if (!onEnd(text, end)) {
+  boolean onNumberEnd(int end, String continuations) {
+    if (!onEnd(end)) {
       return false;
     }
     if (end + 1 >= text.length()) {
@@ -128,14 +132,12 @@ final class Boundaries {
    * Checks that one of the labels directly precedes a candidate, separated only by
    * whitespace and the given punctuation, and does not continue a word on the left.
    *
-   * @param text The text being scanned.
    * @param start The candidate start.
    * @param labels The accepted labels, in ASCII lowercase.
    * @param punctuation The punctuation that may separate the label and the candidate.
    * @return {@code true} if an isolated label precedes the candidate.
    */
-  static boolean precededByLabel(CharSequence text, int start, String[] labels,
-      String punctuation) {
+  boolean precededByLabel(int start, String[] labels, String punctuation) {
     int end = start;
     while (end > 0 && (StringUtil.isUnicodeWhitespace(text.charAt(end - 1))
         || punctuation.indexOf(text.charAt(end - 1)) >= 0)) {
@@ -144,7 +146,7 @@ final class Boundaries {
     for (final String label : labels) {
       final int labelStart = end - label.length();
       if (labelStart >= 0 && Ascii.equalsIgnoreCase(text, labelStart, label)
-          && onWordStart(text, labelStart)) {
+          && onWordStart(labelStart)) {
         return true;
       }
     }

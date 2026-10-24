@@ -65,14 +65,15 @@ public final class DevicePiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     for (int i = 0; i < text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
-          || !Boundaries.precededByLabel(text, i, LABELS, LABEL_PUNCTUATION)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)
+          || !boundaries.precededByLabel(i, LABELS, LABEL_PUNCTUATION)) {
         continue;
       }
       final StringBuilder normalized = new StringBuilder(DIGITS);
-      final int end = readDigits(text, i, normalized);
+      final int end = readDigits(text, boundaries, i, normalized);
       if (end < 0 || !Luhn.valid(normalized, DIGITS)) {
         continue;
       }
@@ -86,11 +87,12 @@ public final class DevicePiiExtractor implements PiiExtractor {
    * Parses 15 digits with optional consistent separators.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The first digit.
    * @param normalized The digit collector.
    * @return The exclusive candidate end, or {@code -1} if the form is invalid.
    */
-  private int readDigits(CharSequence text, int start, StringBuilder normalized) {
+  private int readDigits(CharSequence text, Boundaries boundaries, int start, StringBuilder normalized) {
     int p = start;
     char separator = 0;
     while (p < text.length() && normalized.length() < DIGITS) {
@@ -110,7 +112,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
       }
     }
     if (normalized.length() != DIGITS
-        || !Boundaries.onNumberEnd(text, p, GROUP_CONTINUATIONS)) {
+        || !boundaries.onNumberEnd(p, GROUP_CONTINUATIONS)) {
       return -1;
     }
     return p;

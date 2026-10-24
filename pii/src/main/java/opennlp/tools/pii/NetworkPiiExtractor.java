@@ -122,15 +122,16 @@ public final class NetworkPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_MAC)) {
-      scanMacs(text, hits);
+      scanMacs(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_IPV6)) {
-      scanIpv6(text, hits);
+      scanIpv6(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_IPV4)) {
-      scanIpv4(text, hits);
+      scanIpv4(text, boundaries, hits);
     }
     return hits.resolve();
   }
@@ -139,17 +140,18 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * Finds IPv4 addresses in dotted decimal form.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanIpv4(CharSequence text, Hits hits) {
+  private void scanIpv4(CharSequence text, Boundaries boundaries, Hits hits) {
     final int[] octets = new int[IPV4_OCTETS];
     for (int i = 0; i < text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)
           || continuesDottedValue(text, i)) {
         continue;
       }
       final int end = parseIpv4(text, i, octets);
-      if (end < 0 || !Boundaries.onEndBefore(text, end, '.') || isReservedIpv4(octets)) {
+      if (end < 0 || !boundaries.onEndBefore(end, '.') || isReservedIpv4(octets)) {
         continue;
       }
       final StringBuilder normalized = new StringBuilder();
@@ -238,17 +240,18 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * Finds IPv6 addresses in text representation.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanIpv6(CharSequence text, Hits hits) {
+  private void scanIpv6(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       final char c = text.charAt(i);
       final boolean doubleColon = c == ':' && i + 1 < text.length() && text.charAt(i + 1) == ':';
-      if ((!Ascii.isHexDigit(c) && !doubleColon) || !onGroupStart(text, i)) {
+      if ((!Ascii.isHexDigit(c) && !doubleColon) || !onGroupStart(text, boundaries, i)) {
         continue;
       }
       final Ipv6 candidate = parseIpv6(text, i);
-      if (candidate == null || !Boundaries.onEndBefore(text, candidate.end(), '.')
+      if (candidate == null || !boundaries.onEndBefore(candidate.end(), '.')
           || !plausibleIpv6(candidate)) {
         continue;
       }
@@ -422,12 +425,13 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * Finds MAC addresses in the colon, hyphen, and dotted forms.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanMacs(CharSequence text, Hits hits) {
+  private void scanMacs(CharSequence text, Boundaries boundaries, Hits hits) {
     final int[] bytes = new int[MAC_PAIRS];
     for (int i = 0; i < text.length(); i++) {
-      if (!Ascii.isHexDigit(text.charAt(i)) || !onGroupStart(text, i)) {
+      if (!Ascii.isHexDigit(text.charAt(i)) || !onGroupStart(text, boundaries, i)) {
         continue;
       }
       int end = parseMac(text, i, ':', 2, MAC_PAIRS, bytes);
@@ -440,7 +444,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
         end = parseMac(text, i, '.', 4, MAC_QUADS, bytes);
         separator = '.';
       }
-      if (end < 0 || !Boundaries.onEndBefore(text, end, separator) || isReservedMac(bytes)) {
+      if (end < 0 || !boundaries.onEndBefore(end, separator) || isReservedMac(bytes)) {
         continue;
       }
       final StringBuilder normalized = new StringBuilder();
@@ -521,11 +525,12 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * left, preventing a match from inside an address.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The candidate start.
    * @return {@code true} if the candidate may start here.
    */
-  private boolean onGroupStart(CharSequence text, int start) {
-    if (!Boundaries.onWordStart(text, start) || continuesDottedValue(text, start)) {
+  private boolean onGroupStart(CharSequence text, Boundaries boundaries, int start) {
+    if (!boundaries.onWordStart(start) || continuesDottedValue(text, start)) {
       return false;
     }
     if (start == 0) {

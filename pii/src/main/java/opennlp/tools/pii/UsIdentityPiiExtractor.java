@@ -120,9 +120,10 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     for (int i = 0; i + FORM_LENGTH <= text.length(); i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !boundaries.onNumberStart(i)) {
         continue;
       }
       final char separator = Boundaries.separatorKind(text.charAt(i + AREA_DIGITS));
@@ -134,7 +135,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
       if (!digitsAt(text, i, AREA_DIGITS)
           || !digitsAt(text, i + AREA_DIGITS + 1, GROUP_DIGITS)
           || !digitsAt(text, i + AREA_DIGITS + GROUP_DIGITS + 2, SERIAL_DIGITS)
-          || !Boundaries.onNumberEnd(text, end, NUMBER_CONTINUATIONS)) {
+          || !boundaries.onNumberEnd(end, NUMBER_CONTINUATIONS)) {
         continue;
       }
       final int area = value(text, i, AREA_DIGITS);

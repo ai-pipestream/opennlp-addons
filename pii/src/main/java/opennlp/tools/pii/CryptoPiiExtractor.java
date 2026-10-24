@@ -127,12 +127,13 @@ public final class CryptoPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
+    final Boundaries boundaries = new Boundaries(text);
     final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_BTC_ADDRESS)) {
-      scanBitcoin(text, hits);
+      scanBitcoin(text, boundaries, hits);
     }
     if (types.contains(PiiMention.TYPE_ETH_ADDRESS)) {
-      scanEthereum(text, hits);
+      scanEthereum(text, boundaries, hits);
     }
     return hits.resolve();
   }
@@ -141,23 +142,24 @@ public final class CryptoPiiExtractor implements PiiExtractor {
    * Finds Bitcoin addresses in the legacy and the segwit form.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanBitcoin(CharSequence text, Hits hits) {
+  private void scanBitcoin(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
-      if (!Boundaries.onWordStart(text, i)) {
+      if (!boundaries.onWordStart(i)) {
         continue;
       }
       final char first = text.charAt(i);
       int end = -1;
       String normalized = null;
       if (first == '1' || first == '3') {
-        end = legacyEnd(text, i);
+        end = legacyEnd(text, boundaries, i);
         if (end > 0) {
           normalized = text.subSequence(i, end).toString();
         }
       } else if (first == 'b' || first == 'B') {
-        end = segwitEnd(text, i);
+        end = segwitEnd(text, boundaries, i);
         if (end > 0) {
           normalized = StringUtil.toLowerCase(text.subSequence(i, end));
         }
@@ -175,17 +177,18 @@ public final class CryptoPiiExtractor implements PiiExtractor {
    * Parses a legacy Base58Check address.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The offset to read from.
    * @return The exclusive end offset, or {@code -1} if no address starts at {@code start}.
    */
-  private int legacyEnd(CharSequence text, int start) {
+  private int legacyEnd(CharSequence text, Boundaries boundaries, int start) {
     int p = start;
     while (p < text.length() && Base58Check.isBase58Char(text.charAt(p))) {
       p++;
     }
     final int length = p - start;
     if (length < BTC_LEGACY_MIN_LENGTH || length > BTC_LEGACY_MAX_LENGTH
-        || !Boundaries.onEnd(text, p)) {
+        || !boundaries.onEnd(p)) {
       return -1;
     }
     final int version = Base58Check.checkedVersion(text, start, p);
@@ -196,10 +199,11 @@ public final class CryptoPiiExtractor implements PiiExtractor {
    * Parses a segwit bech32 or bech32m address.
    *
    * @param text The text being scanned.
+   * @param boundaries The boundary checks over {@code text}.
    * @param start The offset to read from.
    * @return The exclusive end offset, or {@code -1} if no address starts at {@code start}.
    */
-  private int segwitEnd(CharSequence text, int start) {
+  private int segwitEnd(CharSequence text, Boundaries boundaries, int start) {
     final int dataStart = start + BTC_SEGWIT_PREFIX.length() + 1;
     if (dataStart > text.length()
         || Ascii.toLower(text.charAt(start + 1)) != BTC_SEGWIT_PREFIX.charAt(1)
@@ -210,7 +214,7 @@ public final class CryptoPiiExtractor implements PiiExtractor {
     while (p < text.length() && Bech32.isDataChar(text.charAt(p))) {
       p++;
     }
-    if (p - start > BTC_SEGWIT_MAX_LENGTH || !Boundaries.onEnd(text, p)
+    if (p - start > BTC_SEGWIT_MAX_LENGTH || !boundaries.onEnd(p)
         || mixedCase(text, start, p)) {
       return -1;
     }
@@ -239,12 +243,13 @@ public final class CryptoPiiExtractor implements PiiExtractor {
    * Finds Ethereum addresses.
    *
    * @param text The text to scan.
+   * @param boundaries The boundary checks over {@code text}.
    * @param hits The candidate collector.
    */
-  private void scanEthereum(CharSequence text, Hits hits) {
+  private void scanEthereum(CharSequence text, Boundaries boundaries, Hits hits) {
     for (int i = 0; i + ETH_PREFIX.length() + ETH_DIGITS <= text.length(); i++) {
       if (text.charAt(i) != '0' || Ascii.toLower(text.charAt(i + 1)) != ETH_PREFIX.charAt(1)
-          || !Boundaries.onWordStart(text, i)) {
+          || !boundaries.onWordStart(i)) {
         continue;
       }
       final int digitsStart = i + ETH_PREFIX.length();
@@ -258,7 +263,7 @@ public final class CryptoPiiExtractor implements PiiExtractor {
         zero &= c == '0';
         lowercase.append(Ascii.toLower(c));
       }
-      if (!hexadecimal || zero || !Boundaries.onEnd(text, end)) {
+      if (!hexadecimal || zero || !boundaries.onEnd(end)) {
         continue;
       }
       final String checksummed = eip55(lowercase.toString());
