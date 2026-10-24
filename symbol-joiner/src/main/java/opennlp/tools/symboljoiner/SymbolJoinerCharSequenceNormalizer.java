@@ -27,7 +27,9 @@ import opennlp.tools.util.normalizer.CharSequenceNormalizer;
  * to {@code at}, {@code %} to {@code percent}, {@code §} to {@code section},
  * {@code ¶} to {@code paragraph}, {@code °} to {@code degree}, {@code ©} to
  * {@code copyright}, {@code ®} to {@code registered}, and {@code ™} to
- * {@code trademark}. These are matching conventions, not context-dependent
+ * {@code trademark}. The fullwidth and small forms of the first four symbols,
+ * such as {@code U+FF06 FULLWIDTH AMPERSAND} and {@code U+FE60 SMALL AMPERSAND}, map
+ * to the same words. These are matching conventions, not context-dependent
  * readings of the symbols. Currency symbols are not mapped.</p>
  *
  * <p>The complete input must be one supported symbol. This normalizer does not
@@ -70,10 +72,10 @@ public class SymbolJoinerCharSequenceNormalizer implements CharSequenceNormalize
       return text;
     }
     return switch (text.charAt(0)) {
-      case '&' -> "and";
-      case '+' -> "plus";
-      case '@' -> "at";
-      case '%' -> "percent";
+      case '&', '\uFF06', '\uFE60' -> "and";
+      case '+', '\uFF0B', '\uFE62' -> "plus";
+      case '@', '\uFF20', '\uFE6B' -> "at";
+      case '%', '\uFF05', '\uFE6A' -> "percent";
       case '§' -> "section";
       case '¶' -> "paragraph";
       case '°' -> "degree";
