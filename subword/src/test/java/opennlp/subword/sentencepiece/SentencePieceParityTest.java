@@ -49,6 +49,19 @@ class SentencePieceParityTest {
 
   @ParameterizedTest
   @MethodSource("opennlp.subword.sentencepiece.SentencePieceFixtures#models")
+  void testUnicodeWhitespaceParity(String model) throws IOException {
+    final SentencePieceTokenizer tokenizer = SentencePieceFixtures.tokenizer(model);
+    final List<SentencePieceFixtures.Fixture> fixtures =
+        SentencePieceFixtures.whitespaceFixtures(model);
+    assertEquals(13, fixtures.size(), "the whitespace fixture file must hold every input");
+    for (final SentencePieceFixtures.Fixture fixture : fixtures) {
+      SentencePieceFixtures.assertFixture(tokenizer, fixture,
+          model + " whitespace input <" + fixture.input() + ">");
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("opennlp.subword.sentencepiece.SentencePieceFixtures#models")
   void testEmbeddedSelfTestSamples(String model) {
     final SentencePieceTokenizer tokenizer = SentencePieceFixtures.tokenizer(model);
     final List<String> inputs = tokenizer.selfTestInputs();

@@ -44,6 +44,8 @@ That trains each model listed in `MODELS` inside `gen_fixtures.py`
 
 - `<name>.model`: SentencePiece binary model
 - `<name>.fixtures.tsv`: expected pieces, ids, UTF-16 spans, and normalized form
+- `<name>-whitespace.fixtures.tsv`: the same for inputs holding whitespace other
+  than U+0020 (U+00A0, U+3000, U+2003, U+200B, tabs, line breaks)
 - `corpus-full.txt`: training corpus (`corpus.txt` plus multilingual lines)
 
 The generator checks for SentencePiece 0.2.2 and protobuf 7.36.1. It disables
@@ -55,7 +57,7 @@ To verify parity end to end, regenerate the fixtures as above, then run the
 test suite from the repository root:
 
 ```bash
-mvn -pl subword-addon test
+mvn -pl subword test
 ```
 
 `SentencePieceParityTest` asserts every fixture line piece for piece, span
@@ -67,7 +69,7 @@ a directory of pre-trained `*.model` files and point the eval test at it:
 ```bash
 source .venv/bin/activate
 python gen_real_fixtures.py /path/to/models
-mvn -pl subword-addon test \
+mvn -pl subword test \
     -Dopennlp.subword.eval.dir=/path/to/models
 ```
 
@@ -90,7 +92,8 @@ local eval against published SentencePiece models.
 
 ## Fixture TSV format
 
-Tab-separated, with backslash escapes (`\\`, `\t`, `\n`, `\r`):
+Tab-separated, with backslash escapes: `\\`, `\t`, `\n`, `\r`, `\s` for a
+space, `\d` for U+2014, and `\e` for an empty value.
 
 ```text
 esc(input) TAB pieceCount TAB [esc(piece) TAB id TAB begin TAB end]... TAB esc(normalized)

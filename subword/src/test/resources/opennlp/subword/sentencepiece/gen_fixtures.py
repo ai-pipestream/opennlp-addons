@@ -18,6 +18,8 @@
 Run inside a venv with sentencepiece 0.2.2 installed:
     python gen_fixtures.py <corpus.txt> <output-dir>
 
+Each model gets <name>.fixtures.tsv for INPUTS and <name>-whitespace.fixtures.tsv for
+WHITESPACE_INPUTS.
 Each fixture line is tab-separated with backslash escaping (\\\\, \\t, \\n, \\r, \\s, \\d, \\e):
     esc(input) TAB pieceCount TAB [esc(piece) TAB id TAB begin TAB end]... TAB esc(normalized)
 Offsets are UTF-16 code-unit offsets into the original input, matching Java string indexing.
@@ -90,6 +92,24 @@ INPUTS = [
     "mid   spaces   collapse",
 ]
 
+# Whitespace other than U+0020 is normalized by the character map, not by the
+# whitespace handling of the normalizer. These inputs pin that distinction.
+WHITESPACE_INPUTS = [
+    "a\u00a0b",
+    "a\u3000b",
+    "\u00a0lead",
+    "trail\u00a0",
+    "x\u2003y",
+    "tab\tsep",
+    "a\u200bb",
+    "\u00a0",
+    "a\u00a0\u00a0b",
+    "a \u00a0 b",
+    "hello\u3000\u3000world",
+    "nl\nx",
+    "cr\rx",
+]
+
 MODELS = {
     "tiny-unigram": dict(model_type="unigram", vocab_size=300),
     "tiny-unigram-bytefb": dict(model_type="unigram", vocab_size=600, byte_fallback=True,
@@ -113,6 +133,19 @@ def esc(s):
 def utf16_offset(text, utf8_offset):
     prefix = text.encode("utf-8")[:utf8_offset].decode("utf-8")
     return len(prefix.encode("utf-16-le")) // 2
+
+
+def write_fixtures(sp, inputs, path):
+    with open(path, "w", encoding="utf-8") as out:
+        for text in inputs:
+            proto = sp.encode(text, return_type="proto")
+            cols = [esc(text), str(len(proto.pieces))]
+            for piece in proto.pieces:
+                cols += [esc(piece.piece), str(piece.id),
+                         str(utf16_offset(text, piece.begin)),
+                         str(utf16_offset(text, piece.end))]
+            cols.append(esc(sp.Normalize(text)))
+            out.write("\t".join(cols) + "\n")
 
 
 def require_expected_version():
@@ -164,16 +197,8 @@ def main(corpus, outdir):
                 sample.input = text
                 sample.expected = " ".join(sp.encode(text, out_type=str))
             model_path.write_bytes(model.SerializeToString(deterministic=True))
-            with open(name + ".fixtures.tsv", "w", encoding="utf-8") as out:
-                for text in INPUTS:
-                    proto = sp.encode(text, return_type="proto")
-                    cols = [esc(text), str(len(proto.pieces))]
-                    for piece in proto.pieces:
-                        cols += [esc(piece.piece), str(piece.id),
-                                 str(utf16_offset(text, piece.begin)),
-                                 str(utf16_offset(text, piece.end))]
-                    cols.append(esc(sp.Normalize(text)))
-                    out.write("\t".join(cols) + "\n")
+            write_fixtures(sp, INPUTS, name + ".fixtures.tsv")
+            write_fixtures(sp, WHITESPACE_INPUTS, name + "-whitespace.fixtures.tsv")
             print(name, "vocab", sp.GetPieceSize())
     finally:
         os.chdir(previous_dir)

@@ -47,6 +47,9 @@ final class SentencePieceFixtures {
   /** The file name suffix of the fixture file belonging to a model. */
   static final String FIXTURES_SUFFIX = ".fixtures.tsv";
 
+  /** The infix of the fixture file holding a model's non-ASCII whitespace inputs. */
+  static final String WHITESPACE_INFIX = "-whitespace";
+
   private static final Map<String, SentencePieceTokenizer> LOADED = new ConcurrentHashMap<>();
 
   private SentencePieceFixtures() {
@@ -90,6 +93,18 @@ final class SentencePieceFixtures {
    */
   static List<Fixture> fixtures(String model) throws IOException {
     return readResource(model + FIXTURES_SUFFIX);
+  }
+
+  /**
+   * Reads the fixture file holding a bundled model's expectations for inputs with whitespace
+   * other than U+0020, such as U+00A0, U+3000, tabs, and line breaks.
+   *
+   * @param model The bundled model name, without the {@link #MODEL_SUFFIX} suffix.
+   * @return The parsed fixtures in file order.
+   * @throws IOException Thrown if the fixture resource cannot be read.
+   */
+  static List<Fixture> whitespaceFixtures(String model) throws IOException {
+    return readResource(model + WHITESPACE_INFIX + FIXTURES_SUFFIX);
   }
 
   /**

@@ -23,7 +23,7 @@ import glob
 import os
 import sys
 import sentencepiece as spm
-from gen_fixtures import INPUTS, esc, require_expected_version, utf16_offset
+from gen_fixtures import INPUTS, require_expected_version, write_fixtures
 
 EXTRA = [
     "The Transformer architecture revolutionized natural language processing in 2017.",
@@ -59,16 +59,7 @@ def main(model_dir):
     for model_path in sorted(glob.glob(os.path.join(model_dir, "*.model"))):
         name = os.path.splitext(model_path)[0]
         sp = spm.SentencePieceProcessor(model_file=model_path)
-        with open(name + ".fixtures.tsv", "w", encoding="utf-8") as out:
-            for text in INPUTS + EXTRA:
-                proto = sp.encode(text, return_type="proto")
-                cols = [esc(text), str(len(proto.pieces))]
-                for piece in proto.pieces:
-                    cols += [esc(piece.piece), str(piece.id),
-                             str(utf16_offset(text, piece.begin)),
-                             str(utf16_offset(text, piece.end))]
-                cols.append(esc(sp.Normalize(text)))
-                out.write("\t".join(cols) + "\n")
+        write_fixtures(sp, INPUTS + EXTRA, name + ".fixtures.tsv")
         print(os.path.basename(name), "vocab", sp.GetPieceSize())
 
 
