@@ -66,6 +66,19 @@ public class StructuralNoiseScorerTest {
         List.of()));
   }
 
+  /**
+   * Round numbers, zero-filled fields and long digit runs are ordinary text: a run of
+   * identical digits is not a structural signal.
+   *
+   * @param text The prose with a digit run.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"costs 10000 dollars", "population 1000000", "code 0000000",
+      "order 12345678900000", "between 1000 and 100000"})
+  void testRepeatedDigitsAreNotDamage(String text) {
+    assertEquals(List.of(), scorer.score(text, List.of()), text);
+  }
+
   /** Structural signals apply to ASCII letters only; other scripts never flag. */
   @ParameterizedTest
   @ValueSource(strings = {
