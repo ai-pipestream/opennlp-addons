@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -142,8 +143,34 @@ final class HuggingFaceModelCache {
    */
   private static final List<String> OPTIONAL_FILES = optionalFiles();
 
-  /** Not instantiable. */
-  private HuggingFaceModelCache() {
+  private final String hubBase;
+  private final Path cacheRoot;
+  private final ModelDistiller.ProgressListener listener;
+
+  /**
+   * Creates a cache of the Hugging Face hub in {@code ~/.cache/opennlp-embeddings}.
+   *
+   * @param listener Receives one progress line per download; may be {@code null}.
+   */
+  HuggingFaceModelCache(ModelDistiller.ProgressListener listener) {
+    this(HUB_BASE, defaultCacheRoot(), listener);
+  }
+
+  /**
+   * Creates a cache of a given hub in a given location, the form used by the tests and by an
+   * installation that mirrors the hub.
+   *
+   * @param hubBase   The hub's base URL, ending in a slash. Must not be {@code null}.
+   * @param cacheRoot The directory the per-teacher cache directories live in. Must not be
+   *                  {@code null}.
+   * @param listener  Receives one progress line per download; may be {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code hubBase} or {@code cacheRoot} is
+   *     {@code null}.
+   */
+  HuggingFaceModelCache(String hubBase, Path cacheRoot, ModelDistiller.ProgressListener listener) {
+    this.hubBase = ParamChecks.requireNonNullArg(hubBase, "hubBase");
+    this.cacheRoot = ParamChecks.requireNonNullArg(cacheRoot, "cacheRoot");
+    this.listener = listener;
   }
 
   /** {@return the repository-relative names of the files downloaded when the repository has them} */
@@ -157,16 +184,15 @@ final class HuggingFaceModelCache {
 
   /**
    * Resolves a teacher reference to a local directory holding its files, downloading them from the
-   * Hugging Face hub when the reference is a model id.
+   * hub when the reference is a model id.
    *
-   * @param teacher  A local directory, used as-is, or a Hugging Face model id ({@code org/model},
-   *                 or {@code org/model@revision} to pin a branch, tag, or commit sha instead of
-   *                 the default branch), downloaded into
-   *                 {@code ~/.cache/opennlp-embeddings/org-model} on first use (the slash becomes
-   *                 a dash, dots and the revision separator become underscores). Must not be
-   *                 {@code null}. A relative path containing a {@code ..} segment is rejected as
-   *                 ambiguous; pass an absolute or normalized path instead.
-   * @param listener Receives one progress line per download; may be {@code null}.
+   * @param teacher A local directory, used as-is, or a Hugging Face model id ({@code org/model},
+   *                or {@code org/model@revision} to pin a branch, tag, or commit sha instead of
+   *                the default branch), downloaded into a directory below the cache root named
+   *                after the reference (the slash becomes a dash, dots and the revision separator
+   *                become underscores) on first use. Must not be {@code null}. A relative path
+   *                containing a {@code ..} segment is rejected as ambiguous; pass an absolute or
+   *                normalized path instead.
    * @return The local teacher directory.
    * @throws IllegalArgumentException Thrown if {@code teacher} is {@code null}, or is neither a
    *     directory nor a well-formed model id.
@@ -174,39 +200,8 @@ final class HuggingFaceModelCache {
    *     file cannot be downloaded, or if a downloaded file cannot be verified against the digest
    *     the hub publishes for it.
    */
-  static Path resolve(String teacher, ModelDistiller.ProgressListener listener) throws IOException {
-    return resolve(teacher, HUB_BASE, defaultCacheRoot(), listener);
-  }
-
-  /**
-   * Resolves a teacher reference against a given hub and cache location, the form used by the
-   * tests and by an installation that mirrors the hub.
-   *
-   * @param teacher   The teacher reference, as in {@link #resolve(String,
-   *                  ModelDistiller.ProgressListener)}. Must not be {@code null}.
-   * @param hubBase   The hub's base URL, ending in a slash. Must not be {@code null}.
-   * @param cacheRoot The directory the per-teacher cache directories live in. Must not be
-   *                  {@code null}.
-   * @param listener  Receives one progress line per download; may be {@code null}.
-   * @return The local teacher directory.
-   * @throws IllegalArgumentException Thrown if {@code teacher}, {@code hubBase}, or
-   *     {@code cacheRoot} is {@code null}, or if {@code teacher} is neither a directory nor a
-   *     well-formed model id.
-   * @throws IOException Thrown if the records of a cached snapshot cannot be read, if a required
-   *     file cannot be downloaded, or if a downloaded file cannot be verified against the digest
-   *     the hub publishes for it.
-   */
-  static Path resolve(String teacher, String hubBase, Path cacheRoot,
-                      ModelDistiller.ProgressListener listener) throws IOException {
-    if (teacher == null) {
-      throw new IllegalArgumentException("teacher must not be null");
-    }
-    if (hubBase == null) {
-      throw new IllegalArgumentException("hubBase must not be null");
-    }
-    if (cacheRoot == null) {
-      throw new IllegalArgumentException("cacheRoot must not be null");
-    }
+  Path resolve(String teacher) throws IOException {
+    ParamChecks.requireNonNullArg(teacher, "teacher");
     final Path local = Path.of(teacher);
     if (!isAmbiguousRelativePath(local) && Files.isDirectory(local)) {
       return local;
@@ -225,7 +220,7 @@ final class HuggingFaceModelCache {
         StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
       final FileLock cacheLock = acquireCacheLock(channel);
       try (cacheLock) {
-        return resolveLocked(cache, hubBase, modelId, requestedRevision, listener);
+        return resolveLocked(cache, modelId, requestedRevision);
       }
     }
   }
@@ -234,17 +229,14 @@ final class HuggingFaceModelCache {
    * Resolves one teacher while holding its cache lock.
    *
    * @param cache             The teacher's cache directory.
-   * @param hubBase           The hub's base URL.
    * @param modelId           The hub model id.
    * @param requestedRevision The requested revision, or {@code null} for the default branch.
-   * @param listener          The progress listener; may be {@code null}.
    * @return The completed cache directory.
    * @throws IOException Thrown if the cache records cannot be read, or if the snapshot cannot be
    *     resolved, downloaded, or verified.
    */
-  private static Path resolveLocked(Path cache, String hubBase, String modelId,
-                                    String requestedRevision,
-                                    ModelDistiller.ProgressListener listener) throws IOException {
+  private Path resolveLocked(Path cache, String modelId, String requestedRevision)
+      throws IOException {
     final String pinned = pinnedRevision(cache);
     if (pinned != null && hasCompleteSnapshot(cache)
         && (!isCommitSha(requestedRevision) || pinned.equalsIgnoreCase(requestedRevision))) {
@@ -264,13 +256,13 @@ final class HuggingFaceModelCache {
         .proxy(ProxySelector.getDefault())
         .connectTimeout(CONNECT_TIMEOUT)
         .build();
-    final String commit = resolveCommit(client, hubBase, modelId, ref, requestedRevision);
-    report(listener, "Teacher " + modelId + " at " + ref + " is commit " + commit);
+    final String commit = resolveCommit(client, modelId, ref, requestedRevision);
+    report("Teacher " + modelId + " at " + ref + " is commit " + commit);
     for (final String file : REQUIRED_FILES) {
-      download(client, hubBase, modelId, commit, file, cache, true, listener);
+      download(client, modelId, commit, file, cache, true);
     }
     for (final String file : OPTIONAL_FILES) {
-      download(client, hubBase, modelId, commit, file, cache, false, listener);
+      download(client, modelId, commit, file, cache, false);
     }
     writeFileRecord(cache);
     Files.writeString(cache.resolve(REVISION_FILE), commit + System.lineSeparator(),
@@ -285,7 +277,7 @@ final class HuggingFaceModelCache {
    * @return The acquired lock.
    * @throws IOException Thrown if the lock cannot be acquired or the thread is interrupted.
    */
-  private static FileLock acquireCacheLock(FileChannel channel) throws IOException {
+  private FileLock acquireCacheLock(FileChannel channel) throws IOException {
     while (true) {
       try {
         return channel.lock();
@@ -352,7 +344,7 @@ final class HuggingFaceModelCache {
    * @param cache The cache directory.
    * @throws IOException Thrown if the file record exists but cannot be read.
    */
-  private static boolean hasCompleteSnapshot(Path cache) throws IOException {
+  private boolean hasCompleteSnapshot(Path cache) throws IOException {
     final Path record = cache.resolve(FILES_FILE);
     if (!Files.isRegularFile(record)) {
       return false;
@@ -385,7 +377,7 @@ final class HuggingFaceModelCache {
    * @param cache The completed cache directory.
    * @throws IOException Thrown if the record cannot be written.
    */
-  private static void writeFileRecord(Path cache) throws IOException {
+  private void writeFileRecord(Path cache) throws IOException {
     final List<String> files = new ArrayList<>(REQUIRED_FILES);
     for (final String file : OPTIONAL_FILES) {
       if (Files.isRegularFile(cache.resolve(file))) {
@@ -401,7 +393,6 @@ final class HuggingFaceModelCache {
    * resolve response, so the body of the probed file is not read.
    *
    * @param client            The HTTP client.
-   * @param hubBase           The hub's base URL.
    * @param modelId           The hub model id.
    * @param ref               The revision to resolve.
    * @param requestedRevision The revision the teacher reference named, or {@code null} when it
@@ -409,10 +400,10 @@ final class HuggingFaceModelCache {
    * @return The commit sha, 40 hex characters.
    * @throws IOException Thrown if the ref cannot be resolved.
    */
-  private static String resolveCommit(HttpClient client, String hubBase, String modelId, String ref,
-                                      String requestedRevision) throws IOException {
+  private String resolveCommit(HttpClient client, String modelId, String ref,
+                               String requestedRevision) throws IOException {
     final String probe = REQUIRED_FILES.get(0);
-    final HttpResponse<InputStream> response = send(client, hubBase, modelId, ref, probe);
+    final HttpResponse<InputStream> response = send(client, modelId, ref, probe);
     // The headers carry everything this probe wants, so the body is closed unread.
     final InputStream body = response.body();
     try (body) {
@@ -440,21 +431,18 @@ final class HuggingFaceModelCache {
    * already there when it matches the revision's digest.
    *
    * @param client   The HTTP client.
-   * @param hubBase  The hub's base URL.
    * @param modelId  The hub model id.
    * @param commit   The commit sha every file of this download is requested at.
    * @param file     The repository-relative file name.
    * @param cache    The cache directory.
    * @param required Whether a file the revision does not have is an error.
-   * @param listener The progress listener; may be {@code null}.
    * @throws IOException Thrown if a required file cannot be downloaded, or if the download cannot
    *     be verified against the digest the hub publishes for it.
    */
-  private static void download(HttpClient client, String hubBase, String modelId, String commit,
-                               String file, Path cache, boolean required,
-                               ModelDistiller.ProgressListener listener) throws IOException {
+  private void download(HttpClient client, String modelId, String commit, String file,
+                        Path cache, boolean required) throws IOException {
     final Path target = cache.resolve(file);
-    final HttpResponse<InputStream> response = send(client, hubBase, modelId, commit, file);
+    final HttpResponse<InputStream> response = send(client, modelId, commit, file);
     Path temporary = null;
     try (InputStream body = response.body()) {
       if (response.statusCode() == HTTP_NOT_FOUND && !required) {
@@ -471,7 +459,7 @@ final class HuggingFaceModelCache {
       if (Files.isRegularFile(target) && expected.matches(target)) {
         return;
       }
-      report(listener, "Downloading " + modelId + "/" + file + " ...");
+      report("Downloading " + modelId + "/" + file + " ...");
       Files.createDirectories(target.getParent());
       // A temporary name unique per download: two processes sharing one cache directory must not
       // stream two copies of the same file into one partial file and publish the interleaving.
@@ -485,9 +473,9 @@ final class HuggingFaceModelCache {
             + ", but got: " + actual);
       }
       Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
-      temporary = null;
-    } finally {
-      deleteIfPresent(temporary);
+    } catch (IOException | RuntimeException e) {
+      deletePartial(temporary, e);
+      throw e;
     }
   }
 
@@ -495,15 +483,14 @@ final class HuggingFaceModelCache {
    * Sends one GET to the hub.
    *
    * @param client   The HTTP client.
-   * @param hubBase  The hub's base URL.
    * @param modelId  The hub model id.
    * @param revision The revision to request the file at.
    * @param file     The repository-relative file name.
    * @return The response, whose body has not been read yet.
    * @throws IOException Thrown if the request fails.
    */
-  private static HttpResponse<InputStream> send(HttpClient client, String hubBase, String modelId,
-                                                String revision, String file) throws IOException {
+  private HttpResponse<InputStream> send(HttpClient client, String modelId, String revision,
+                                         String file) throws IOException {
     final HttpRequest request = HttpRequest.newBuilder()
         .uri(URI.create(hubBase + modelId + RESOLVE_PATH + encodeRevision(revision) + "/" + file))
         .timeout(DOWNLOAD_TIMEOUT)
@@ -529,17 +516,15 @@ final class HuggingFaceModelCache {
    * @return The expected digest, either a git blob SHA-1 or a SHA-256.
    * @throws IOException Thrown if the header is absent or is not one of the two digest forms.
    */
-  private static Digest expectedDigest(HttpResponse<InputStream> response, String modelId,
-                                       String file) throws IOException {
+  private Digest expectedDigest(HttpResponse<InputStream> response, String modelId,
+                                String file) throws IOException {
     final String header = originHeader(response, ETAG_HEADER);
     if (header == null) {
       throw new IOException("Expected checksum could not be retrieved for " + file + " of "
           + modelId + ": the hub sent no " + ETAG_HEADER
           + " header, so the file cannot be verified");
     }
-    // A field value is ASCII with optional SP/HTAB whitespace around it (RFC 9110, section 5.5),
-    // so the JDK strip is the right tool here rather than a Unicode trim.
-    String hex = header.strip();
+    String hex = trimOptionalWhitespace(header);
     if (hex.length() >= 2 && hex.charAt(0) == '"' && hex.charAt(hex.length() - 1) == '"') {
       hex = hex.substring(1, hex.length() - 1);
     }
@@ -550,6 +535,35 @@ final class HuggingFaceModelCache {
           + "SHA-256, so the file cannot be verified");
     }
     return new Digest(form, hex);
+  }
+
+  /**
+   * {@return a header field value without the optional whitespace around it}
+   *
+   * <p>The whitespace around a field value is SP and HTAB only (RFC 9110, section 5.6.3), so this
+   * is not a Unicode trim.</p>
+   *
+   * @param value The field value.
+   */
+  private String trimOptionalWhitespace(String value) {
+    int start = 0;
+    int end = value.length();
+    while (start < end && isOptionalWhitespace(value.charAt(start))) {
+      start++;
+    }
+    while (end > start && isOptionalWhitespace(value.charAt(end - 1))) {
+      end--;
+    }
+    return value.substring(start, end);
+  }
+
+  /**
+   * {@return whether a character is optional whitespace of an HTTP field: SP or HTAB}
+   *
+   * @param c The character.
+   */
+  private boolean isOptionalWhitespace(char c) {
+    return c == ' ' || c == '\t';
   }
 
   /**
@@ -564,7 +578,7 @@ final class HuggingFaceModelCache {
    * @param response The response, at the end of its redirect chain.
    * @param name     The header name.
    */
-  private static String originHeader(HttpResponse<InputStream> response, String name) {
+  private String originHeader(HttpResponse<InputStream> response, String name) {
     HttpResponse<InputStream> origin = response;
     while (origin.previousResponse().isPresent()) {
       origin = origin.previousResponse().get();
@@ -613,7 +627,7 @@ final class HuggingFaceModelCache {
    *
    * @param path The teacher reference as a path.
    */
-  private static boolean isAmbiguousRelativePath(Path path) {
+  private boolean isAmbiguousRelativePath(Path path) {
     if (path.isAbsolute()) {
       return false;
     }
@@ -633,7 +647,7 @@ final class HuggingFaceModelCache {
    * @param teacher The reference to parse.
    * @return The parsed reference, or {@code null} when the value does not have this form.
    */
-  private static TeacherReference parseTeacherReference(String teacher) {
+  private TeacherReference parseTeacherReference(String teacher) {
     final int slash = teacher.indexOf('/');
     if (slash < 0) {
       return null;
@@ -654,7 +668,7 @@ final class HuggingFaceModelCache {
    *
    * @param revision The revision to check.
    */
-  private static boolean isRevision(String revision) {
+  private boolean isRevision(String revision) {
     int start = 0;
     for (int i = 0; i <= revision.length(); i++) {
       if (i == revision.length() || revision.charAt(i) == '/') {
@@ -672,7 +686,7 @@ final class HuggingFaceModelCache {
    *
    * @param revision The validated revision.
    */
-  private static String encodeRevision(String revision) {
+  private String encodeRevision(String revision) {
     return revision.replace("/", ENCODED_SLASH);
   }
 
@@ -682,7 +696,7 @@ final class HuggingFaceModelCache {
    *
    * @param part The part to check.
    */
-  private static boolean isReferencePart(String part) {
+  private boolean isReferencePart(String part) {
     if (part.isEmpty() || ".".equals(part) || "..".equals(part)) {
       return false;
     }
@@ -700,28 +714,29 @@ final class HuggingFaceModelCache {
   /**
    * Reports one progress line, if anyone is listening.
    *
-   * @param listener The listener; may be {@code null}.
-   * @param message  The message.
+   * @param message The message.
    */
-  private static void report(ModelDistiller.ProgressListener listener, String message) {
+  private void report(String message) {
     if (listener != null) {
       listener.progress(message);
     }
   }
 
   /**
-   * Deletes a partial download, if there is one, without reporting a failure to do so.
+   * Deletes the partial download of a failed file, if there is one. A failure to delete it is
+   * added to the download failure, which stays the exception the caller sees.
    *
-   * @param file The file to delete; may be {@code null}.
+   * @param file    The partial download; may be {@code null}.
+   * @param failure The exception the download failed with.
    */
-  private static void deleteIfPresent(Path file) {
+  private void deletePartial(Path file, Exception failure) {
     if (file == null) {
       return;
     }
     try {
       Files.deleteIfExists(file);
     } catch (IOException e) {
-      // A leftover partial download costs disk space; the next attempt writes a fresh file.
+      failure.addSuppressed(e);
     }
   }
 

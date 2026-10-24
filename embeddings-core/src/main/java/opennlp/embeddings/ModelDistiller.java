@@ -183,7 +183,7 @@ public final class ModelDistiller {
       throws IOException {
     checkOutput(outputDirectory);
     final List<String> prepared = prepareTerms(terms);
-    return distill(HuggingFaceModelCache.resolve(teacher, listener), outputDirectory, prepared);
+    return distill(new HuggingFaceModelCache(listener).resolve(teacher), outputDirectory, prepared);
   }
 
   /**
