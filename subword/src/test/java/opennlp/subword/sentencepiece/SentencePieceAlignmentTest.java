@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SentencePieceAlignmentTest {
 
-  private static SentencePieceTokenizer unigram() {
+  private SentencePieceTokenizer unigram() {
     return SentencePieceFixtures.tokenizer("tiny-unigram");
   }
 
@@ -132,7 +132,7 @@ class SentencePieceAlignmentTest {
     assertEquals(input.length(), covered);
   }
 
-  private static String cp(int codePoint) {
+  private String cp(int codePoint) {
     return new String(Character.toChars(codePoint));
   }
 

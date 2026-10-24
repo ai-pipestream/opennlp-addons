@@ -64,7 +64,7 @@ class SentencePieceRealModelEvalTest {
     assertTrue(models > 0, "the eval directory contains no models");
   }
 
-  private static void assertModel(Path modelPath, Path fixturesPath) throws IOException {
+  private void assertModel(Path modelPath, Path fixturesPath) throws IOException {
     final SentencePieceTokenizer tokenizer = SentencePieceTokenizer.load(modelPath);
     final List<SentencePieceFixtures.Fixture> fixtures;
     try (BufferedReader reader = Files.newBufferedReader(fixturesPath, StandardCharsets.UTF_8)) {

@@ -344,7 +344,7 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
     ParamChecks.requireNonNullArg(in, "in");
     ParamChecks.requireNonNullArg(limits, "limits");
     try (ObjectInputStream ois = new ObjectInputStream(in)) {
-      ois.setObjectInputFilter(buildFilter(limits));
+      ois.setObjectInputFilter(limits.filter());
       final Object value = ois.readObject();
       if (!(value instanceof SentencePieceTokenizer tokenizer)) {
         final String type = value == null ? "null" : value.getClass().getName();
@@ -385,24 +385,41 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
      *         {@code maxArrayLength} is {@code <= 0}.
      */
     public DeserializationLimits {
-      // The limits are long values, which ParamChecks.requirePositive does not take, so the
-      // checks repeat its wording here.
-      requirePositive(maxDepth, "maxDepth");
-      requirePositive(maxRefs, "maxRefs");
-      requirePositive(maxArrayLength, "maxArrayLength");
+      // A long argument widens to the double overload, which keeps its sign.
+      ParamChecks.requirePositive(maxDepth, "maxDepth");
+      ParamChecks.requirePositive(maxRefs, "maxRefs");
+      ParamChecks.requirePositive(maxArrayLength, "maxArrayLength");
     }
 
     /**
-     * Checks that a limit is positive.
+     * Builds the {@link ObjectInputFilter} enforcing the class allow-list and these limits.
      *
-     * @param value The limit value.
-     * @param name  The parameter name used in the exception message.
-     * @throws IllegalArgumentException Thrown if {@code value} is {@code <= 0}.
+     * @return The filter to install on the reading {@link ObjectInputStream}.
      */
-    private static void requirePositive(long value, String name) {
-      if (value <= 0) {
-        throw new IllegalArgumentException(name + " must be positive");
-      }
+    private ObjectInputFilter filter() {
+      return info -> {
+        if (info.depth() > maxDepth
+            || info.references() > maxRefs
+            || info.arrayLength() > maxArrayLength) {
+          return ObjectInputFilter.Status.REJECTED;
+        }
+
+        final Class<?> serialClass = info.serialClass();
+        if (serialClass == null) {
+          return ObjectInputFilter.Status.UNDECIDED;
+        }
+
+        Class<?> componentType = serialClass;
+        while (componentType.isArray()) {
+          componentType = componentType.getComponentType();
+        }
+        if (componentType.isPrimitive()) {
+          return ObjectInputFilter.Status.ALLOWED;
+        }
+        return ALLOWED_CLASSES.contains(componentType.getName())
+            ? ObjectInputFilter.Status.ALLOWED
+            : ObjectInputFilter.Status.REJECTED;
+      };
     }
   }
 
@@ -433,38 +450,6 @@ public final class SentencePieceTokenizer implements SubwordTokenizer, OffsetAwa
       // entries; the array type itself never appears as a value in the stream.
       "java.util.Map$Entry"
   );
-
-  /**
-   * Builds the {@link ObjectInputFilter} enforcing the class allow-list and the given limits.
-   *
-   * @param limits The resource limits to enforce; never null here.
-   * @return The filter to install on the reading {@link ObjectInputStream}.
-   */
-  private static ObjectInputFilter buildFilter(DeserializationLimits limits) {
-    return info -> {
-      if (info.depth() > limits.maxDepth()
-          || info.references() > limits.maxRefs()
-          || info.arrayLength() > limits.maxArrayLength()) {
-        return ObjectInputFilter.Status.REJECTED;
-      }
-
-      final Class<?> serialClass = info.serialClass();
-      if (serialClass == null) {
-        return ObjectInputFilter.Status.UNDECIDED;
-      }
-
-      Class<?> componentType = serialClass;
-      while (componentType.isArray()) {
-        componentType = componentType.getComponentType();
-      }
-      if (componentType.isPrimitive()) {
-        return ObjectInputFilter.Status.ALLOWED;
-      }
-      return ALLOWED_CLASSES.contains(componentType.getName())
-          ? ObjectInputFilter.Status.ALLOWED
-          : ObjectInputFilter.Status.REJECTED;
-    };
-  }
 
   /** {@inheritDoc} */
   @Override
