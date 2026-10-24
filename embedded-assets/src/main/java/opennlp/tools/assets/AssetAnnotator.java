@@ -67,14 +67,29 @@ public class AssetAnnotator implements DocumentAnnotator {
 
   /**
    * {@inheritDoc} Adds the {@link #ASSETS} layer even when no assets are detected.
+   *
+   * @throws IllegalArgumentException Thrown if {@code document} is {@code null}, or the
+   *         detector returns {@code null}, an asset that is {@code null}, or an asset
+   *         whose span lies outside the text.
    */
   @Override
   public Document annotate(Document document) {
     if (document == null) {
       throw new IllegalArgumentException("document must not be null");
     }
-    final List<Annotation<EmbeddedAsset>> found = new ArrayList<>();
-    for (final EmbeddedAsset asset : detector.detect(document.text())) {
+    final CharSequence text = document.text();
+    final List<EmbeddedAsset> detected = detector.detect(text);
+    if (detected == null) {
+      throw new IllegalArgumentException("detector result must not be null");
+    }
+    final List<Annotation<EmbeddedAsset>> found = new ArrayList<>(detected.size());
+    for (final EmbeddedAsset asset : detected) {
+      if (asset == null) {
+        throw new IllegalArgumentException("detector result must not contain null");
+      }
+      if (asset.span().getEnd() > text.length()) {
+        throw new IllegalArgumentException("detector asset spans must lie within the text");
+      }
       found.add(new Annotation<>(asset.span(), asset));
     }
     return document.with(ASSETS, found);
