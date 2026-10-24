@@ -97,8 +97,9 @@ public class TemporalAnnotator implements DocumentAnnotator {
    *
    * <p>Adds validated mentions under {@link #TEMPORALS}.</p>
    *
-   * @throws IllegalArgumentException Thrown if the output layer is present or the
-   *         extractor returns a null result, null mention, or invalid span sequence.
+   * @throws IllegalArgumentException Thrown if the output layer is present, the
+   *         extractor returns a null result, null mention, or invalid span sequence,
+   *         or the dateline value is not an ISO 8601 date.
    */
   @Override
   public Document annotate(Document document) {
@@ -162,12 +163,10 @@ public class TemporalAnnotator implements DocumentAnnotator {
   /**
    * Parses the first absolute day mention as a reference date.
    *
-   * <p>If that value is invalid, the absolute results are retained without resolving
-   * relative expressions. {@link DocumentDateAnnotator} rejects the invalid value.</p>
-   *
    * @param mentions The absolute mentions in text order. Must not be {@code null}.
-   * @return The reference date, or {@code null} if no absolute day exists or the first
-   *         absolute day value is invalid.
+   * @return The reference date, or {@code null} if no absolute day exists.
+   * @throws IllegalArgumentException Thrown if the first absolute day value is not an
+   *         ISO 8601 date.
    */
   private LocalDate dateline(List<TemporalExpression> mentions) {
     for (final TemporalExpression mention : mentions) {
@@ -176,7 +175,8 @@ public class TemporalAnnotator implements DocumentAnnotator {
         try {
           return LocalDate.parse(mention.value());
         } catch (DateTimeParseException e) {
-          return null;
+          throw new IllegalArgumentException("not an ISO 8601 day value at "
+              + mention.span() + ": " + mention.value(), e);
         }
       }
     }
