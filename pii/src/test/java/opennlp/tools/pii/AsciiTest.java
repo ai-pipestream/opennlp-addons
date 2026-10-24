@@ -30,10 +30,7 @@ public class AsciiTest {
   @Test
   void testClassificationAgreesWithTheJdkOverTheAsciiRange() {
     for (char c = 0; c < 128; c++) {
-      Assertions.assertEquals(Character.isDigit(c), Ascii.isDigit(c), "digit " + (int) c);
-      Assertions.assertEquals(Character.isLetter(c), Ascii.isLetter(c), "letter " + (int) c);
       Assertions.assertEquals(Character.isUpperCase(c), Ascii.isUpper(c), "upper " + (int) c);
-      Assertions.assertEquals(Character.isLowerCase(c), Ascii.isLower(c), "lower " + (int) c);
       Assertions.assertEquals(Character.isLetterOrDigit(c), Ascii.isLetterOrDigit(c),
           "letterOrDigit " + (int) c);
       Assertions.assertEquals(Character.digit(c, 16), Ascii.hexValue(c), "hex " + (int) c);
@@ -42,10 +39,10 @@ public class AsciiTest {
   }
 
   @ParameterizedTest
-  @ValueSource(chars = {'\u00e9', '\u00c9', '\u0131', '\u0130', '\u4e2d', '\u0660', '\u2160'})
+  @ValueSource(chars = {'é', 'É', 'ı', 'İ', '中', '٠', 'Ⅰ',
+      '１', 'Ａ'})
   void testNonAsciiCharactersAreNeitherLetterNorDigit(char c) {
-    Assertions.assertFalse(Ascii.isLetter(c));
-    Assertions.assertFalse(Ascii.isDigit(c));
+    Assertions.assertFalse(Ascii.isUpper(c));
     Assertions.assertFalse(Ascii.isLetterOrDigit(c));
     Assertions.assertFalse(Ascii.isHexDigit(c));
     Assertions.assertEquals(-1, Ascii.hexValue(c));
@@ -70,24 +67,35 @@ public class AsciiTest {
   @ParameterizedTest
   @ValueSource(strings = {
       "AKIAIOSFODNN7EXAMPLE",
-      "00:1B:44:11:3A:B7",
+      "00:1b:44:11:3a:b7",
       "0xAbCdEf0123456789",
       "MiXeD case With SPACES",
       ""})
   void testSequenceFoldingMatchesTheRootLocaleForAsciiInput(String value) {
-    Assertions.assertEquals(value.toLowerCase(Locale.ROOT), Ascii.toLower(value));
+    Assertions.assertEquals(value.toUpperCase(Locale.ROOT), Ascii.toUpper(value));
   }
 
   /**
-   * Verifies that folding stays ASCII-only and length preserving, unlike a locale
-   * fold: the dotted capital I becomes an i with a combining dot there, one character
-   * more than the input.
+   * Verifies that folding stays ASCII-only and length preserving, unlike a Unicode fold:
+   * the German sharp s becomes two letters there, one character more than the input.
    */
   @Test
   void testFoldingLeavesNonAsciiLettersUnchanged() {
-    Assertions.assertEquals("\u0130stanbul", Ascii.toLower("\u0130STANBUL"));
-    Assertions.assertEquals("\u00c9cole", Ascii.toLower("\u00c9COLE"));
-    Assertions.assertEquals(8, Ascii.toLower("\u0130STANBUL").length());
-    Assertions.assertEquals(9, "\u0130STANBUL".toLowerCase(Locale.ROOT).length());
+    Assertions.assertEquals("STRAßE", Ascii.toUpper("straße"));
+    Assertions.assertEquals("éCOLE", Ascii.toUpper("école"));
+    Assertions.assertEquals(6, Ascii.toUpper("straße").length());
+    Assertions.assertEquals(7, "straße".toUpperCase(Locale.ROOT).length());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "'\uD83D\uDE00sIn', 2, SIN, true",
+      "iMeI, 0, imei, true",
+      "'sİn', 0, sin, false",
+      "'ımei', 0, imei, false"
+  })
+  void testComparesAsciiLettersIgnoringCaseOnly(String text, int start, String literal,
+      boolean expected) {
+    Assertions.assertEquals(expected, Ascii.equalsIgnoreCase(text, start, literal));
   }
 }

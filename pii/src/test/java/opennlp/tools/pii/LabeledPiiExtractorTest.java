@@ -237,15 +237,6 @@ class LabeledPiiExtractorTest {
         Masker.mask(result, PiiAnnotator.PII, '*'));
   }
 
-  /** Checks ASCII-only case comparison after a supplementary character. */
-  @Test
-  void testAsciiLabelComparison() {
-    Assertions.assertTrue(Ascii.equalsIgnoreCase("😀sIn", 2, "SIN"));
-    Assertions.assertTrue(Ascii.equalsIgnoreCase("iMeI", 0, "imei"));
-    Assertions.assertFalse(Ascii.equalsIgnoreCase("sİn", 0, "sin"));
-    Assertions.assertFalse(Ascii.equalsIgnoreCase("ımei", 0, "imei"));
-  }
-
   /**
    * Checks shared detectors with different offsets in concurrent requests.
    *

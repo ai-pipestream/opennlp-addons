@@ -20,6 +20,8 @@ package opennlp.tools.pii;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Parses JSON header syntax and a unique, non-empty ASCII {@code alg} string.
  * Other member values are checked for JSON syntax, not JOSE semantics.
@@ -245,7 +247,7 @@ final class JwsHeader {
   private boolean readNumber() {
     consume('-');
     if (consume('0')) {
-      if (position < text.length() && Ascii.isDigit(text.charAt(position))) {
+      if (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
         return false;
       }
     } else if (!readDigits()) {
@@ -270,7 +272,7 @@ final class JwsHeader {
    */
   private boolean readDigits() {
     final int start = position;
-    while (position < text.length() && Ascii.isDigit(text.charAt(position))) {
+    while (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
       position++;
     }
     return position > start;

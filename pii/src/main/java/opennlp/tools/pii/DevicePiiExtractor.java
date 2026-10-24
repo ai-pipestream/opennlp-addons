@@ -61,7 +61,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
     ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i < text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
           || !hasLabel(text, i)) {
         continue;
       }
@@ -106,11 +106,11 @@ public final class DevicePiiExtractor implements PiiExtractor {
     char separator = 0;
     while (p < text.length() && normalized.length() < DIGITS) {
       final char c = Boundaries.separatorKind(text.charAt(p));
-      if (Ascii.isDigit(c)) {
+      if (StringUtil.isAsciiDigit(c)) {
         normalized.append(c);
         p++;
       } else if ((c == '-' || c == ' ') && p + 1 < text.length()
-          && Ascii.isDigit(text.charAt(p + 1))) {
+          && StringUtil.isAsciiDigit(text.charAt(p + 1))) {
         if (separator != 0 && separator != c) {
           return -1;
         }
@@ -124,7 +124,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
       return -1;
     }
     if (p + 1 < text.length() && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))
-        && Ascii.isDigit(text.charAt(p + 1))) {
+        && StringUtil.isAsciiDigit(text.charAt(p + 1))) {
       return -1;
     }
     return p;

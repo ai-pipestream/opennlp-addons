@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts ABA routing-number candidates as 9 contiguous ASCII digits.
@@ -71,7 +72,7 @@ public final class BankingPiiExtractor implements PiiExtractor {
     ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i + ROUTING_DIGITS <= text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
         continue;
       }
       final int end = i + ROUTING_DIGITS;
@@ -99,7 +100,7 @@ public final class BankingPiiExtractor implements PiiExtractor {
    */
   private boolean allDigits(CharSequence text, int start, int end) {
     for (int i = start; i < end; i++) {
-      if (!Ascii.isDigit(text.charAt(i))) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i))) {
         return false;
       }
     }
@@ -122,7 +123,7 @@ public final class BankingPiiExtractor implements PiiExtractor {
       return true;
     }
     final char next = text.charAt(end);
-    return (next != '.' && next != ',') || !Ascii.isDigit(text.charAt(end + 1));
+    return (next != '.' && next != ',') || !StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 
   /**

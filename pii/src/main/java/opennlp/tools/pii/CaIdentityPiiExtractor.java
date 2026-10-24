@@ -67,7 +67,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
     ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i < text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
           || !hasLabel(text, i)) {
         continue;
       }
@@ -126,7 +126,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
         }
         p++;
       }
-      if (p >= text.length() || !Ascii.isDigit(text.charAt(p))) {
+      if (p >= text.length() || !StringUtil.isAsciiDigit(text.charAt(p))) {
         return -1;
       }
       normalized.append(text.charAt(p++));
@@ -135,7 +135,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
       return -1;
     }
     if (p + 1 < text.length() && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))
-        && Ascii.isDigit(text.charAt(p + 1))) {
+        && StringUtil.isAsciiDigit(text.charAt(p + 1))) {
       return -1;
     }
     return p;

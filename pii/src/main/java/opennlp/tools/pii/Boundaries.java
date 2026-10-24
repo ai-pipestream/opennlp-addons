@@ -17,6 +17,8 @@
 
 package opennlp.tools.pii;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Unicode letter/digit boundary checks shared by PII scanners.
  *
@@ -63,7 +65,7 @@ final class Boundaries {
       return false;
     }
     return (previous != '.' && previous != ',' && previous != '-')
-        || start < 2 || !Ascii.isDigit(text.charAt(start - 2));
+        || start < 2 || !StringUtil.isAsciiDigit(text.charAt(start - 2));
   }
 
   /**

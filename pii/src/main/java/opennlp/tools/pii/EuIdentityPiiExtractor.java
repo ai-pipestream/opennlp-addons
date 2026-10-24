@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts United Kingdom NHS number and German tax identification number candidates.
@@ -139,7 +140,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
       String type) {
     final int[] value = new int[digits];
     for (int i = 0; i < text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
         continue;
       }
       int end = readGrouped(text, i, groups, value);
@@ -185,7 +186,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
         p++;
       }
       for (int d = 0; d < groups[g]; d++) {
-        if (p >= text.length() || !Ascii.isDigit(text.charAt(p))) {
+        if (p >= text.length() || !StringUtil.isAsciiDigit(text.charAt(p))) {
           return -1;
         }
         value[digits++] = text.charAt(p) - '0';
@@ -211,7 +212,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
       return -1;
     }
     for (int i = start; i < end; i++) {
-      if (!Ascii.isDigit(text.charAt(i))) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i))) {
         return -1;
       }
       value[i - start] = text.charAt(i) - '0';
@@ -329,6 +330,6 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
     }
     final char next = Boundaries.separatorKind(text.charAt(end));
     return (next != '.' && next != ',' && next != '-' && next != ' ')
-        || !Ascii.isDigit(text.charAt(end + 1));
+        || !StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 }

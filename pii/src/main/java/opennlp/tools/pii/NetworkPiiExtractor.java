@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts IPv4, IPv6 and 48-bit MAC address candidates. This detector is opt-in.
@@ -143,7 +144,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
   private void scanIpv4(CharSequence text, List<Hits.Hit> hits) {
     final int[] octets = new int[IPV4_OCTETS];
     for (int i = 0; i < text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
           || continuesDottedValue(text, i)) {
         continue;
       }
@@ -182,20 +183,20 @@ public final class NetworkPiiExtractor implements PiiExtractor {
         }
         p++;
       }
-      if (p >= text.length() || !Ascii.isDigit(text.charAt(p))) {
+      if (p >= text.length() || !StringUtil.isAsciiDigit(text.charAt(p))) {
         return -1;
       }
       final boolean leadingZero = text.charAt(p) == '0';
       int digits = 0;
       int value = 0;
-      while (p < text.length() && Ascii.isDigit(text.charAt(p))
+      while (p < text.length() && StringUtil.isAsciiDigit(text.charAt(p))
           && digits < IPV4_OCTET_MAX_DIGITS) {
         value = value * 10 + (text.charAt(p) - '0');
         digits++;
         p++;
       }
       if ((digits > 1 && leadingZero) || value > IPV4_OCTET_MAX
-          || (p < text.length() && Ascii.isDigit(text.charAt(p)))) {
+          || (p < text.length() && StringUtil.isAsciiDigit(text.charAt(p)))) {
         return -1;
       }
       octets[o] = value;
@@ -285,7 +286,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
         return null;
       }
       final List<Integer> target = compressed ? tail : head;
-      if ((!head.isEmpty() || compressed) && Ascii.isDigit(text.charAt(p))) {
+      if ((!head.isEmpty() || compressed) && StringUtil.isAsciiDigit(text.charAt(p))) {
         final int quadEnd = parseIpv4(text, p, octets);
         if (quadEnd > 0) {
           target.add(octets[0] << 8 | octets[1]);

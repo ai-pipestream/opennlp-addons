@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts AWS access key identifiers, GitHub tokens, JWT candidates and URL credentials.
@@ -179,7 +180,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
         boolean body = true;
         for (int p = i + prefix.length(); p < end; p++) {
           final char c = text.charAt(p);
-          body &= Ascii.isUpper(c) || Ascii.isDigit(c);
+          body &= Ascii.isUpper(c) || StringUtil.isAsciiDigit(c);
         }
         if (body) {
           Hits.add(hits, i, end, PiiMention.TYPE_AWS_ACCESS_KEY,
@@ -464,7 +465,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
     while (start > 0 && isSchemeChar(text.charAt(start - 1))) {
       start--;
     }
-    return start < end && Ascii.isLetter(text.charAt(start)) && onTokenStart(text, start, false);
+    return start < end && StringUtil.isAsciiLetter(text.charAt(start)) && onTokenStart(text, start, false);
   }
 
   /**
@@ -514,10 +515,10 @@ public final class SecretsPiiExtractor implements PiiExtractor {
     if (Ascii.isUpper(c)) {
       return c - 'A';
     }
-    if (Ascii.isLower(c)) {
+    if (StringUtil.isAsciiLowerCase(c)) {
       return c - 'a' + 26;
     }
-    if (Ascii.isDigit(c)) {
+    if (StringUtil.isAsciiDigit(c)) {
       return c - '0' + 52;
     }
     return c == '-' ? 62 : 63;

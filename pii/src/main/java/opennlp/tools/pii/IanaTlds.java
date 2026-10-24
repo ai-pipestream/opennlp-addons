@@ -215,10 +215,8 @@ final class IanaTlds {
     final int length = end - start;
     final int n = Math.min(length, upper.length());
     for (int i = 0; i < n; i++) {
-      char c = domain.charAt(start + i);
-      if (c >= 'a' && c <= 'z') {
-        c = (char) (c - ('a' - 'A'));
-      }
+      // DNS labels are ASCII (RFC 1035); internationalized labels appear as A-labels.
+      final char c = Ascii.toUpper(domain.charAt(start + i));
       final char t = upper.charAt(i);
       if (c != t) {
         return c < t ? -1 : 1;

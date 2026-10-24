@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts grouped United States Social Security number and Individual Taxpayer
@@ -116,7 +117,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
     ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i + FORM_LENGTH <= text.length(); i++) {
-      if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
         continue;
       }
       final char separator = Boundaries.separatorKind(text.charAt(i + AREA_DIGITS));
@@ -184,7 +185,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
    */
   private boolean digitsAt(CharSequence text, int start, int length) {
     for (int i = start; i < start + length; i++) {
-      if (!Ascii.isDigit(text.charAt(i))) {
+      if (!StringUtil.isAsciiDigit(text.charAt(i))) {
         return false;
       }
     }
@@ -222,6 +223,6 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
       return true;
     }
     final char next = text.charAt(end);
-    return (next != '.' && next != ',' && next != '-') || !Ascii.isDigit(text.charAt(end + 1));
+    return (next != '.' && next != ',' && next != '-') || !StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 }

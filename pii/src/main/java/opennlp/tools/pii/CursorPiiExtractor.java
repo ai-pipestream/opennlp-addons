@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * A deterministic {@link PiiExtractor}: forward scans over the text, no regular
@@ -278,8 +279,8 @@ public final class CursorPiiExtractor implements PiiExtractor {
           || (i > 0 && Character.isLetterOrDigit(Character.codePointBefore(text, i)))
           || i + 3 >= text.length()
           || !Ascii.isUpper(text.charAt(i + 1))
-          || !Ascii.isDigit(text.charAt(i + 2))
-          || !Ascii.isDigit(text.charAt(i + 3))) {
+          || !StringUtil.isAsciiDigit(text.charAt(i + 2))
+          || !StringUtil.isAsciiDigit(text.charAt(i + 3))) {
         continue;
       }
       final StringBuilder compact = new StringBuilder();
@@ -287,11 +288,11 @@ public final class CursorPiiExtractor implements PiiExtractor {
       int p = i;
       while (p < text.length() && compact.length() <= IBAN_MAX_LENGTH) {
         final char c = text.charAt(p);
-        if (Ascii.isUpper(c) || Ascii.isDigit(c)) {
+        if (Ascii.isUpper(c) || StringUtil.isAsciiDigit(c)) {
           compact.append(c);
           p++;
         } else if (Boundaries.isGroupSpace(c) && p + 1 < text.length()
-            && (Ascii.isUpper(text.charAt(p + 1)) || Ascii.isDigit(text.charAt(p + 1)))) {
+            && (Ascii.isUpper(text.charAt(p + 1)) || StringUtil.isAsciiDigit(text.charAt(p + 1)))) {
           groupEnds.add(new int[] {p, compact.length()});
           p++;
         } else {
@@ -340,7 +341,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       int p = i;
       while (p < text.length() && digits.length() <= CARD_MAX_DIGITS) {
         final char c = text.charAt(p);
-        if (Ascii.isDigit(c)) {
+        if (StringUtil.isAsciiDigit(c)) {
           digits.append(c);
           lastDigit = p;
           previousSeparator = false;
@@ -386,7 +387,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       final char c = text.charAt(i);
       final boolean plus = c == '+';
       // Adjacent phones may start at the preceding phone's exclusive end.
-      if ((!plus && !Ascii.isDigit(c) && c != '(')
+      if ((!plus && !StringUtil.isAsciiDigit(c) && c != '(')
           || (i != lastEnd && !Boundaries.onNumberStart(text, i))
           || (i > 0 && text.charAt(i - 1) == '+')) {
         continue;
@@ -404,8 +405,8 @@ public final class CursorPiiExtractor implements PiiExtractor {
       int p = plus ? i + 1 : i;
       while (p < text.length() && digits <= PHONE_MAX_DIGITS) {
         final char ch = text.charAt(p);
-        if (Ascii.isDigit(ch)) {
-          if (digits > 0 && p > i && !Ascii.isDigit(text.charAt(p - 1))) {
+        if (StringUtil.isAsciiDigit(ch)) {
+          if (digits > 0 && p > i && !StringUtil.isAsciiDigit(text.charAt(p - 1))) {
             separated = true;
           }
           digits++;
@@ -486,7 +487,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       return false;
     }
     final char next = text.charAt(end);
-    return (next == '.' || next == ':') && Ascii.isDigit(text.charAt(end + 1));
+    return (next == '.' || next == ':') && StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 
   /**
@@ -503,7 +504,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
     int remainder = 0;
     for (int i = 0; i < length; i++) {
       final char c = compact.charAt((i + IBAN_ROTATION) % length);
-      if (Ascii.isDigit(c)) {
+      if (StringUtil.isAsciiDigit(c)) {
         remainder = (remainder * 10 + (c - '0')) % IBAN_MODULUS;
       } else {
         remainder = (remainder * 100 + (c - 'A' + 10)) % IBAN_MODULUS;
@@ -519,7 +520,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @return {@code true} for ASCII letters, digits, and {@code . _ % + -}.
    */
   private boolean isLocalChar(char c) {
-    return Ascii.isLetter(c) || Ascii.isDigit(c)
+    return StringUtil.isAsciiLetter(c) || StringUtil.isAsciiDigit(c)
         || c == '.' || c == '_' || c == '%' || c == '+' || c == '-';
   }
 
@@ -530,6 +531,6 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @return {@code true} for ASCII letters, digits, dot, and hyphen.
    */
   private boolean isDomainChar(char c) {
-    return Ascii.isLetter(c) || Ascii.isDigit(c) || c == '.' || c == '-';
+    return StringUtil.isAsciiLetter(c) || StringUtil.isAsciiDigit(c) || c == '.' || c == '-';
   }
 }

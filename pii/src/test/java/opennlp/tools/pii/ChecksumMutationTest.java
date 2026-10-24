@@ -22,6 +22,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import opennlp.tools.util.StringUtil;
+
 /**
  * Deterministic single-position mutation checks for every checksum family in the PII
  * extractors. These tests prove that recognition depends on the checksum, not only on a
@@ -45,7 +47,7 @@ public class ChecksumMutationTest {
         new CursorPiiExtractor(Set.of(PiiMention.TYPE_IBAN));
     final String value = "DE89370400440532013000";
     for (int i = 0; i < value.length(); i++) {
-      final char replacement = Ascii.isDigit(value.charAt(i))
+      final char replacement = StringUtil.isAsciiDigit(value.charAt(i))
           ? nextDigit(value.charAt(i)) : nextUpper(value.charAt(i));
       assertRejected(extractor, PiiMention.TYPE_IBAN, replace(value, i, replacement));
     }
@@ -174,7 +176,7 @@ public class ChecksumMutationTest {
    * @return A different hexadecimal digit.
    */
   private char nextHex(char c) {
-    if (Ascii.isDigit(c)) {
+    if (StringUtil.isAsciiDigit(c)) {
       return nextDigit(c);
     }
     if (c == 'f') {

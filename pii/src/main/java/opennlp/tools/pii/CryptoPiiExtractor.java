@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Extracts Bitcoin and Ethereum address candidates. This detector is opt-in.
@@ -159,7 +160,7 @@ public final class CryptoPiiExtractor implements PiiExtractor {
       } else if (first == 'b' || first == 'B') {
         end = segwitEnd(text, i);
         if (end > 0) {
-          normalized = Ascii.toLower(text.subSequence(i, end));
+          normalized = StringUtil.toLowerCase(text.subSequence(i, end));
         }
       }
       if (end < 0) {
@@ -230,7 +231,7 @@ public final class CryptoPiiExtractor implements PiiExtractor {
     boolean lower = false;
     for (int i = start; i < end; i++) {
       upper |= Ascii.isUpper(text.charAt(i));
-      lower |= Ascii.isLower(text.charAt(i));
+      lower |= StringUtil.isAsciiLowerCase(text.charAt(i));
     }
     return upper && lower;
   }
