@@ -76,12 +76,9 @@ public class AssetFalsePositiveTest {
   /** The corpus is not green because the new transport detectors are silent. */
   @Test
   void testControlTextStillFindsEachNewEncodingFamily() {
-    final String header = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"HS256\"}".getBytes(StandardCharsets.UTF_8));
-    final String claims = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"sub\":\"123\"}".getBytes(StandardCharsets.UTF_8));
-    final String signature = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        new byte[32]);
+    final String header = AssetTestSupport.segment("{\"alg\":\"HS256\"}");
+    final String claims = AssetTestSupport.segment("{\"sub\":\"123\"}");
+    final String signature = AssetTestSupport.encode(new byte[32], "url");
     final String pemBody = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII))
         .encodeToString(new byte[96]);
     final String control = header + "." + claims + "." + signature + "\n"

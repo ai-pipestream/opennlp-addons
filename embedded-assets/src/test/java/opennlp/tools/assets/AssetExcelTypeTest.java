@@ -144,7 +144,7 @@ public class AssetExcelTypeTest {
    * @param type The document type.
    * @param unused The value for unused fields.
    * @return A 32-byte header fixture.
-   * @throws IllegalArgumentException If the version is unsupported.
+   * @throws IllegalArgumentException Thrown if the version is unsupported.
    * @see <a href="https://www.openoffice.org/sc/excelfileformat.pdf#page=135">
    *     OpenOffice Excel file format reference, BOF records</a>
    */

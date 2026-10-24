@@ -228,7 +228,7 @@ class AssetDwfHeaderTest {
    * A drawing header inside a ZIP entry does not change the archive's detected type.
    *
    * @param transport The payload encoding.
-   * @throws IOException If the in-memory archive cannot be written.
+   * @throws IOException Thrown if the in-memory archive cannot be written.
    */
   @ParameterizedTest
   @MethodSource("transports")

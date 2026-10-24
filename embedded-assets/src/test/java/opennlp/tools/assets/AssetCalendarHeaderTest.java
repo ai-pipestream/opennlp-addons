@@ -108,7 +108,7 @@ class AssetCalendarHeaderTest {
     final byte[] bytes = (IDENTIFIER + CRLF + BODY).getBytes(StandardCharsets.US_ASCII);
     bytes[at] = (byte) value;
     AssetTestSupport.assertUnrecognized(detector, bytes);
-    assertEquals(List.of(), detector.detect(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)));
+    assertEquals(List.of(), detector.detect(AssetTestSupport.encode(bytes, "url")));
   }
 
   /**

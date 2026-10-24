@@ -46,7 +46,7 @@ class Base64PayloadInputStreamTest {
    * @param length The original byte count.
    * @param transport The base64 alphabet and wrapping.
    * @param limit The maximum decoded byte count.
-   * @throws IOException If the inherited bulk-read operation fails.
+   * @throws IOException Thrown if the inherited bulk-read operation fails.
    */
   @ParameterizedTest
   @MethodSource("payloads")

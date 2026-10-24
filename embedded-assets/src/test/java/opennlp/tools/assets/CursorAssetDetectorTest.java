@@ -163,7 +163,7 @@ public class CursorAssetDetectorTest {
     content.writeBytes(png(8, 9));
     content.writeBytes(new byte[] {(byte) 0xFB, (byte) 0xFF, (byte) 0xFF});
     final byte[] bytes = content.toByteArray();
-    final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    final String encoded = AssetTestSupport.encode(bytes, "url");
     assertTrue(encoded.indexOf('-') >= 0 || encoded.indexOf('_') >= 0);
 
     final List<EmbeddedAsset> assets = detector.detect(embed(encoded));
@@ -228,12 +228,9 @@ public class CursorAssetDetectorTest {
         .getBytes(StandardCharsets.UTF_8);
     final byte[] claims = "{\"sub\":\"1234567890\",\"admin\":true}"
         .getBytes(StandardCharsets.UTF_8);
-    final String encodedHeader = Base64.getUrlEncoder().withoutPadding()
-        .encodeToString(header);
-    final String encodedClaims = Base64.getUrlEncoder().withoutPadding()
-        .encodeToString(claims);
-    final String signature = Base64.getUrlEncoder().withoutPadding()
-        .encodeToString(new byte[32]);
+    final String encodedHeader = AssetTestSupport.encode(header, "url");
+    final String encodedClaims = AssetTestSupport.encode(claims, "url");
+    final String signature = AssetTestSupport.encode(new byte[32], "url");
     final String token = encodedHeader + "." + encodedClaims + "." + signature;
     final String text = "token=" + token + ";";
 
@@ -252,10 +249,8 @@ public class CursorAssetDetectorTest {
   /** RFC 7519 unsecured JWTs use {@code alg=none} and an empty signature segment. */
   @Test
   void testUnsecuredJsonWebToken() {
-    final String header = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
-    final String claims = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"sub\":\"123\"}".getBytes(StandardCharsets.UTF_8));
+    final String header = AssetTestSupport.segment("{\"alg\":\"none\"}");
+    final String claims = AssetTestSupport.segment("{\"sub\":\"123\"}");
     final String token = header + "." + claims + ".";
 
     final List<EmbeddedAsset> assets = detector.detect(token);
@@ -268,22 +263,14 @@ public class CursorAssetDetectorTest {
   /** JWT lookalikes fail closed unless header, claims, signature, and boundaries agree. */
   @Test
   void testJsonWebTokenNearMisses() {
-    final String header = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
-    final String validHeader = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"HS256\"}".getBytes(StandardCharsets.UTF_8));
-    final String claims = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"sub\":\"123\"}".getBytes(StandardCharsets.UTF_8));
-    final String notJson = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "plain text".getBytes(StandardCharsets.UTF_8));
-    final String signature = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        new byte[32]);
-    final String noneHeader = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
-    final String malformedHeader = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"HS256\",}".getBytes(StandardCharsets.UTF_8));
-    final String emptyAlgorithm = Base64.getUrlEncoder().withoutPadding().encodeToString(
-        "{\"alg\":\"\"}".getBytes(StandardCharsets.UTF_8));
+    final String header = AssetTestSupport.segment("{\"typ\":\"JWT\"}");
+    final String validHeader = AssetTestSupport.segment("{\"alg\":\"HS256\"}");
+    final String claims = AssetTestSupport.segment("{\"sub\":\"123\"}");
+    final String notJson = AssetTestSupport.segment("plain text");
+    final String signature = AssetTestSupport.encode(new byte[32], "url");
+    final String noneHeader = AssetTestSupport.segment("{\"alg\":\"none\"}");
+    final String malformedHeader = AssetTestSupport.segment("{\"alg\":\"HS256\",}");
+    final String emptyAlgorithm = AssetTestSupport.segment("{\"alg\":\"\"}");
 
     assertTrue(detector.detect(header + "." + claims + "." + signature).isEmpty());
     assertTrue(detector.detect(validHeader + "." + notJson + "." + signature).isEmpty());

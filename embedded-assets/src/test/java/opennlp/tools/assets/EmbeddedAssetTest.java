@@ -203,22 +203,43 @@ public class EmbeddedAssetTest {
   @Test
   void testDecodeAcceptsUnpaddedBase64Url() {
     final byte[] bytes = {(byte) 0xFB, (byte) 0xFF, (byte) 0xFF};
-    final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    final String encoded = AssetTestSupport.encode(bytes, "url");
     final EmbeddedAsset asset = new EmbeddedAsset(new Span(0, encoded.length()),
         new Span(0, encoded.length()), "bin", "application/octet-stream", 3, -1, -1);
 
     assertArrayEquals(bytes, asset.decode(encoded));
   }
 
-  /** A payload cannot combine the standard-only and URL-only alphabet characters. */
-  @Test
-  void testDecodeRejectsMixedBase64Alphabets() {
-    final EmbeddedAsset asset = new EmbeddedAsset(new Span(0, 4), new Span(0, 4),
+  /**
+   * The payload characters the decoder rejects, each with its documented message.
+   *
+   * @return The payload text and the expected message.
+   */
+  private static Stream<Arguments> rejectedPayloads() {
+    return Stream.of(
+        Arguments.of("+_AA", "payload mixes base64 and base64url alphabets"),
+        Arguments.of("-_\r\nAA", "wrapped base64url payloads are not supported"),
+        Arguments.of("AA A", "payload contains a non-base64 character"),
+        Arguments.of("AA\u00e9A", "payload contains a non-base64 character"));
+  }
+
+  /**
+   * Mixed alphabets, a wrapped base64url payload and characters outside both alphabets
+   * are rejected before the JDK decoder runs.
+   *
+   * @param payload The payload text, which fills the asset's payload span.
+   * @param message The expected message.
+   */
+  @ParameterizedTest
+  @MethodSource("rejectedPayloads")
+  void testDecodeRejectsPayloadsOutsideTheContract(String payload, String message) {
+    final Span span = new Span(0, payload.length());
+    final EmbeddedAsset asset = new EmbeddedAsset(span, span,
         "bin", "application/octet-stream", 3, -1, -1);
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> asset.decode("+_AA"));
+        () -> asset.decode(payload));
 
-    assertEquals("payload mixes base64 and base64url alphabets", e.getMessage());
+    assertEquals(message, e.getMessage());
   }
 }

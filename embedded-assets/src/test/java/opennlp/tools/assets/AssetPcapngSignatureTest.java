@@ -175,7 +175,7 @@ public class AssetPcapngSignatureTest {
    *
    * @param bytes The input bytes.
    * @param transport The encoding to use.
-   * @throws IllegalArgumentException If the transport is unsupported.
+   * @throws IllegalArgumentException Thrown if the transport is unsupported.
    */
   private void assertIdentified(byte[] bytes, String transport) {
     AssetTestSupport.assertIdentified(detector, bytes, FORMAT, MEDIA_TYPE, transport);

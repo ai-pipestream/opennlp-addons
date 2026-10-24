@@ -93,8 +93,8 @@ class AssetFormatVariantsTest {
    * A complete A-law AU file written and read by Java Sound is detected.
    *
    * @param transport The payload encoding.
-   * @throws IOException If the in-memory audio file cannot be written or read.
-   * @throws UnsupportedAudioFileException If Java Sound rejects its generated AU file.
+   * @throws IOException Thrown if the in-memory audio file cannot be written or read.
+   * @throws UnsupportedAudioFileException Thrown if Java Sound rejects its generated AU file.
    */
   @ParameterizedTest
   @MethodSource("transports")

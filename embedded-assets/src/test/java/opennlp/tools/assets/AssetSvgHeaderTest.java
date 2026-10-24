@@ -205,7 +205,7 @@ class AssetSvgHeaderTest {
   /**
    * DTD and stylesheet references do not trigger network requests.
    *
-   * @throws Exception If the local HTTP fixture cannot be started or stopped.
+   * @throws Exception Thrown if the local HTTP fixture cannot be started or stopped.
    */
   @Test
   void testNoExternalRequests() throws Exception {
@@ -238,7 +238,7 @@ class AssetSvgHeaderTest {
    * External declarations cannot supply the namespace used for recognition.
    *
    * @param directory The temporary fixture directory.
-   * @throws IOException If the original DTD fixture cannot be written.
+   * @throws IOException Thrown if the original DTD fixture cannot be written.
    */
   @Test
   void testExternalNamespace(@TempDir Path directory) throws IOException {
@@ -259,7 +259,7 @@ class AssetSvgHeaderTest {
   /**
    * A shared detector uses independent XML readers for concurrent requests.
    *
-   * @throws Exception If a worker fails or does not complete.
+   * @throws Exception Thrown if a worker fails or does not complete.
    */
   @Test
   void testConcurrentDetection() throws Exception {

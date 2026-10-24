@@ -96,12 +96,22 @@ final class AssetTestSupport {
   }
 
   /**
+   * Encodes UTF-8 text as one unpadded base64url segment, the form of a JWT part.
+   *
+   * @param text The text, usually a JSON object.
+   * @return The encoded segment.
+   */
+  static String segment(String text) {
+    return encode(text.getBytes(StandardCharsets.UTF_8), "url");
+  }
+
+  /**
    * Encodes a fixture with the selected transport.
    *
    * @param bytes The fixture.
    * @param transport The transport name.
    * @return The encoded text, including the data-URI prefix when requested.
-   * @throws IllegalArgumentException If the transport is unsupported.
+   * @throws IllegalArgumentException Thrown if the transport is unsupported.
    */
   static String encode(byte[] bytes, String transport) {
     return switch (transport) {
@@ -122,7 +132,7 @@ final class AssetTestSupport {
    * @param format The expected format name.
    * @param mediaType The expected media type.
    * @param transport The encoding to use.
-   * @throws IllegalArgumentException If the transport is unsupported.
+   * @throws IllegalArgumentException Thrown if the transport is unsupported.
    */
   static void assertIdentified(AssetDetector detector, byte[] bytes, String format,
                               String mediaType, String transport) {

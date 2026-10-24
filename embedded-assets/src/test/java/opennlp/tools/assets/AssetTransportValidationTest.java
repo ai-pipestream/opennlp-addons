@@ -37,10 +37,8 @@ public class AssetTransportValidationTest {
 
   private static final String PDF = Base64.getEncoder().encodeToString(
       ("%PDF-1.7" + "a".repeat(40)).getBytes(StandardCharsets.US_ASCII));
-  private static final String JWT_HEADER = Base64.getUrlEncoder().withoutPadding()
-      .encodeToString("{\"alg\":\"HS256\"}".getBytes(StandardCharsets.UTF_8));
-  private static final String JWT_CLAIMS = Base64.getUrlEncoder().withoutPadding()
-      .encodeToString("{\"sub\":\"123\"}".getBytes(StandardCharsets.UTF_8));
+  private static final String JWT_HEADER = AssetTestSupport.segment("{\"alg\":\"HS256\"}");
+  private static final String JWT_CLAIMS = AssetTestSupport.segment("{\"sub\":\"123\"}");
   private static final String DATA_PREFIX = "data:application/pdf;base64,";
 
   private final AssetDetector detector = new CursorAssetDetector();
