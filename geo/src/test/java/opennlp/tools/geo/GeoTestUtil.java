@@ -134,6 +134,25 @@ public class GeoTestUtil {
   }
 
   /**
+   * Builds a minimal city entry carrying a Who's On First identifier, the attribute the
+   * hierarchy annotator joins on by default.
+   *
+   * @param name The place name.
+   * @param countryCode The ISO 3166-1 alpha-2 country code.
+   * @param wofId The Who's On First identifier, or {@code null} for an entry without the
+   *              attribute.
+   * @return The entry. Never {@code null}.
+   */
+  public static GazetteerEntry wofEntry(String name, String countryCode, String wofId) {
+    final Map<String, AttributeValue> attributes = wofId == null ? Map.of()
+        : Map.of(GazetteerEntry.ATTRIBUTE_KEY_WHOSONFIRST,
+            new AttributeValue(wofId, "test", "fixture"));
+    return new GazetteerEntry("test", name, name, List.of(), new GeoPoint(0.0, 0.0),
+        countryCode, List.of(), FIXTURE_POPULATION, GazetteerEntry.FEATURE_CLASS_CITY,
+        attributes);
+  }
+
+  /**
    * Builds a document whose entity layer marks each given mention as a location, over
    * the mention's first occurrence in the text.
    *

@@ -19,6 +19,8 @@ package opennlp.tools.geo;
 
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * The containment chain of one resolved place: its enclosing places from the nearest
  * outward, so a neighborhood expands to its borough, city, region, and country in
@@ -38,9 +40,7 @@ public record ContainmentChain(List<PlaceAncestor> ancestors) {
    *         empty, or contains {@code null}.
    */
   public ContainmentChain {
-    if (ancestors == null || ancestors.isEmpty()) {
-      throw new IllegalArgumentException("ancestors must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(ancestors, "ancestors");
     for (final PlaceAncestor ancestor : ancestors) {
       if (ancestor == null) {
         throw new IllegalArgumentException(

@@ -17,18 +17,17 @@
 
 # Geographic hierarchy annotator
 
-This feature expands a resolved location into its administrative containment chain and records that hierarchy in an OpenNLP Document layer.
+`HierarchyAnnotator` expands every geocoded mention into its containment chain:
+the enclosing places from the nearest outward, so a neighbourhood expands to its
+borough, city, region and country. The chain is looked up through a
+`PlaceHierarchy`, such as a `ContainmentSpine` built from a containment table or
+a Who's On First meta CSV, joined on a gazetteer attribute of the resolved entry
+(by default the Who's On First identifier). The result is recorded as a
+`ContainmentChain` under the `HierarchyAnnotator.CONTAINMENT` layer on the
+original mention span.
 
-## Human definition
-
-It explains that a city belongs to a state or province, which belongs to a country, which belongs to a continent.
-
-## Prior art and comparable products
-
-- [GeoNames hierarchy services](https://www.geonames.org/export/place-hierarchy.html) return the administrative ancestors and children of a place.
-
-## Addon module
+## Module
 
 `org.apache.opennlp.addons:geo` provides the hierarchy, geocoding, and gazetteer
-APIs. Core supplies the Document container and typed layers. Run the geocoding
+APIs. Core supplies the `Document` container and typed layers. Run the geocoding
 stage before hierarchy annotation so resolved locations are available.

@@ -25,6 +25,7 @@ import java.util.Set;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
+import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
 import opennlp.tools.geo.AttributeValue;
@@ -34,8 +35,8 @@ import opennlp.tools.geo.GeoResolution;
 import opennlp.tools.geo.GeocodeAnnotator;
 import opennlp.tools.geo.PlaceAncestor;
 import opennlp.tools.geo.PlaceHierarchy;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * Adds a {@link ContainmentChain} to each expandable geocoded mention, preserving
@@ -55,7 +56,7 @@ import opennlp.tools.util.StringUtil;
  *
  * @since 3.0.0
  */
-public class HierarchyAnnotator implements DocumentAnnotator {
+public final class HierarchyAnnotator implements DocumentAnnotator {
 
   /** Containment chains on their resolved mention spans. */
   public static final LayerKey<ContainmentChain> CONTAINMENT =
@@ -84,45 +85,37 @@ public class HierarchyAnnotator implements DocumentAnnotator {
    *         {@code attributeKey} is {@code null} or blank.
    */
   public HierarchyAnnotator(PlaceHierarchy hierarchy, String attributeKey) {
-    if (hierarchy == null) {
-      throw new IllegalArgumentException("hierarchy must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(attributeKey)) {
-      throw new IllegalArgumentException("attributeKey must not be null or blank");
-    }
-    this.hierarchy = hierarchy;
-    this.attributeKey = attributeKey;
+    this.hierarchy = ParamChecks.requireNonNullArg(hierarchy, "hierarchy");
+    this.attributeKey = ParamChecks.requireNonBlank(attributeKey, "attributeKey");
   }
 
   /**
    * {@inheritDoc}
    *
-   * @throws IllegalArgumentException If the containment layer already exists, location
-   *         and resolution offsets do not match, or the hierarchy returns a null list,
-   *         a null ancestor or the queried place as an ancestor.
+   * @throws IllegalArgumentException Thrown if {@code document} is {@code null}, lacks the
+   *         locations layer or already carries the containment layer, location and
+   *         resolution offsets do not match, or the hierarchy returns a null list, a null
+   *         ancestor or the queried place as an ancestor.
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
-    if (!document.layers().contains(GeocodeAnnotator.LOCATIONS)) {
-      throw new IllegalArgumentException("document lacks the required layer "
-          + GeocodeAnnotator.LOCATIONS);
-    }
+    DocumentAnnotators.requireLayers(document, GeocodeAnnotator.LOCATIONS);
     if (document.layers().contains(CONTAINMENT)) {
-      throw new IllegalArgumentException("document already contains layer " + CONTAINMENT);
+      throw new IllegalArgumentException("layer is already present: " + CONTAINMENT);
     }
     final List<Annotation<GeoResolution>> locations = document.get(GeocodeAnnotator.LOCATIONS);
     for (final Annotation<GeoResolution> location : locations) {
-      if (offsets(location.span()) != offsets(location.value().mention())) {
+      final Span mention = location.value().mention();
+      if (location.span().getStart() != mention.getStart()
+          || location.span().getEnd() != mention.getEnd()) {
         throw new IllegalArgumentException("location and resolution offsets must match");
       }
     }
     final List<Annotation<ContainmentChain>> chains = new ArrayList<>();
-    final Set<Long> expanded = new HashSet<>();
+    // Untyped copies of the spans group the candidates of one mention whatever their types.
+    final Set<Span> expanded = new HashSet<>();
     for (final Annotation<GeoResolution> location : locations) {
-      if (!expanded.add(offsets(location.span()))) {
+      if (!expanded.add(new Span(location.span().getStart(), location.span().getEnd()))) {
         continue;
       }
       final AttributeValue joinId =
@@ -146,16 +139,6 @@ public class HierarchyAnnotator implements DocumentAnnotator {
       }
     }
     return document.with(CONTAINMENT, chains);
-  }
-
-  /**
-   * Combines the start and end offsets without the span type.
-   *
-   * @param span The mention span.
-   * @return The combined offsets.
-   */
-  private long offsets(Span span) {
-    return ((long) span.getStart() << 32) | span.getEnd();
   }
 
   /** {@inheritDoc} */

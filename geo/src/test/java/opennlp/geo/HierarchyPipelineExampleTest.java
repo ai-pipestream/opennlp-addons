@@ -34,6 +34,7 @@ import opennlp.tools.geo.ContainmentChain;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.geo.GeoResolution;
+import opennlp.tools.geo.GeoTestUtil;
 import opennlp.tools.geo.GeocodeAnnotator;
 import opennlp.tools.geo.Geocoder;
 import opennlp.tools.geo.PlaceAncestor;
@@ -67,23 +68,6 @@ public class HierarchyPipelineExampleTest {
   }
 
   /**
-   * Creates an example entry with an optional Who's On First join identifier.
-   *
-   * @param name The place name. Must not be {@code null} or empty.
-   * @param wofId The Who's On First identifier, or {@code null} for an entry without
-   *              the join attribute.
-   * @return The entry. Never {@code null}.
-   */
-  private GazetteerEntry entry(String name, String wofId) {
-    final Map<String, AttributeValue> attributes = wofId == null ? Map.of()
-        : Map.of(GazetteerEntry.ATTRIBUTE_KEY_WHOSONFIRST,
-            new AttributeValue(wofId, "test", "fixture"));
-    return new GazetteerEntry("example", name, name, List.of(),
-        new GeoPoint(48.859, 2.361), "FR", List.of(), 0,
-        GazetteerEntry.FEATURE_CLASS_CITY, attributes);
-  }
-
-  /**
    * A resolved mention gets the parent places in order on the original span.
    */
   @Test
@@ -93,7 +77,7 @@ public class HierarchyPipelineExampleTest {
     Assertions.assertEquals("Le Marais", mention.getCoveredText(text).toString());
 
     final Geocoder geocoder = new PopulationPriorGeocoder(
-        InMemoryGazetteer.fromEntries(List.of(entry("Le Marais", "101"))));
+        InMemoryGazetteer.fromEntries(List.of(GeoTestUtil.wofEntry("Le Marais", "FR", "101"))));
     final Document document = Document.of(text)
         .with(Layers.ENTITIES, List.of(new Annotation<>(mention, "location")));
 
@@ -129,7 +113,7 @@ public class HierarchyPipelineExampleTest {
     Assertions.assertEquals("Le Marais", resolvable.getCoveredText(text).toString());
 
     final Geocoder geocoder = new PopulationPriorGeocoder(
-        InMemoryGazetteer.fromEntries(List.of(entry("Le Marais", "101"))));
+        InMemoryGazetteer.fromEntries(List.of(GeoTestUtil.wofEntry("Le Marais", "FR", "101"))));
     final Document document = Document.of(text)
         .with(Layers.ENTITIES, List.of(
             new Annotation<>(unresolvable, "location"),

@@ -34,6 +34,7 @@ import opennlp.tools.geo.ContainmentChain;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.geo.GeoResolution;
+import opennlp.tools.geo.GeoTestUtil;
 import opennlp.tools.geo.GeocodeAnnotator;
 import opennlp.tools.geo.PlaceAncestor;
 import opennlp.tools.util.Span;
@@ -43,21 +44,6 @@ import opennlp.tools.util.WhitespaceMode;
  * Tests containment chains from pre-built location layers.
  */
 public class HierarchyAnnotatorTest {
-
-  /**
-   * Creates a place record with an optional join identifier.
-   *
-   * @param name The place name.
-   * @param wofId The join identifier, or null to omit the attribute.
-   * @return The place record.
-   */
-  private GazetteerEntry entry(String name, String wofId) {
-    final Map<String, AttributeValue> attributes = wofId == null ? Map.of()
-        : Map.of(GazetteerEntry.ATTRIBUTE_KEY_WHOSONFIRST,
-            new AttributeValue(wofId, "test", "fixture"));
-    return new GazetteerEntry("test", name, name, List.of(), new GeoPoint(0.0, 0.0),
-        "US", List.of(), 1000, GazetteerEntry.FEATURE_CLASS_CITY, attributes);
-  }
 
   /** @return The neighbourhood, borough and city used by the tests. */
   private ContainmentSpine spine() {
@@ -75,7 +61,7 @@ public class HierarchyAnnotatorTest {
     final Span mention = new Span(17, 27);
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(new Annotation<>(mention,
-            new GeoResolution(mention, entry("Park Slope", "85865587"), 0.9))));
+            new GeoResolution(mention, GeoTestUtil.wofEntry("Park Slope", "US", "85865587"), 0.9))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
@@ -94,9 +80,9 @@ public class HierarchyAnnotatorTest {
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(
             new Annotation<>(new Span(0, 8),
-                new GeoResolution(new Span(0, 8), entry("Atlantis", null), 0.5)),
+                new GeoResolution(new Span(0, 8), GeoTestUtil.wofEntry("Atlantis", "US", null), 0.5)),
             new Annotation<>(new Span(13, 21),
-                new GeoResolution(new Span(13, 21), entry("Brooklyn", "77"), 0.5))));
+                new GeoResolution(new Span(13, 21), GeoTestUtil.wofEntry("Brooklyn", "US", "77"), 0.5))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
@@ -110,7 +96,7 @@ public class HierarchyAnnotatorTest {
     final Span mention = new Span(0, 8);
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(new Annotation<>(mention,
-            new GeoResolution(mention, entry("New York", "85977539"), 0.9))));
+            new GeoResolution(mention, GeoTestUtil.wofEntry("New York", "US", "85977539"), 0.9))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
@@ -127,9 +113,9 @@ public class HierarchyAnnotatorTest {
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(
             new Annotation<>(first,
-                new GeoResolution(first, entry("Park Slope", "85865587"), 0.9)),
+                new GeoResolution(first, GeoTestUtil.wofEntry("Park Slope", "US", "85865587"), 0.9)),
             new Annotation<>(second,
-                new GeoResolution(second, entry("Park Slope", "85865587"), 0.9))));
+                new GeoResolution(second, GeoTestUtil.wofEntry("Park Slope", "US", "85865587"), 0.9))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
@@ -159,9 +145,9 @@ public class HierarchyAnnotatorTest {
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(
             new Annotation<>(mention,
-                new GeoResolution(mention, entry("Paris", "101"), 0.7)),
+                new GeoResolution(mention, GeoTestUtil.wofEntry("Paris", "US", "101"), 0.7)),
             new Annotation<>(mention,
-                new GeoResolution(mention, entry("Paris", "201"), 0.3))));
+                new GeoResolution(mention, GeoTestUtil.wofEntry("Paris", "US", "201"), 0.3))));
 
     final Document annotated = new HierarchyAnnotator(spine).annotate(document);
 
@@ -182,9 +168,9 @@ public class HierarchyAnnotatorTest {
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(
             new Annotation<>(mention,
-                new GeoResolution(mention, entry("Paris", null), 0.7)),
+                new GeoResolution(mention, GeoTestUtil.wofEntry("Paris", "US", null), 0.7)),
             new Annotation<>(mention,
-                new GeoResolution(mention, entry("Paris", "85865587"), 0.3))));
+                new GeoResolution(mention, GeoTestUtil.wofEntry("Paris", "US", "85865587"), 0.3))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
@@ -277,9 +263,9 @@ public class HierarchyAnnotatorTest {
     final Document document = Document.of(text)
         .with(GeocodeAnnotator.LOCATIONS, List.of(
             new Annotation<>(typed,
-                new GeoResolution(typed, entry("Park Slope", "85865587"), 0.9)),
+                new GeoResolution(typed, GeoTestUtil.wofEntry("Park Slope", "US", "85865587"), 0.9)),
             new Annotation<>(untyped,
-                new GeoResolution(untyped, entry("Park Slope", "421205765"), 0.4))));
+                new GeoResolution(untyped, GeoTestUtil.wofEntry("Park Slope", "US", "421205765"), 0.4))));
 
     final Document annotated = new HierarchyAnnotator(spine()).annotate(document);
 
