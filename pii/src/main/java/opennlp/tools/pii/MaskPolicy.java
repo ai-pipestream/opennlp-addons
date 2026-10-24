@@ -17,6 +17,8 @@
 
 package opennlp.tools.pii;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Configures how {@link Masker} replaces characters within a span.
  * {@link #of(char)} masks the complete span. {@link #keepingFormat()} preserves
@@ -85,9 +87,7 @@ public final class MaskPolicy {
    * @throws IllegalArgumentException Thrown if {@code count} is negative.
    */
   public MaskPolicy keepingTrailing(int count) {
-    if (count < 0) {
-      throw new IllegalArgumentException("count must not be negative");
-    }
+    ParamChecks.requireNonNegative(count, "count");
     return new MaskPolicy(mask, keepFormat, count);
   }
 

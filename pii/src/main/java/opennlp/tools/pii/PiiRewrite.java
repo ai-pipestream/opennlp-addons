@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import opennlp.tools.document.Annotation;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -92,15 +93,9 @@ public final class PiiRewrite {
    */
   static PiiRewrite replace(CharSequence text, List<PiiMention> mentions,
       Function<PiiMention, String> labeler) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
-    if (mentions == null) {
-      throw new IllegalArgumentException("mentions must not be null");
-    }
-    if (labeler == null) {
-      throw new IllegalArgumentException("labeler must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
+    ParamChecks.requireNonNullArg(mentions, "mentions");
+    ParamChecks.requireNonNullArg(labeler, "labeler");
     final List<PiiMention> ordered = ordered(text, mentions);
     final int count = ordered.size();
     final int[] originalStarts = new int[count];
@@ -245,9 +240,7 @@ public final class PiiRewrite {
    *         text.
    */
   public Span mapSpan(Span span) {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
     final int start = map(span.getStart(), true);
     final int end = span.length() == 0 ? start : Math.max(start, map(span.getEnd(), false));
     return new Span(start, end, span.getType(), span.getProb());
@@ -270,9 +263,7 @@ public final class PiiRewrite {
    *         text.
    */
   public <T> List<Annotation<T>> remap(List<Annotation<T>> annotations) {
-    if (annotations == null) {
-      throw new IllegalArgumentException("annotations must not be null");
-    }
+    ParamChecks.requireNonNullArg(annotations, "annotations");
     final List<Annotation<T>> mapped = new ArrayList<>(annotations.size());
     for (final Annotation<T> annotation : annotations) {
       if (annotation == null) {
@@ -294,7 +285,7 @@ public final class PiiRewrite {
    * @param towardsStart Whether an interior offset maps to the label start; false selects
    *                     the exclusive end.
    * @return The output offset.
-   * @throws IndexOutOfBoundsException If the offset is outside the original text.
+   * @throws IndexOutOfBoundsException Thrown if the offset is outside the original text.
    */
   private int map(int offset, boolean towardsStart) {
     if (offset < 0 || offset > originalLength) {

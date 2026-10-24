@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Extracts grouped United States Social Security number and Individual Taxpayer
  * Identification Number candidates. This detector is opt-in.
@@ -94,9 +96,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
    *         contains a null or unrecognized type.
    */
   public UsIdentityPiiExtractor(Set<String> types) {
-    if (types == null || types.isEmpty()) {
-      throw new IllegalArgumentException("types must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(types, "types");
     for (final String type : types) {
       if (type == null || !ALL_TYPES.contains(type)) {
         throw new IllegalArgumentException("types contains an unrecognized type: " + type);
@@ -113,9 +113,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i + FORM_LENGTH <= text.length(); i++) {
       if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {

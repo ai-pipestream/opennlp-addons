@@ -19,6 +19,8 @@ package opennlp.tools.pii;
 
 import java.util.function.Function;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Default masking policies by mention type.
  *
@@ -65,9 +67,7 @@ public final class MaskPolicies {
    *         {@code mask} is a surrogate character.
    */
   public static MaskPolicy forType(String type, char mask) {
-    if (type == null) {
-      throw new IllegalArgumentException("type must not be null");
-    }
+    ParamChecks.requireNonNullArg(type, "type");
     final MaskPolicy whole = MaskPolicy.of(mask);
     return switch (type) {
       case PiiMention.TYPE_CARD, PiiMention.TYPE_IBAN ->

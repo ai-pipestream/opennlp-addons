@@ -20,6 +20,8 @@ package opennlp.tools.pii;
 import java.util.ArrayList;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Extracts ABA routing-number candidates as 9 contiguous ASCII digits.
  *
@@ -66,9 +68,7 @@ public final class BankingPiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i + ROUTING_DIGITS <= text.length(); i++) {
       if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {

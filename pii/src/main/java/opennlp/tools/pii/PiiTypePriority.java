@@ -20,6 +20,8 @@ package opennlp.tools.pii;
 import java.util.HashMap;
 import java.util.Map;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Sort order for candidates with equal start and end offsets.
  *
@@ -103,9 +105,7 @@ public final class PiiTypePriority {
    * @throws IllegalArgumentException Thrown if {@code type} is {@code null}.
    */
   public static int rank(String type) {
-    if (type == null) {
-      throw new IllegalArgumentException("type must not be null");
-    }
+    ParamChecks.requireNonNullArg(type, "type");
     return RANKS.getOrDefault(type, UNRANKED);
   }
 }

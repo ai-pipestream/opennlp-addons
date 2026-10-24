@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Combines PII extractors into a result in text order, retaining overlapping mentions.
  *
@@ -68,9 +70,7 @@ public final class CompositePiiExtractor implements PiiExtractor {
    *         empty, or contains {@code null}.
    */
   public CompositePiiExtractor(List<PiiExtractor> extractors) {
-    if (extractors == null || extractors.isEmpty()) {
-      throw new IllegalArgumentException("extractors must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(extractors, "extractors");
     for (final PiiExtractor extractor : extractors) {
       if (extractor == null) {
         throw new IllegalArgumentException("extractors must not contain null");
@@ -98,9 +98,7 @@ public final class CompositePiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     final Deque<PiiExtractor> pending = new ArrayDeque<>(extractors);
     while (!pending.isEmpty()) {

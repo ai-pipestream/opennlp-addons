@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import opennlp.tools.document.Document;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Replaces PII mentions with numbered labels such as {@code EMAIL-1} and {@code EMAIL-2}.
@@ -76,9 +77,8 @@ public final class Pseudonymizer {
    *         {@code null}.
    */
   public Pseudonymizer(String prefix, String suffix) {
-    if (prefix == null || suffix == null) {
-      throw new IllegalArgumentException("prefix and suffix must not be null");
-    }
+    ParamChecks.requireNonNullArg(prefix, "prefix");
+    ParamChecks.requireNonNullArg(suffix, "suffix");
     this.prefix = prefix;
     this.suffix = suffix;
   }

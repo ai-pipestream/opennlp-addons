@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import opennlp.tools.document.Document;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Reports mention counts, distinct-value counts and sampled HMAC tokens by type.
@@ -102,15 +103,9 @@ public final class PiiAuditReport {
    */
   public static PiiAuditReport of(List<PiiMention> mentions, HmacTokenizer tokenizer,
       int samplesPerType) {
-    if (mentions == null) {
-      throw new IllegalArgumentException("mentions must not be null");
-    }
-    if (tokenizer == null) {
-      throw new IllegalArgumentException("tokenizer must not be null");
-    }
-    if (samplesPerType < 0) {
-      throw new IllegalArgumentException("samplesPerType must not be negative");
-    }
+    ParamChecks.requireNonNullArg(mentions, "mentions");
+    ParamChecks.requireNonNullArg(tokenizer, "tokenizer");
+    ParamChecks.requireNonNegative(samplesPerType, "samplesPerType");
     final Map<String, Integer> counts = new TreeMap<>();
     final Map<String, Set<String>> distinct = new TreeMap<>();
     final Map<String, List<String>> samples = new TreeMap<>();
@@ -205,9 +200,7 @@ public final class PiiAuditReport {
    * @throws IllegalArgumentException Thrown if {@code type} is {@code null}.
    */
   public List<String> samples(String type) {
-    if (type == null) {
-      throw new IllegalArgumentException("type must not be null");
-    }
+    ParamChecks.requireNonNullArg(type, "type");
     return samples.getOrDefault(type, List.of());
   }
 

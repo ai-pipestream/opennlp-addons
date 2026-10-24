@@ -22,6 +22,7 @@ import java.util.List;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Retrieves validated mentions from a document's {@link PiiAnnotator#PII} layer.
@@ -42,9 +43,7 @@ final class PiiLayer {
    *         layer, or contains a mention with offsets that do not match the annotation.
    */
   static List<PiiMention> mentions(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     if (!document.layers().contains(PiiAnnotator.PII)) {
       throw new IllegalArgumentException("document does not carry the "
           + PiiAnnotator.PII.id() + " layer");

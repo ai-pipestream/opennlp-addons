@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Extracts United Kingdom NHS number and German tax identification number candidates.
  * This detector is opt-in.
@@ -97,9 +99,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    *         contains a null or unrecognized type.
    */
   public EuIdentityPiiExtractor(Set<String> types) {
-    if (types == null || types.isEmpty()) {
-      throw new IllegalArgumentException("types must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(types, "types");
     for (final String type : types) {
       if (type == null || !ALL_TYPES.contains(type)) {
         throw new IllegalArgumentException("types contains an unrecognized type: " + type);
@@ -115,9 +115,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     if (types.contains(PiiMention.TYPE_DE_STEUER_ID)) {
       scan(text, hits, STEUER_ID_GROUPS, STEUER_ID_DIGITS, PiiMention.TYPE_DE_STEUER_ID);

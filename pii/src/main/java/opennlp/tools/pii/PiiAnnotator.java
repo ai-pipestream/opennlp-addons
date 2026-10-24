@@ -26,6 +26,7 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Scans document text with a {@link PiiExtractor} and writes one {@link #PII} annotation
@@ -53,9 +54,7 @@ public final class PiiAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code extractor} is {@code null}.
    */
   public PiiAnnotator(PiiExtractor extractor) {
-    if (extractor == null) {
-      throw new IllegalArgumentException("extractor must not be null");
-    }
+    ParamChecks.requireNonNullArg(extractor, "extractor");
     this.extractor = extractor;
   }
 
@@ -69,9 +68,7 @@ public final class PiiAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     final List<Annotation<PiiMention>> mentions = new ArrayList<>();
     for (final PiiMention mention : PiiExtraction.extract(extractor, document.text())) {
       mentions.add(new Annotation<>(mention.span(), mention));

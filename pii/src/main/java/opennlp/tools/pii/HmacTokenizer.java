@@ -24,6 +24,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import opennlp.tools.document.Document;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -91,9 +92,7 @@ public final class HmacTokenizer {
    *         is below 32 bytes, or {@code length} is out of range.
    */
   public HmacTokenizer(byte[] key, int length) {
-    if (key == null) {
-      throw new IllegalArgumentException("key must not be null");
-    }
+    ParamChecks.requireNonNullArg(key, "key");
     if (key.length < MINIMUM_KEY_BYTES) {
       throw new IllegalArgumentException("key must contain at least 32 bytes");
     }
@@ -114,9 +113,7 @@ public final class HmacTokenizer {
    *         type or normalized value contains an unpaired surrogate.
    */
   public String token(PiiMention mention) {
-    if (mention == null) {
-      throw new IllegalArgumentException("mention must not be null");
-    }
+    ParamChecks.requireNonNullArg(mention, "mention");
     return token(mention.type(), mention.normalized());
   }
 
@@ -135,12 +132,8 @@ public final class HmacTokenizer {
    *         {@code value} is {@code null} or empty, or either contains an unpaired surrogate.
    */
   public String token(String type, String value) {
-    if (StringUtil.isUnicodeBlank(type)) {
-      throw new IllegalArgumentException("type must not be null or blank");
-    }
-    if (value == null || value.isEmpty()) {
-      throw new IllegalArgumentException("value must not be null or empty");
-    }
+    ParamChecks.requireNonBlank(type, "type");
+    ParamChecks.requireNonEmpty(value, "value");
     if (hasUnpairedSurrogate(type)) {
       throw new IllegalArgumentException("type must not contain unpaired surrogates");
     }
@@ -193,7 +186,7 @@ public final class HmacTokenizer {
   private boolean hasUnpairedSurrogate(String value) {
     for (int offset = 0; offset < value.length();) {
       final int codePoint = value.codePointAt(offset);
-      if (codePoint >= Character.MIN_SURROGATE && codePoint <= Character.MAX_SURROGATE) {
+      if (StringUtil.isUnpairedSurrogate(codePoint)) {
         return true;
       }
       offset += Character.charCount(codePoint);
@@ -224,7 +217,7 @@ public final class HmacTokenizer {
    *
    * @param message The message to authenticate.
    * @return The 32-byte MAC.
-   * @throws IllegalStateException If the MAC algorithm is unavailable.
+   * @throws IllegalStateException Thrown if the MAC algorithm is unavailable.
    */
   private byte[] mac(byte[] message) {
     try {

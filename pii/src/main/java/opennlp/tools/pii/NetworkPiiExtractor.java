@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Extracts IPv4, IPv6 and 48-bit MAC address candidates. This detector is opt-in.
  *
@@ -102,9 +104,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    *         contains a null or unrecognized type.
    */
   public NetworkPiiExtractor(Set<String> types) {
-    if (types == null || types.isEmpty()) {
-      throw new IllegalArgumentException("types must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(types, "types");
     for (final String type : types) {
       if (type == null || !ALL_TYPES.contains(type)) {
         throw new IllegalArgumentException("types contains an unrecognized type: " + type);
@@ -120,9 +120,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     if (types.contains(PiiMention.TYPE_MAC)) {
       scanMacs(text, hits);

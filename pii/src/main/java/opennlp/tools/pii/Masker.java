@@ -24,6 +24,7 @@ import java.util.function.Function;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.LayerKey;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Masks annotated spans from positional document layers, including
@@ -37,13 +38,8 @@ import opennlp.tools.document.LayerKey;
  */
 public final class Masker {
 
+  /** The message prefix for a layer that has no spans. */
   private static final String POSITIONAL_LAYER_REQUIRED = "layer must be positional: ";
-
-  /** The message for a {@code null} document. */
-  private static final String DOCUMENT_REQUIRED = "document must not be null";
-
-  /** The message for a {@code null} layer. */
-  private static final String LAYER_REQUIRED = "layer must not be null";
 
   /** The message prefix for a layer that the document does not hold. */
   private static final String LAYER_NOT_PRESENT = "layer is not present on the document: ";
@@ -81,9 +77,7 @@ public final class Masker {
    *         document or is document-scoped.
    */
   public static String mask(Document document, LayerKey<?> layer, MaskPolicy policy) {
-    if (layer == null) {
-      throw new IllegalArgumentException(LAYER_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(layer, "layer");
     return mask(document, List.of(layer), policy);
   }
 
@@ -108,15 +102,9 @@ public final class Masker {
    */
   public static <T> String mask(Document document, LayerKey<T> layer,
       Function<? super T, MaskPolicy> policies) {
-    if (document == null) {
-      throw new IllegalArgumentException(DOCUMENT_REQUIRED);
-    }
-    if (layer == null) {
-      throw new IllegalArgumentException(LAYER_REQUIRED);
-    }
-    if (policies == null) {
-      throw new IllegalArgumentException("policies must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
+    ParamChecks.requireNonNullArg(layer, "layer");
+    ParamChecks.requireNonNullArg(policies, "policies");
     if (!document.layers().contains(layer)) {
       throw new IllegalArgumentException(LAYER_NOT_PRESENT + layer);
     }
@@ -171,15 +159,9 @@ public final class Masker {
    */
   public static String mask(Document document, Collection<LayerKey<?>> layers,
       MaskPolicy policy) {
-    if (document == null) {
-      throw new IllegalArgumentException(DOCUMENT_REQUIRED);
-    }
-    if (layers == null || layers.isEmpty()) {
-      throw new IllegalArgumentException("layers must not be null or empty");
-    }
-    if (policy == null) {
-      throw new IllegalArgumentException("policy must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
+    ParamChecks.requireNonEmpty(layers, "layers");
+    ParamChecks.requireNonNullArg(policy, "policy");
     for (final LayerKey<?> layer : layers) {
       if (layer == null) {
         throw new IllegalArgumentException("layers must not contain null");

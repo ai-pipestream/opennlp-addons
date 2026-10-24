@@ -20,6 +20,7 @@ package opennlp.tools.pii;
 import java.util.ArrayList;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -57,9 +58,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
    */
   @Override
   public List<PiiMention> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i < text.length(); i++) {
       if (!Ascii.isDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
