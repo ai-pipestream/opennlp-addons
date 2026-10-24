@@ -30,7 +30,8 @@ import opennlp.tools.util.StringUtil;
  * <p>Accepts 9 ASCII digits, compact or in 3 groups of 3 separated by a single
  * space or hyphen. Both separators must be present and match; any Unicode space
  * separator, such as a no-break space, counts as a space. Candidates must pass the
- * Luhn check and directly follow an ASCII case-insensitive {@code SIN},
+ * Luhn check, which rejects a zero-only value, and directly follow an ASCII
+ * case-insensitive {@code SIN},
  * {@code Social Insurance Number} or {@code Social Insurance No.} label. A label must not
  * continue a Unicode letter or digit. Whitespace and {@code :}, {@code #}, {@code =}
  * or {@code .} may separate the label and value.</p>

@@ -30,11 +30,13 @@ final class Luhn {
   }
 
   /**
-   * Applies the Luhn check to the specified prefix of a digit sequence.
+   * Applies the Luhn check to the specified prefix of a digit sequence. A zero-only
+   * sequence fails although its digit sum is a multiple of 10: no issuer assigns it, and
+   * an all-zero IMEI is the placeholder of a device without one.
    *
    * @param digits The non-null ASCII digits, already validated by the scanner.
    * @param length The number of leading digits to check, at most the sequence length.
-   * @return {@code true} if the checksum passes, including zero-only values.
+   * @return {@code true} if the checksum passes and at least one digit is not zero.
    */
   static boolean valid(CharSequence digits, int length) {
     int sum = 0;
@@ -50,6 +52,7 @@ final class Luhn {
       sum += digit;
       doubled = !doubled;
     }
-    return sum % MODULUS == 0;
+    // Every nonzero digit adds a nonzero term, so a zero sum means a zero-only sequence.
+    return sum > 0 && sum % MODULUS == 0;
   }
 }

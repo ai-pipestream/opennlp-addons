@@ -30,7 +30,8 @@ import opennlp.tools.util.StringUtil;
  * label must not continue a Unicode letter or digit. The candidate must contain
  * 15 ASCII digits and pass the Luhn check specified by
  * <a href="https://imeidb.gsma.com/imei/resources/documents/TS.06-v22.0.pdf">
- * GSMA TS.06</a>. Single spaces or hyphens may separate digit groups, but may not be
+ * GSMA TS.06</a>. A zero-only value, the placeholder of a device without an IMEI, is
+ * rejected. Single spaces or hyphens may separate digit groups, but may not be
  * mixed. Any Unicode space separator, such as a no-break space, counts as a space.</p>
  *
  * <p>This detector is opt-in. Format and checksum validation do not establish that an

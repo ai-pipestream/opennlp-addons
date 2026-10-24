@@ -377,14 +377,16 @@ String masked = Masker.mask(taxpayer, PiiAnnotator.PII, '*');
 					Canadian SINs require <code>SIN</code>, <code>Social Insurance Number</code>
 					or <code>Social Insurance No.</code> immediately before the value.
 					They accept 9 ASCII digits, compact or in three groups of three
-					with matching single spaces or hyphens. Partial groupings are rejected.
+					with matching single spaces or hyphens. Partial groupings and the
+					zero-only value are rejected.
 				</para>
 			</listitem>
 			<listitem>
 				<para>
 					<code>DevicePiiExtractor</code>: 15-digit, Luhn-valid IMEIs that
 					directly follow an <code>IMEI</code> label. Variable-length digit groups
-					may use single spaces or hyphens, but not a mixture of both.
+					may use single spaces or hyphens, but not a mixture of both. The
+					all-zero placeholder of a device without an IMEI is rejected.
 				</para>
 			</listitem>
 		</itemizedlist>

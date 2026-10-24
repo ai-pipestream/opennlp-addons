@@ -208,7 +208,7 @@ class LabeledPiiExtractorTest {
   }
 
   /**
-   * Checks every one-digit increment and retains checksum-only treatment of zero values.
+   * Checks every one-digit increment and the rejection of the zero-only value.
    *
    * @param family The detector family.
    */
@@ -221,10 +221,7 @@ class LabeledPiiExtractorTest {
       changed.setCharAt(index, (char) ('0' + (changed.charAt(index) - '0' + 1) % 10));
       assertNumericForm(family, changed.toString(), false);
     }
-    final String zeros = "0".repeat(family.digits.length());
-    final List<PiiMention> mentions = family.extractor.extract(family.labels.getFirst() + ": " + zeros);
-    Assertions.assertEquals(1, mentions.size());
-    Assertions.assertEquals(zeros, mentions.getFirst().normalized());
+    assertNumericForm(family, "0".repeat(family.digits.length()), false);
   }
 
   /** Checks the manual's document example and original-text masking. */
