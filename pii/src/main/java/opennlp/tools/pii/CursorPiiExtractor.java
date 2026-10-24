@@ -41,7 +41,13 @@ import java.util.Set;
  *   code, or a domestic form with 10 or 11 digits and at least one space, hyphen, or
  *   parenthesis between digits. An unformatted digit run is not a phone number. Dots
  *   are excluded as separators to avoid decimal numbers, and a candidate that continues
- *   into a decimal fraction or a clock time, such as {@code 12:30}, is rejected.</li>
+ *   into a decimal fraction or a clock time, such as {@code 12:30}, is rejected. A
+ *   number does not start directly after a digit and a hyphen, so the groups of a
+ *   hyphenated ISBN are not candidates; a dialing prefix written as
+ *   {@code 001-555-123-4567} therefore hides the national number that follows it, while
+ *   {@code +1 555-123-4567} is reported. A domestic candidate with 4 or more groups that
+ *   ends in a single digit, the layout of a hyphenated ISBN-10, is rejected; an extension
+ *   digit after at most 3 groups, as in {@code 0221 12345-6}, is accepted.</li>
  *   <li>IBAN: 2 uppercase letters, 2 check digits, and more uppercase letters or
  *   digits, optionally in space-separated groups, validated with the
  *   <a href="https://en.wikipedia.org/wiki/International_Bank_Account_Number">ISO 13616</a>
@@ -90,6 +96,9 @@ public final class CursorPiiExtractor implements PiiExtractor {
   private static final int PHONE_MAX_DIGITS = 15;
   private static final int PHONE_DOMESTIC_MIN_DIGITS = 10;
   private static final int PHONE_DOMESTIC_MAX_DIGITS = 11;
+
+  /** The most groups a domestic number ending in a single extension digit may have. */
+  private static final int PHONE_EXTENSION_MAX_GROUPS = 3;
   private static final int DOMAIN_LABEL_MAX_LENGTH = 63;
   private static final int EMAIL_LOCAL_PART_MAX_LENGTH = 64;
   private static final int EMAIL_MAX_LENGTH = 254;
@@ -435,7 +444,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
         final boolean lengthOk = plus
             ? count <= PHONE_MAX_DIGITS && PhoneNumberLengths.plausibleInternational(candidate)
             : count >= PHONE_DOMESTIC_MIN_DIGITS && count <= PHONE_DOMESTIC_MAX_DIGITS
-                && visiblySeparated;
+                && visiblySeparated && !endsInSingleDigitGroup(groups, g);
         if (!lengthOk
             || !Boundaries.onEnd(text, end)
             || continuesIntoNumber(text, end)) {
@@ -449,6 +458,21 @@ public final class CursorPiiExtractor implements PiiExtractor {
         break;
       }
     }
+  }
+
+  /**
+   * Tests whether a domestic candidate has the layout of a hyphenated ISBN-10: 4 or more
+   * groups, the last of them a single digit. A single trailing digit after at most
+   * {@link #PHONE_EXTENSION_MAX_GROUPS} groups is an extension, as in
+   * {@code 0221 12345-6}, and stays accepted.
+   *
+   * @param groups The candidate cuts, one per separator and one for the complete run.
+   * @param cut The index of the cut being tried; the candidate has {@code cut + 1} groups.
+   * @return {@code true} if the candidate is rejected for its group layout.
+   */
+  private boolean endsInSingleDigitGroup(List<int[]> groups, int cut) {
+    return cut >= PHONE_EXTENSION_MAX_GROUPS
+        && groups.get(cut)[1] - groups.get(cut - 1)[1] == 1;
   }
 
   /**

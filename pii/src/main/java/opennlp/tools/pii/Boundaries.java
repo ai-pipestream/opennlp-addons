@@ -42,7 +42,13 @@ final class Boundaries {
 
   /**
    * Checks that a numeric candidate does not continue a word, a dotted decimal value,
-   * or a comma-grouped number on the left.
+   * a comma-grouped number or a hyphenated number on the left.
+   *
+   * <p>A number does not start directly after a digit and a hyphen, so the later groups
+   * of a hyphenated identifier such as {@code ISBN 978-0-306-40615-7} are not candidates
+   * of their own. The trade-off is a number written with a dialing prefix, such as
+   * {@code 001-555-123-4567}: its national part is not a candidate either, while the
+   * international form {@code +1 555-123-4567} is reported.</p>
    *
    * @param text The text being scanned.
    * @param start The candidate start.
@@ -56,7 +62,7 @@ final class Boundaries {
     if (Character.isLetterOrDigit(previous)) {
       return false;
     }
-    return (previous != '.' && previous != ',')
+    return (previous != '.' && previous != ',' && previous != '-')
         || start < 2 || !Ascii.isDigit(text.charAt(start - 2));
   }
 

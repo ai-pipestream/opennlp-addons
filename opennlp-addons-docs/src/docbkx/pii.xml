@@ -130,6 +130,19 @@ String internationalMasked = Masker.mask(internationalPhones, PiiAnnotator.PII, 
 			</programlisting>
 		</para>
 		<para>
+			A number does not start directly after a digit and a hyphen, so no group
+			of a hyphenated identifier such as <code>ISBN 978-0-306-40615-7</code> is
+			a phone candidate of its own. The trade-off is a number written with a
+			dialing prefix: in <code>001-555-123-4567</code> the national part is
+			not a candidate either, while <code>+1 555-123-4567</code> is reported.
+			A domestic candidate with four or more groups that ends in a single
+			digit, the layout of a hyphenated ISBN-10 such as
+			<code>0-306-40615-2</code>, is rejected; an extension digit after at
+			most three groups, as in <code>0221 12345-6</code>, is accepted. The
+			golden false positive corpus and <code>PhoneSpanTest</code> pin these
+			cases.
+		</para>
+		<para>
 			A <code>MaskPolicy</code> controls how the covered characters are
 			replaced while staying length preserving. <code>keepingFormat()</code>
 			leaves separators visible so the kind of value stays recognizable, and
