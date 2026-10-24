@@ -136,6 +136,9 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
   private static final int MAX_CURRENCY_WORD_LENGTH = 8;
 
   /** The prefix of the failure naming a region without a currency. */
+  /** The result of {@link #currencySign(Currency, Locale)} for a currency without a single sign. */
+  static final int NO_CURRENCY_SIGN = -1;
+
   private static final String NO_REGION_CURRENCY = "region has no currency: ";
 
   private static final Set<String> ISO_CODES = isoCodes();
@@ -270,17 +273,33 @@ public final class CursorMoneyExtractor implements MoneyExtractor {
       throw new IllegalArgumentException(NO_REGION_CURRENCY + region);
     }
     final NumberNotation regionNotation = NumberNotation.forLocale(region);
-    final String symbol = currency.getSymbol(region);
-    if (symbol.codePointCount(0, symbol.length()) != 1) {
-      return new CursorMoneyExtractor(regionNotation);
-    }
-    final int cp = symbol.codePointAt(0);
-    if (Character.getType(cp) != Character.CURRENCY_SYMBOL) {
+    final int sign = currencySign(currency, region);
+    if (sign == NO_CURRENCY_SIGN) {
       return new CursorMoneyExtractor(regionNotation);
     }
     final Map<Integer, String> symbols = new HashMap<>(DEFAULT_SYMBOLS);
-    symbols.put(cp, currency.getCurrencyCode());
+    symbols.put(sign, currency.getCurrencyCode());
     return new CursorMoneyExtractor(symbols, regionNotation);
+  }
+
+  /**
+   * Reads the single currency-sign code point a locale writes a currency with, which is
+   * what makes a symbol table entry possible.
+   *
+   * @param currency The currency. Must not be {@code null}.
+   * @param locale The locale whose spelling of the symbol is read. Must not be
+   *               {@code null}.
+   * @return The code point of the symbol, or {@link #NO_CURRENCY_SIGN} if the locale
+   *         spells the currency with more than one code point or with a code point that
+   *         is not a currency sign, such as {@code CHF}.
+   */
+  static int currencySign(Currency currency, Locale locale) {
+    final String symbol = currency.getSymbol(locale);
+    if (symbol.codePointCount(0, symbol.length()) != 1) {
+      return NO_CURRENCY_SIGN;
+    }
+    final int cp = symbol.codePointAt(0);
+    return Character.getType(cp) == Character.CURRENCY_SYMBOL ? cp : NO_CURRENCY_SIGN;
   }
 
   /**

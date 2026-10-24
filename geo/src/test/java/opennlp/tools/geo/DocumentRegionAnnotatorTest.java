@@ -59,9 +59,6 @@ public class DocumentRegionAnnotatorTest {
   /** Mirrors the annotator's fixed vote weight of a direct country-name mention. */
   private static final double COUNTRY_NAME_WEIGHT = 0.95;
 
-  /** The entity type label the annotator treats as a location by default. */
-  private static final String LOCATION = "location";
-
   /**
    * A no-break space: blank under the toolkit's whitespace definition, but not under
    * {@link String#isBlank()}.
@@ -284,7 +281,7 @@ public class DocumentRegionAnnotatorTest {
         Arguments.of(Collections.<String>singleton(null)),
         Arguments.of(Set.of(" ")),
         Arguments.of(Set.of(NO_BREAK_SPACE)),
-        Arguments.of(Set.of(LOCATION, "")));
+        Arguments.of(Set.of(GeoTestUtil.LOCATION, "")));
   }
 
   @ParameterizedTest

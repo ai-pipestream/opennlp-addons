@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
@@ -50,7 +51,8 @@ import opennlp.tools.geo.RegionVote;
  *
  * @since 3.0.0
  */
-public class RegionAwareMoneyAnnotator implements DocumentAnnotator {
+@ThreadSafe
+public final class RegionAwareMoneyAnnotator implements DocumentAnnotator {
 
   /**
    * The minimum margin of the no-argument constructor: every non-empty ballot is
@@ -155,7 +157,7 @@ public class RegionAwareMoneyAnnotator implements DocumentAnnotator {
    * @return A locale for the country whose currency symbol is a single currency sign, or
    *         an empty {@link Optional} if the country has none. Never {@code null}.
    */
-  private static Optional<Locale> localeOf(String countryCode) {
+  private Optional<Locale> localeOf(String countryCode) {
     final Locale english = Locale.of("en", countryCode);
     if (hasResolvableSymbol(english)) {
       return Optional.of(english);
@@ -180,26 +182,24 @@ public class RegionAwareMoneyAnnotator implements DocumentAnnotator {
    * @param locale The locale to test. Must not be {@code null}.
    * @return {@code true} if the locale has a currency written as one currency sign.
    */
-  private static boolean hasResolvableSymbol(Locale locale) {
+  private boolean hasResolvableSymbol(Locale locale) {
     final Currency currency;
     try {
       currency = Currency.getInstance(locale);
     } catch (IllegalArgumentException e) {
       return false;
     }
-    if (currency == null) {
-      return false;
-    }
-    final String symbol = currency.getSymbol(locale);
-    return symbol.codePointCount(0, symbol.length()) == 1
-        && Character.getType(symbol.codePointAt(0)) == Character.CURRENCY_SYMBOL;
+    return currency != null
+        && CursorMoneyExtractor.currencySign(currency, locale) != CursorMoneyExtractor.NO_CURRENCY_SIGN;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> requires() {
     return Set.of(DocumentRegionAnnotator.REGIONS);
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> provides() {
     return Set.of(MoneyAnnotator.MONEY);

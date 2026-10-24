@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assumptions;
@@ -38,11 +37,8 @@ import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
 import opennlp.tools.geo.DocumentRegionAnnotator;
-import opennlp.tools.geo.GazetteerEntry;
-import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.geo.GeoResolution;
 import opennlp.tools.geo.Geocoder;
-import opennlp.tools.geo.RegionVote;
 import opennlp.tools.util.Span;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,24 +51,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 public class RegionAwareMoneyAnnotatorTest {
 
-  /**
-   * Builds a document that carries a region ballot with a single full-share vote for
-   * one country.
-   *
-   * @param text The document text. Must not be {@code null}.
-   * @param countryCode The winning ISO 3166-1 alpha-2 country code. Must not be
-   *                    {@code null}.
-   * @return A {@link Document} with a one-row region ballot. Never {@code null}.
-   */
-  private static Document withBallot(String text, String countryCode) {
-    return Document.of(text).with(DocumentRegionAnnotator.REGIONS,
-        List.of(Annotation.of(new RegionVote(countryCode, 1.0))));
-  }
-
   @Test
   void testWinningRegionResolvesTheSymbol() {
     final Document document = new RegionAwareMoneyAnnotator()
-        .annotate(withBallot("the deal is worth $5", "AU"));
+        .annotate(RegionBallots.withBallot("the deal is worth $5", "AU"));
     assertEquals("AUD",
         document.get(MoneyAnnotator.MONEY).get(0).value().currency());
   }
@@ -92,10 +74,7 @@ public class RegionAwareMoneyAnnotatorTest {
     final Geocoder geocoder = (text, mentions) -> {
       final List<GeoResolution> resolutions = new ArrayList<>();
       for (final Span mention : mentions) {
-        resolutions.add(new GeoResolution(mention,
-            new GazetteerEntry("test", "sydney", "Sydney", List.of(),
-                new GeoPoint(-33.87, 151.21), "AU", List.of(), 5_300_000,
-                GazetteerEntry.FEATURE_CLASS_CITY, Map.of()), 0.9));
+        resolutions.add(new GeoResolution(mention, RegionBallots.entry("Sydney", "AU"), 0.9));
       }
       return resolutions;
     };
@@ -150,7 +129,7 @@ public class RegionAwareMoneyAnnotatorTest {
   @Test
   void testCountryWithMinorityLanguageLocalesResolvesTheSymbol() {
     final Document document = new RegionAwareMoneyAnnotator()
-        .annotate(withBallot("the grant is $5", "CA"));
+        .annotate(RegionBallots.withBallot("the grant is $5", "CA"));
     assertEquals("CAD",
         document.get(MoneyAnnotator.MONEY).get(0).value().currency());
   }
@@ -171,31 +150,35 @@ public class RegionAwareMoneyAnnotatorTest {
     Assumptions.assumeTrue(singleCurrencySign(Locale.forLanguageTag("nqo-GN")));
 
     final Document document = new RegionAwareMoneyAnnotator()
-        .annotate(withBallot("price 100\u07FF today", "GN"));
+        .annotate(RegionBallots.withBallot("price 100\u07FF today", "GN"));
     assertEquals("GNF",
         document.get(MoneyAnnotator.MONEY).get(0).value().currency());
   }
 
   /**
-   * Mirrors the annotator's usability rule for the assumption guards above: a locale is
+   * Applies the annotator's usability rule for the assumption guards above: a locale is
    * usable when its currency is written there as one currency-sign code point.
    *
    * @param locale The locale to test. Must not be {@code null}.
    * @return {@code true} if the locale's currency symbol is a single currency sign.
    */
   private static boolean singleCurrencySign(Locale locale) {
-    final Currency currency;
-    try {
-      currency = Currency.getInstance(locale);
-    } catch (IllegalArgumentException e) {
-      return false;
-    }
-    if (currency == null) {
-      return false;
-    }
-    final String symbol = currency.getSymbol(locale);
-    return symbol.codePointCount(0, symbol.length()) == 1
-        && Character.getType(symbol.codePointAt(0)) == Character.CURRENCY_SYMBOL;
+    return CursorMoneyExtractor.currencySign(Currency.getInstance(locale), locale)
+        != CursorMoneyExtractor.NO_CURRENCY_SIGN;
+  }
+
+  /**
+   * Verifies that a document already carrying a money layer is refused with the
+   * document's own message, as every annotator adding a layer is.
+   */
+  @Test
+  void testPresentMoneyLayerIsRejected() {
+    final RegionAwareMoneyAnnotator annotator = new RegionAwareMoneyAnnotator();
+    final Document document = RegionBallots.withBallot("costs $5", "AU")
+        .with(MoneyAnnotator.MONEY, List.of());
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> annotator.annotate(document));
+    assertEquals("layer is already present: " + MoneyAnnotator.MONEY, e.getMessage());
   }
 
   /**
@@ -206,8 +189,8 @@ public class RegionAwareMoneyAnnotatorTest {
   @Test
   void testRepeatedDocumentsFromOneCountryResolveIdentically() {
     final RegionAwareMoneyAnnotator annotator = new RegionAwareMoneyAnnotator();
-    final Document first = annotator.annotate(withBallot("the grant is $5", "CA"));
-    final Document second = annotator.annotate(withBallot("the rebate is $9", "CA"));
+    final Document first = annotator.annotate(RegionBallots.withBallot("the grant is $5", "CA"));
+    final Document second = annotator.annotate(RegionBallots.withBallot("the rebate is $9", "CA"));
     assertEquals("CAD", first.get(MoneyAnnotator.MONEY).get(0).value().currency());
     assertEquals("CAD", second.get(MoneyAnnotator.MONEY).get(0).value().currency());
   }
@@ -215,7 +198,7 @@ public class RegionAwareMoneyAnnotatorTest {
   @Test
   void testUnknownCountryFallsBackToTheDefaultTable() {
     final Document document = new RegionAwareMoneyAnnotator()
-        .annotate(withBallot("costs $5", "ZZ"));
+        .annotate(RegionBallots.withBallot("costs $5", "ZZ"));
     assertEquals("USD",
         document.get(MoneyAnnotator.MONEY).get(0).value().currency());
   }

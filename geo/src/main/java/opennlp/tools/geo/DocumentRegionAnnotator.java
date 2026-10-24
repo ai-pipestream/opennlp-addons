@@ -35,6 +35,7 @@ import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -59,7 +60,7 @@ import opennlp.tools.util.StringUtil;
  *
  * @since 3.0.0
  */
-public class DocumentRegionAnnotator implements DocumentAnnotator {
+public final class DocumentRegionAnnotator implements DocumentAnnotator {
 
   /**
    * The document's region ballot: a document-scoped layer with one span-less annotation
@@ -110,19 +111,11 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
    *         {@code locationTypes} is empty.
    */
   public DocumentRegionAnnotator(Geocoder geocoder, Set<String> locationTypes) {
-    if (geocoder == null) {
-      throw new IllegalArgumentException("geocoder must not be null");
-    }
-    if (locationTypes == null || locationTypes.isEmpty()) {
-      throw new IllegalArgumentException("locationTypes must not be null or empty");
-    }
-    this.geocoder = geocoder;
+    this.geocoder = ParamChecks.requireNonNullArg(geocoder, "geocoder");
+    ParamChecks.requireNonEmpty(locationTypes, "locationTypes");
     final Set<String> lowered = new HashSet<>(locationTypes.size());
     for (final String type : locationTypes) {
-      if (StringUtil.isUnicodeBlank(type)) {
-        throw new IllegalArgumentException("locationTypes must not contain blank entries");
-      }
-      lowered.add(StringUtil.toLowerCase(type));
+      lowered.add(StringUtil.toLowerCase(ParamChecks.requireNonBlank(type, "locationTypes entry")));
     }
     this.locationTypes = Set.copyOf(lowered);
   }
@@ -199,7 +192,7 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
    *                {@code null}.
    * @return The ranked ballot rows. Never {@code null}.
    */
-  private static List<Annotation<RegionVote>> ballot(Map<String, Double> weights) {
+  private List<Annotation<RegionVote>> ballot(Map<String, Double> weights) {
     double total = 0.0;
     final List<Map.Entry<String, Double>> ranked = new ArrayList<>(weights.size());
     for (final Map.Entry<String, Double> entry : weights.entrySet()) {
@@ -236,9 +229,7 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
    */
   public static Optional<RegionVote> winner(List<Annotation<RegionVote>> ballot,
       double minMargin) {
-    if (ballot == null) {
-      throw new IllegalArgumentException("ballot must not be null");
-    }
+    ParamChecks.requireNonNullArg(ballot, "ballot");
     if (!(minMargin >= 0.0 && minMargin <= 1.0)) {
       throw new IllegalArgumentException("minMargin must be in [0, 1], got: " + minMargin);
     }
@@ -250,11 +241,13 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
     return top.share() - runnerUp >= minMargin ? Optional.of(top) : Optional.empty();
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> requires() {
     return Set.of(Layers.ENTITIES);
   }
 
+  /** {@inheritDoc} */
   @Override
   public Set<LayerKey<?>> provides() {
     return Set.of(REGIONS);
@@ -272,7 +265,7 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
    * @return The ISO 3166-1 alpha-2 code of the named country, or {@code null} if the
    *         mention names no country.
    */
-  private static String countryCodeOf(String mention) {
+  private String countryCodeOf(String mention) {
     final String normalized = normalize(mention);
     final String code = COUNTRY_NAMES.get(normalized);
     return code != null ? code : COUNTRY_NAMES.get(stripDiacritics(normalized));
@@ -344,11 +337,12 @@ public class DocumentRegionAnnotator implements DocumentAnnotator {
         names.put(normalize(name), code);
       }
     }
-    for (final String code : Locale.getISOCountries()) {
-      final String name = Locale.of("", code).getDisplayCountry(Locale.ENGLISH);
-      if (!name.isEmpty() && !name.equals(code)) {
-        names.putIfAbsent(stripDiacritics(normalize(name)), code);
-      }
+    final Map<String, String> stripped = new HashMap<>();
+    for (final Map.Entry<String, String> name : names.entrySet()) {
+      stripped.putIfAbsent(stripDiacritics(name.getKey()), name.getValue());
+    }
+    for (final Map.Entry<String, String> name : stripped.entrySet()) {
+      names.putIfAbsent(name.getKey(), name.getValue());
     }
     return Map.copyOf(names);
   }

@@ -18,7 +18,7 @@
 package opennlp.tools.geo;
 
 import opennlp.tools.commons.ThreadSafe;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * One row of a document's region ballot: a country and the share of the document's
@@ -45,11 +45,7 @@ public record RegionVote(String countryCode, double share) {
    *         blank, or {@code share} is not in {@code (0, 1]}, including {@code NaN}.
    */
   public RegionVote {
-    if (StringUtil.isUnicodeBlank(countryCode)) {
-      throw new IllegalArgumentException("countryCode must not be null or blank");
-    }
-    if (!(share > 0.0 && share <= 1.0)) {
-      throw new IllegalArgumentException("share must be in (0, 1], got: " + share);
-    }
+    ParamChecks.requireNonBlank(countryCode, "countryCode");
+    ParamChecks.requirePositiveFraction(share, "share");
   }
 }

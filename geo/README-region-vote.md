@@ -17,18 +17,17 @@
 
 # Document region voting
 
-This feature combines geocoded location mentions and country names into a document-level ballot for the most likely geographic region.
+`DocumentRegionAnnotator` turns the location entities of a document into a
+ballot of countries: every geocoded mention votes for its entry's country
+weighted by the resolution confidence, and a mention that is an English
+country name votes for that country directly. The ballot is a document-scoped
+layer of `RegionVote` rows ranked by share, and `DocumentRegionAnnotator.winner`
+elects a country only when its lead over the runner-up reaches a caller-chosen
+margin.
 
-## Human definition
-
-It gathers several weak geographic clues from a document and chooses a region only when one candidate wins by a sufficient margin.
-
-## Prior art and comparable products
-
-- [Mordecai](https://github.com/openeventdata/mordecai) uses full-document geoparsing context to resolve geographic references.
-
-## Addon modules
+## Modules
 
 `geo` supplies the region ballot, gazetteer, and geocoder contracts. `numeric`
-contains the region-aware currency adapter and depends on `geo`. The immutable
-Document container and typed layer contracts come from core.
+contains `RegionAwareMoneyAnnotator`, which picks the currency symbol table of
+the winning country, and depends on `geo`. The immutable `Document` container
+and typed layer contracts come from core.
