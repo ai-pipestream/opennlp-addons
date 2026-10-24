@@ -76,6 +76,11 @@ public class NoiseAnnotator implements DocumentAnnotator {
 
   /**
    * {@inheritDoc}
+   *
+   * @throws IllegalArgumentException Thrown if {@code document} is {@code null}, the
+   *         default mode finds no {@link AssetAnnotator#ASSETS} layer, or the scorer
+   *         returns {@code null}, a noise span that is {@code null}, or a noise span
+   *         outside the text.
    */
   @Override
   public Document annotate(Document document) {
@@ -89,8 +94,19 @@ public class NoiseAnnotator implements DocumentAnnotator {
         exclude.add(asset.span());
       }
     }
-    final List<Annotation<NoiseSpan>> found = new ArrayList<>();
-    for (final NoiseSpan noise : scorer.score(document.text(), exclude)) {
+    final CharSequence text = document.text();
+    final List<NoiseSpan> scored = scorer.score(text, exclude);
+    if (scored == null) {
+      throw new IllegalArgumentException("scorer result must not be null");
+    }
+    final List<Annotation<NoiseSpan>> found = new ArrayList<>(scored.size());
+    for (final NoiseSpan noise : scored) {
+      if (noise == null) {
+        throw new IllegalArgumentException("scorer result must not contain null");
+      }
+      if (noise.span().getEnd() > text.length()) {
+        throw new IllegalArgumentException("scorer noise spans must lie within the text");
+      }
       found.add(new Annotation<>(noise.span(), noise));
     }
     return document.with(NOISE, found);
