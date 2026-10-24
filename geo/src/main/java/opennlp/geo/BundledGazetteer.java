@@ -61,11 +61,14 @@ public final class BundledGazetteer implements Gazetteer {
 
   private static final String RESOURCE = "naturalearth-populated-places.txt";
 
+  /** The ASCII semicolon the bundled table format defines between the fields of one row. */
+  private static final char FIELD_SEPARATOR = ';';
+
+  /** The separator between the elements of the list fields of the bundled table format. */
+  private static final char LIST_SEPARATOR = '|';
+
   /** The number of semicolon separated fields in one row of the bundled table format. */
   private static final int FIELD_COUNT = 11;
-
-  /** The number of semicolons separating {@link #FIELD_COUNT} fields. */
-  private static final int SEPARATOR_COUNT = FIELD_COUNT - 1;
 
   private final GazetteerIndex index;
 
@@ -167,22 +170,10 @@ public final class BundledGazetteer implements Gazetteer {
    */
   private static GazetteerEntry parseRow(String line, String resourceName, int lineNumber)
       throws InvalidFormatException {
-    // Scan the line into exactly FIELD_COUNT semicolon-separated fields.
-    final String[] fields = new String[FIELD_COUNT];
-    int fieldCount = 0;
-    int start = 0;
-    while (fieldCount < SEPARATOR_COUNT) {
-      final int semicolon = line.indexOf(';', start);
-      if (semicolon < 0) {
-        throw malformed(resourceName, lineNumber, line, null);
-      }
-      fields[fieldCount++] = line.substring(start, semicolon);
-      start = semicolon + 1;
-    }
-    if (line.indexOf(';', start) >= 0) {
+    final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
+    if (fields.length != FIELD_COUNT) {
       throw malformed(resourceName, lineNumber, line, null);
     }
-    fields[SEPARATOR_COUNT] = line.substring(start);
     try {
       final double latitude = Double.parseDouble(fields[4]);
       final double longitude = Double.parseDouble(fields[5]);
@@ -215,17 +206,7 @@ public final class BundledGazetteer implements Gazetteer {
     if (field.isEmpty()) {
       return List.of();
     }
-    final List<String> values = new ArrayList<>();
-    int start = 0;
-    while (true) {
-      final int pipe = field.indexOf('|', start);
-      if (pipe < 0) {
-        values.add(field.substring(start));
-        return values;
-      }
-      values.add(field.substring(start, pipe));
-      start = pipe + 1;
-    }
+    return List.of(StringUtil.split(field, LIST_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS));
   }
 
   /**

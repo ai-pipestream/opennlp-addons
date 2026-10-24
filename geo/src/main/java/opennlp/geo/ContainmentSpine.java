@@ -67,6 +67,12 @@ public final class ContainmentSpine implements PlaceHierarchy {
    */
   private static final int NO_PENDING = -2;
 
+  /** The ASCII tab the neutral table format defines between the columns of one line. */
+  private static final char FIELD_SEPARATOR = '\t';
+
+  /** The number of columns of the neutral table format. */
+  private static final int COLUMNS = 4;
+
   /** The prefix of the failure naming a malformed containment table line. */
   private static final String MALFORMED_LINE = "malformed containment line ";
 
@@ -191,16 +197,17 @@ public final class ContainmentSpine implements PlaceHierarchy {
         if (StringUtil.isUnicodeBlank(line) || line.startsWith("#")) {
           continue;
         }
-        final List<String> fields = splitOn(line, '\t');
-        if (fields.size() != 4) {
+        final String[] fields =
+            StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
+        if (fields.length != COLUMNS) {
           throw new InvalidFormatException(MALFORMED_LINE + lineNumber
               + " in " + table);
         }
-        final String parent = StringUtil.trimUnicodeWhitespace(fields.get(1));
+        final String parent = StringUtil.trimUnicodeWhitespace(fields[1]);
         try {
-          add(StringUtil.trimUnicodeWhitespace(fields.get(0)), parent.isEmpty() ? null : parent,
-              StringUtil.trimUnicodeWhitespace(fields.get(2)),
-              StringUtil.trimUnicodeWhitespace(fields.get(3)));
+          add(StringUtil.trimUnicodeWhitespace(fields[0]), parent.isEmpty() ? null : parent,
+              StringUtil.trimUnicodeWhitespace(fields[2]),
+              StringUtil.trimUnicodeWhitespace(fields[3]));
         } catch (IllegalArgumentException e) {
           throw new InvalidFormatException(MALFORMED_LINE + lineNumber
               + " in " + table + ": " + e.getMessage(), e);
@@ -305,25 +312,6 @@ public final class ContainmentSpine implements PlaceHierarchy {
       }
     }
     return lines;
-  }
-
-  /**
-   * Splits a line on a separator character, keeping empty fields.
-   *
-   * @param line      The line to split.
-   * @param separator The field separator.
-   * @return The fields, one more than the number of separators found.
-   */
-  private static List<String> splitOn(String line, char separator) {
-    final List<String> fields = new ArrayList<>();
-    int start = 0;
-    for (int i = 0; i <= line.length(); i++) {
-      if (i == line.length() || line.charAt(i) == separator) {
-        fields.add(line.substring(start, i));
-        start = i + 1;
-      }
-    }
-    return fields;
   }
 
   /** Consumes CSV rows as the parser completes them, with the row's starting line. */

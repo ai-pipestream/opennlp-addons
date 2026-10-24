@@ -176,13 +176,8 @@ public final class NaturalEarthGenerator {
       rawAlternates.add(rawAscii);
     }
     for (String field : List.of("NAMEALT", "NAMEPAR", "MEGANAME")) {
-      String value = text(properties, field);
-      int start = 0;
-      for (int end = 0; end <= value.length(); end++) {
-        if (end == value.length() || value.charAt(end) == '|') {
-          rawAlternates.add(value.substring(start, end).strip());
-          start = end + 1;
-        }
+      for (String value : StringUtil.split(text(properties, field), '|')) {
+        rawAlternates.add(StringUtil.trimUnicodeWhitespace(value));
       }
     }
     for (String raw : rawAlternates) {

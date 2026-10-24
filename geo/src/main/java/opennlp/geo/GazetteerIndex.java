@@ -93,6 +93,12 @@ final class GazetteerIndex {
   private static final TermAnalyzer FOLD =
       TermAnalyzer.builder().nfc().caseFold().accentFold().build();
 
+  /**
+   * The {@link StringUtil#split(CharSequence, char, int)} limit that keeps every empty field,
+   * including trailing ones, so a row's column count is the separator count plus one.
+   */
+  static final int KEEP_EMPTY_FIELDS = -1;
+
   private final Map<String, List<GazetteerEntry>> byName;
   private final Map<IdKey, GazetteerEntry> byId;
   private final Map<String, GazetteerEntry> byCountry;
@@ -279,37 +285,6 @@ final class GazetteerIndex {
     }
     return new String(new char[] {upperAscii(isoCountryCode.charAt(0)),
         upperAscii(isoCountryCode.charAt(1))});
-  }
-
-  /**
-   * Splits a value at each occurrence of a separator and retains empty fields, including a final
-   * empty field.
-   *
-   * @param value The value to split. Must not be {@code null}.
-   * @param separator The separator character.
-   * @return The fields in input order.
-   * @throws IllegalArgumentException Thrown if {@code value} is {@code null}.
-   */
-  static String[] split(String value, char separator) {
-    if (value == null) {
-      throw new IllegalArgumentException("value must not be null");
-    }
-    int fieldCount = 1;
-    for (int i = 0; i < value.length(); i++) {
-      if (value.charAt(i) == separator) {
-        fieldCount++;
-      }
-    }
-    final String[] fields = new String[fieldCount];
-    int field = 0;
-    int start = 0;
-    for (int i = 0; i <= value.length(); i++) {
-      if (i == value.length() || value.charAt(i) == separator) {
-        fields[field++] = value.substring(start, i);
-        start = i + 1;
-      }
-    }
-    return fields;
   }
 
   /**

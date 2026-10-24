@@ -161,7 +161,7 @@ public final class OvertureGazetteer implements Gazetteer {
   /** Parses one derived row into an entry and includes the line number in format errors. */
   private static GazetteerEntry parseRow(String line, int lineNumber)
       throws InvalidFormatException {
-    final String[] fields = GazetteerIndex.split(line, FIELD_SEPARATOR);
+    final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
     if (fields.length != COLUMNS) {
       throw new InvalidFormatException("line " + lineNumber + " has " + fields.length
           + " columns, expected " + COLUMNS);
@@ -170,7 +170,7 @@ public final class OvertureGazetteer implements Gazetteer {
       final String id = trim(fields[0]);
       final String name = trim(fields[1]);
       final Set<String> alternates = new LinkedHashSet<>();
-      for (final String alternate : GazetteerIndex.split(fields[2], LIST_SEPARATOR)) {
+      for (final String alternate : StringUtil.split(fields[2], LIST_SEPARATOR)) {
         final String trimmed = trim(alternate);
         if (!trimmed.isEmpty() && !trimmed.equals(name)) {
           alternates.add(trimmed);

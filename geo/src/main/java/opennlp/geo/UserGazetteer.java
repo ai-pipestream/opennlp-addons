@@ -207,7 +207,7 @@ public final class UserGazetteer implements Gazetteer {
       if (StringUtil.isUnicodeBlank(line) || line.charAt(0) == '#') {
         continue;
       }
-      final String[] fields = GazetteerIndex.split(line, FIELD_SEPARATOR);
+      final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
       if (fields.length > 3) {
         throw new InvalidFormatException("line " + lineNumber + " has " + fields.length
             + " columns, expected at most 3");
@@ -260,7 +260,7 @@ public final class UserGazetteer implements Gazetteer {
   /** Parses one row into an entry and includes the line number in format errors. */
   private static GazetteerEntry parseRow(String line, int lineNumber, String source)
       throws InvalidFormatException {
-    final String[] fields = GazetteerIndex.split(line, FIELD_SEPARATOR);
+    final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
     if (fields.length < 2) {
       throw new InvalidFormatException("line " + lineNumber + " has " + fields.length
           + " columns, expected at least record id and name");
@@ -325,7 +325,7 @@ public final class UserGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if the field does not hold four valid edges.
    */
   private static GeoBoundingBox parseBox(String field) {
-    final String[] edges = GazetteerIndex.split(field, BOX_SEPARATOR);
+    final String[] edges = StringUtil.split(field, BOX_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
     if (edges.length != BOX_EDGES) {
       throw new IllegalArgumentException(
           "a bounding box must read west,south,east,north, got: " + field);
@@ -338,14 +338,10 @@ public final class UserGazetteer implements Gazetteer {
   /** Splits a {@code |}-separated list field, dropping blank elements. */
   private static List<String> names(String field) {
     final List<String> elements = new ArrayList<>();
-    int start = 0;
-    for (int i = 0; i <= field.length(); i++) {
-      if (i == field.length() || field.charAt(i) == LIST_SEPARATOR) {
-        final String trimmed = trim(field.substring(start, i));
-        if (!trimmed.isEmpty()) {
-          elements.add(trimmed);
-        }
-        start = i + 1;
+    for (final String element : StringUtil.split(field, LIST_SEPARATOR)) {
+      final String trimmed = trim(element);
+      if (!trimmed.isEmpty()) {
+        elements.add(trimmed);
       }
     }
     return elements;

@@ -154,7 +154,7 @@ public final class GeoNamesGazetteer implements Gazetteer {
   /** Parses one main-format row into an entry and includes the line number in format errors. */
   private static GazetteerEntry parseRow(String line, int lineNumber)
       throws InvalidFormatException {
-    final String[] fields = GazetteerIndex.split(line, FIELD_SEPARATOR);
+    final String[] fields = StringUtil.split(line, FIELD_SEPARATOR, GazetteerIndex.KEEP_EMPTY_FIELDS);
     if (fields.length != COLUMNS) {
       throw new InvalidFormatException("line " + lineNumber + " has " + fields.length
           + " columns, expected " + COLUMNS);
@@ -167,7 +167,7 @@ public final class GeoNamesGazetteer implements Gazetteer {
       if (!ascii.isEmpty() && !ascii.equals(name)) {
         alternates.add(ascii);
       }
-      for (final String alternate : GazetteerIndex.split(fields[3], LIST_SEPARATOR)) {
+      for (final String alternate : StringUtil.split(fields[3], LIST_SEPARATOR)) {
         final String trimmed = trim(alternate);
         if (!trimmed.isEmpty() && !trimmed.equals(name)) {
           alternates.add(trimmed);
