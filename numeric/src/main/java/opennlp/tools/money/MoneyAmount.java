@@ -19,8 +19,8 @@ package opennlp.tools.money;
 
 import java.math.BigDecimal;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * One monetary mention in a text: the {@link Span} it covers in the original text, the
@@ -48,14 +48,8 @@ public record MoneyAmount(Span span, BigDecimal amount, String currency) {
    *         {@code null}, or {@code currency} is {@code null} or blank.
    */
   public MoneyAmount {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (amount == null) {
-      throw new IllegalArgumentException("amount must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(currency)) {
-      throw new IllegalArgumentException("currency must not be null or blank");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonNullArg(amount, "amount");
+    ParamChecks.requireNonBlank(currency, "currency");
   }
 }

@@ -17,8 +17,8 @@
 
 package opennlp.tools.temporal;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * One temporal mention in a text: the {@link Span} it covers in the original text, the
@@ -86,17 +86,9 @@ public record TemporalExpression(Span span, String value, Granularity granularit
    *         {@code origin} is {@code null}, or {@code value} is {@code null} or blank.
    */
   public TemporalExpression {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(value)) {
-      throw new IllegalArgumentException("value must not be null or blank");
-    }
-    if (granularity == null) {
-      throw new IllegalArgumentException("granularity must not be null");
-    }
-    if (origin == null) {
-      throw new IllegalArgumentException("origin must not be null");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonBlank(value, "value");
+    ParamChecks.requireNonNullArg(granularity, "granularity");
+    ParamChecks.requireNonNullArg(origin, "origin");
   }
 }

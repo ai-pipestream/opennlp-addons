@@ -40,7 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Loads euro foreign exchange reference rates from an uncompressed, UTF-8 ECB history
@@ -84,12 +84,6 @@ public class EcbFxRates implements FxRates {
   private static final char FIELD_SEPARATOR = ',';
   private static final String HEADER_PREFIX = "Date,";
 
-  /** The failure for a missing or blank target currency. */
-  private static final String TO_REQUIRED = "to must not be null or blank";
-
-  /** The failure for a missing lookup date. */
-  private static final String AS_OF_REQUIRED = "asOf must not be null";
-
   private final TreeMap<LocalDate, Map<String, BigDecimal>> table;
 
   /**
@@ -111,9 +105,7 @@ public class EcbFxRates implements FxRates {
    *         content is not in the expected format.
    */
   public static EcbFxRates load(Path csv) throws IOException {
-    if (csv == null) {
-      throw new IllegalArgumentException("csv must not be null");
-    }
+    ParamChecks.requireNonNullArg(csv, "csv");
     try (InputStream in = Files.newInputStream(csv)) {
       return load(in);
     }
@@ -130,9 +122,7 @@ public class EcbFxRates implements FxRates {
    *         content is not in the expected format.
    */
   public static EcbFxRates load(InputStream in) throws IOException {
-    if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
-    }
+    ParamChecks.requireNonNullArg(in, "in");
     final BufferedReader reader =
         new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
@@ -200,7 +190,7 @@ public class EcbFxRates implements FxRates {
    *
    * @param header The CSV header beginning with {@link #HEADER_PREFIX}.
    * @return The date column followed by the currency codes.
-   * @throws IllegalArgumentException If no currency is present, a code is malformed,
+   * @throws IllegalArgumentException Thrown if no currency is present, a code is malformed,
    *         or a currency is repeated.
    */
   private static List<String> currencyColumns(String header) {
@@ -247,7 +237,7 @@ public class EcbFxRates implements FxRates {
    *
    * @param line The input line.
    * @return The fields in input order.
-   * @throws IllegalArgumentException If an ASCII control character is not Java whitespace.
+   * @throws IllegalArgumentException Thrown if an ASCII control character is not Java whitespace.
    */
   private static List<String> fields(String line) {
     final List<String> fields = new ArrayList<>();
@@ -277,15 +267,9 @@ public class EcbFxRates implements FxRates {
    */
   @Override
   public Optional<BigDecimal> rate(String from, String to, LocalDate asOf) {
-    if (StringUtil.isUnicodeBlank(from)) {
-      throw new IllegalArgumentException("from must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(to)) {
-      throw new IllegalArgumentException(TO_REQUIRED);
-    }
-    if (asOf == null) {
-      throw new IllegalArgumentException(AS_OF_REQUIRED);
-    }
+    ParamChecks.requireNonBlank(from, "from");
+    ParamChecks.requireNonBlank(to, "to");
+    ParamChecks.requireNonNullArg(asOf, "asOf");
     final Map<String, BigDecimal> row = usableRow(asOf);
     if (row == null) {
       return Optional.empty();
@@ -311,15 +295,9 @@ public class EcbFxRates implements FxRates {
    */
   @Override
   public Optional<MoneyAmount> convert(MoneyAmount money, String to, LocalDate asOf) {
-    if (money == null) {
-      throw new IllegalArgumentException("money must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(to)) {
-      throw new IllegalArgumentException(TO_REQUIRED);
-    }
-    if (asOf == null) {
-      throw new IllegalArgumentException(AS_OF_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(money, "money");
+    ParamChecks.requireNonBlank(to, "to");
+    ParamChecks.requireNonNullArg(asOf, "asOf");
     final Map<String, BigDecimal> row = usableRow(asOf);
     if (row == null) {
       return Optional.empty();
@@ -351,7 +329,7 @@ public class EcbFxRates implements FxRates {
    * @param denominator The positive divisor coefficient.
    * @param scale The combined operand scale, before quotient rounding.
    * @return The quotient with at most 16 digits of precision.
-   * @throws ArithmeticException If the rounded result cannot be represented within
+   * @throws ArithmeticException Thrown if the rounded result cannot be represented within
    *         the decimal scale range at the configured precision.
    */
   private BigDecimal decimalQuotient(BigInteger numerator, BigInteger denominator, long scale) {

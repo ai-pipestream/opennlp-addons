@@ -19,8 +19,8 @@ package opennlp.tools.quantity;
 
 import java.math.BigDecimal;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * One quantity mention in a text: the {@link Span} it covers in the original text, the
@@ -47,14 +47,8 @@ public record Quantity(Span span, BigDecimal value, String unit) {
    *         {@code null}, or {@code unit} is {@code null} or blank.
    */
   public Quantity {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (value == null) {
-      throw new IllegalArgumentException("value must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(unit)) {
-      throw new IllegalArgumentException("unit must not be null or blank");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonNullArg(value, "value");
+    ParamChecks.requireNonBlank(unit, "unit");
   }
 }

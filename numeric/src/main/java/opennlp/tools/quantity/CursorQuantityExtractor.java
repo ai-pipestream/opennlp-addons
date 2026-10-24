@@ -28,6 +28,7 @@ import opennlp.tools.extraction.NumberScan;
 import opennlp.tools.money.CursorMoneyExtractor;
 import opennlp.tools.money.MoneyAmount;
 import opennlp.tools.money.MoneyExtractor;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -137,17 +138,13 @@ public class CursorQuantityExtractor implements QuantityExtractor {
    *         an invalid token, or {@code notation} is {@code null}.
    */
   public CursorQuantityExtractor(Set<String> units, NumberNotation notation) {
-    if (units == null || units.isEmpty()) {
-      throw new IllegalArgumentException("units must not be null or empty");
-    }
+    ParamChecks.requireNonEmpty(units, "units");
     for (final String unit : units) {
       if (!validUnit(unit)) {
         throw new IllegalArgumentException("not a valid unit token: " + unit);
       }
     }
-    if (notation == null) {
-      throw new IllegalArgumentException("notation must not be null");
-    }
+    ParamChecks.requireNonNullArg(notation, "notation");
     this.units = Set.copyOf(units);
     this.notation = notation;
     this.moneyExtractor = new CursorMoneyExtractor(notation);
@@ -181,9 +178,7 @@ public class CursorQuantityExtractor implements QuantityExtractor {
    */
   @Override
   public List<Quantity> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<MoneyAmount> amounts = moneyExtractor.extract(text);
     final List<Quantity> mentions = new ArrayList<>();
     int i = 0;

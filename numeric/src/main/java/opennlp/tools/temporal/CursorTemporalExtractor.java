@@ -36,6 +36,7 @@ import opennlp.tools.extraction.NumberNotation;
 import opennlp.tools.extraction.NumberScan;
 import opennlp.tools.temporal.TemporalExpression.Granularity;
 import opennlp.tools.temporal.TemporalExpression.Origin;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -92,9 +93,6 @@ public class CursorTemporalExtractor implements TemporalExtractor {
 
   private static final String DAY_UNIT = "day";
 
-  /** The failure for missing text. */
-  private static final String TEXT_REQUIRED = "text must not be null";
-
   private static final DateTimeFormatter YEAR_FORMAT = new DateTimeFormatterBuilder()
       .appendValue(ChronoField.YEAR, 4, 10, SignStyle.EXCEEDS_PAD)
       .toFormatter(Locale.ROOT);
@@ -136,9 +134,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
    */
   @Override
   public List<TemporalExpression> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     return scan(text, null);
   }
 
@@ -149,12 +145,8 @@ public class CursorTemporalExtractor implements TemporalExtractor {
    */
   @Override
   public List<TemporalExpression> extract(CharSequence text, LocalDate reference) {
-    if (reference == null) {
-      throw new IllegalArgumentException("reference must not be null");
-    }
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(reference, "reference");
+    ParamChecks.requireNonNullArg(text, "text");
     return scan(text, reference);
   }
 

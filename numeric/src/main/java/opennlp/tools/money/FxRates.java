@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Provides exchange rates for a requested date and converts {@link MoneyAmount} values.
@@ -46,7 +46,7 @@ public interface FxRates {
    *         no usable rate for the pair at that date. Never {@code null}.
    * @throws IllegalArgumentException Thrown if any parameter is {@code null} or a code
    *         is blank.
-   * @throws ArithmeticException If the result exceeds the supported decimal range.
+   * @throws ArithmeticException Thrown if the result exceeds the supported decimal range.
    */
   Optional<BigDecimal> rate(String from, String to, LocalDate asOf);
 
@@ -61,18 +61,12 @@ public interface FxRates {
    *         when no usable rate exists. Never {@code null}.
    * @throws IllegalArgumentException Thrown if any parameter is {@code null} or
    *         {@code to} is blank.
-   * @throws ArithmeticException If the result exceeds the supported decimal range.
+   * @throws ArithmeticException Thrown if the result exceeds the supported decimal range.
    */
   default Optional<MoneyAmount> convert(MoneyAmount money, String to, LocalDate asOf) {
-    if (money == null) {
-      throw new IllegalArgumentException("money must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(to)) {
-      throw new IllegalArgumentException("to must not be null or blank");
-    }
-    if (asOf == null) {
-      throw new IllegalArgumentException("asOf must not be null");
-    }
+    ParamChecks.requireNonNullArg(money, "money");
+    ParamChecks.requireNonBlank(to, "to");
+    ParamChecks.requireNonNullArg(asOf, "asOf");
     return rate(money.currency(), to, asOf)
         .map(rate -> new MoneyAmount(money.span(), money.amount().multiply(rate), to));
   }

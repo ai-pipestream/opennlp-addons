@@ -26,6 +26,7 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -55,9 +56,7 @@ public class QuantityAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code extractor} is {@code null}.
    */
   public QuantityAnnotator(QuantityExtractor extractor) {
-    if (extractor == null) {
-      throw new IllegalArgumentException("extractor must not be null");
-    }
+    ParamChecks.requireNonNullArg(extractor, "extractor");
     this.extractor = extractor;
   }
 
@@ -71,9 +70,7 @@ public class QuantityAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     if (document.layers().contains(QUANTITIES)) {
       throw new IllegalArgumentException("layer is already present: " + QUANTITIES);
     }

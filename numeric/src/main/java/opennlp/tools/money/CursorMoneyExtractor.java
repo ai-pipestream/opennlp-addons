@@ -31,6 +31,7 @@ import java.util.Set;
 
 import opennlp.tools.extraction.NumberNotation;
 import opennlp.tools.extraction.NumberScan;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -198,9 +199,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
     if (symbolCurrencies == null || symbolCurrencies.isEmpty()) {
       throw new IllegalArgumentException("symbolCurrencies must not be null or empty");
     }
-    if (notation == null) {
-      throw new IllegalArgumentException("notation must not be null");
-    }
+    ParamChecks.requireNonNullArg(notation, "notation");
     this.notation = notation;
     final List<Map.Entry<Integer, String>> symbols =
         new ArrayList<>(symbolCurrencies.entrySet());
@@ -254,9 +253,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
    *         currency.
    */
   public static CursorMoneyExtractor forRegion(Locale region) {
-    if (region == null) {
-      throw new IllegalArgumentException("region must not be null");
-    }
+    ParamChecks.requireNonNullArg(region, "region");
     final Currency currency;
     try {
       currency = Currency.getInstance(region);
@@ -287,9 +284,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
    */
   @Override
   public List<MoneyAmount> extract(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<MoneyAmount> mentions = new ArrayList<>();
     int i = 0;
     while (i < text.length()) {

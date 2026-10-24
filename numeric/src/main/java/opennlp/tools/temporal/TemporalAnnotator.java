@@ -28,6 +28,7 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -56,8 +57,6 @@ public class TemporalAnnotator implements DocumentAnnotator {
   public static final LayerKey<TemporalExpression> TEMPORALS =
       Layers.key("temporals", TemporalExpression.class);
 
-  private static final String EXTRACTOR_REQUIRED = "extractor must not be null";
-
   private final TemporalExtractor extractor;
 
   /** The configured reference date, or {@code null} to select one from the text. */
@@ -71,9 +70,7 @@ public class TemporalAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code extractor} is {@code null}.
    */
   public TemporalAnnotator(TemporalExtractor extractor) {
-    if (extractor == null) {
-      throw new IllegalArgumentException(EXTRACTOR_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(extractor, "extractor");
     this.extractor = extractor;
     this.reference = null;
   }
@@ -89,12 +86,8 @@ public class TemporalAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if a parameter is {@code null}.
    */
   public TemporalAnnotator(TemporalExtractor extractor, LocalDate reference) {
-    if (extractor == null) {
-      throw new IllegalArgumentException(EXTRACTOR_REQUIRED);
-    }
-    if (reference == null) {
-      throw new IllegalArgumentException("reference must not be null");
-    }
+    ParamChecks.requireNonNullArg(extractor, "extractor");
+    ParamChecks.requireNonNullArg(reference, "reference");
     this.extractor = extractor;
     this.reference = reference;
   }
@@ -109,9 +102,7 @@ public class TemporalAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     if (document.layers().contains(TEMPORALS)) {
       throw new IllegalArgumentException("layer is already present: " + TEMPORALS);
     }
@@ -127,7 +118,7 @@ public class TemporalAnnotator implements DocumentAnnotator {
    *
    * @param text The document text. Must not be {@code null}.
    * @return The non-null mentions in text order.
-   * @throws IllegalArgumentException If an extraction result is invalid.
+   * @throws IllegalArgumentException Thrown if an extraction result is invalid.
    */
   private List<TemporalExpression> resolved(CharSequence text) {
     if (reference != null) {
@@ -144,7 +135,7 @@ public class TemporalAnnotator implements DocumentAnnotator {
    * @param mentions The provider result.
    * @param textLength The document length in UTF-16 code units.
    * @return The validated result without copying or reordering.
-   * @throws IllegalArgumentException If the result is null, contains null, or has
+   * @throws IllegalArgumentException Thrown if the result is null, contains null, or has
    *         out-of-bounds, unordered, or overlapping spans.
    */
   private List<TemporalExpression> checked(List<TemporalExpression> mentions, int textLength) {

@@ -20,6 +20,8 @@ package opennlp.tools.extraction;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * The written conventions for grouping digits and marking a decimal fraction that the
  * numeric extractors read.
@@ -86,9 +88,7 @@ public enum NumberNotation {
    * @throws IllegalArgumentException Thrown if {@code locale} is {@code null}.
    */
   public static NumberNotation forLocale(Locale locale) {
-    if (locale == null) {
-      throw new IllegalArgumentException("locale must not be null");
-    }
+    ParamChecks.requireNonNullArg(locale, "locale");
     return DecimalFormatSymbols.getInstance(locale).getDecimalSeparator()
         == LATIN_EU.decimalSeparator ? LATIN_EU : LATIN_US;
   }

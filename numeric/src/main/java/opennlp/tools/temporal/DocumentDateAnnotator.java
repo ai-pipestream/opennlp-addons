@@ -59,7 +59,7 @@ public class DocumentDateAnnotator implements DocumentAnnotator {
    *
    * <p>Parses the absolute day mention with the earliest start offset.</p>
    *
-   * @throws IllegalArgumentException If the output layer is present, a temporal value
+   * @throws IllegalArgumentException Thrown if the output layer is present, a temporal value
    *         has a different span from its annotation, or the selected value is not a
    *         valid calendar date.
    */

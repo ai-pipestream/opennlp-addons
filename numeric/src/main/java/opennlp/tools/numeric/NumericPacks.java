@@ -33,6 +33,7 @@ import opennlp.tools.quantity.QuantityAnnotator;
 import opennlp.tools.temporal.CursorTemporalExtractor;
 import opennlp.tools.temporal.DocumentDateAnnotator;
 import opennlp.tools.temporal.TemporalAnnotator;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Builds pipelines for currency amounts, quantities, calendar mentions, or their combination.
@@ -187,9 +188,7 @@ public final class NumericPacks {
    *         currency.
    */
   public static List<DocumentAnnotator> annotators(Locale region) {
-    if (region == null) {
-      throw new IllegalArgumentException("region must not be null");
-    }
+    ParamChecks.requireNonNullArg(region, "region");
     return pipeline(CursorMoneyExtractor.forRegion(region),
         new CursorQuantityExtractor(NumberNotation.forLocale(region)));
   }

@@ -20,6 +20,8 @@ package opennlp.tools.temporal;
 import java.time.LocalDate;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * The interface for temporal extractors, which find calendar mentions in a text and
  * report each as a {@link TemporalExpression} with its span in the original text and
@@ -54,12 +56,8 @@ public interface TemporalExtractor {
    * @throws IllegalArgumentException Thrown if a parameter is {@code null}.
    */
   default List<TemporalExpression> extract(CharSequence text, LocalDate reference) {
-    if (reference == null) {
-      throw new IllegalArgumentException("reference must not be null");
-    }
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(reference, "reference");
+    ParamChecks.requireNonNullArg(text, "text");
     return extract(text);
   }
 }

@@ -25,11 +25,5 @@ Build and run the module tests from the repository root:
 mvn -pl numeric -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
-
-## Source
-
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-numeric](https://github.com/ai-pipestream/opennlp/tree/94fdc92a3cc6e1275b62ebc7256636f352bb19bd).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.

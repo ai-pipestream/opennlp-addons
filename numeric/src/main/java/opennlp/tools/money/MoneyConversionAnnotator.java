@@ -33,7 +33,7 @@ import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
 import opennlp.tools.temporal.DocumentDateAnnotator;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Converts {@link MoneyAnnotator#MONEY} into a target currency under
@@ -64,9 +64,6 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
   private static final Logger logger =
       LoggerFactory.getLogger(MoneyConversionAnnotator.class);
 
-  private static final String RATES_REQUIRED = "rates must not be null";
-  private static final String TARGET_REQUIRED = "target must not be null or blank";
-
   private final FxRates rates;
   private final String target;
   private final LocalDate asOf;
@@ -82,15 +79,9 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
    *         {@code target} is blank.
    */
   public MoneyConversionAnnotator(FxRates rates, String target, LocalDate asOf) {
-    if (rates == null) {
-      throw new IllegalArgumentException(RATES_REQUIRED);
-    }
-    if (StringUtil.isUnicodeBlank(target)) {
-      throw new IllegalArgumentException(TARGET_REQUIRED);
-    }
-    if (asOf == null) {
-      throw new IllegalArgumentException("asOf must not be null");
-    }
+    ParamChecks.requireNonNullArg(rates, "rates");
+    ParamChecks.requireNonBlank(target, "target");
+    ParamChecks.requireNonNullArg(asOf, "asOf");
     this.rates = rates;
     this.target = target;
     this.asOf = asOf;
@@ -107,12 +98,8 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
    *         {@code target} is {@code null} or blank.
    */
   public MoneyConversionAnnotator(FxRates rates, String target) {
-    if (rates == null) {
-      throw new IllegalArgumentException(RATES_REQUIRED);
-    }
-    if (StringUtil.isUnicodeBlank(target)) {
-      throw new IllegalArgumentException(TARGET_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(rates, "rates");
+    ParamChecks.requireNonBlank(target, "target");
     this.rates = rates;
     this.target = target;
     this.asOf = null;
