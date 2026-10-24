@@ -44,6 +44,8 @@ import opennlp.tools.util.StringUtil;
  * {@code bn}) or a following word ({@code thousand} to {@code trillion}) multiplies the
  * value, and an immediate letter that is no scale marker invalidates the scan
  * entirely.</p>
+ *
+ * @since 3.0.0
  */
 @Internal
 public final class NumberScan {
