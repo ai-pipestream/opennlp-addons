@@ -30,6 +30,7 @@ import opennlp.tools.document.LayerKey;
 import opennlp.tools.termvector.TermVector;
 import opennlp.tools.termvector.TermVectorAnnotator;
 import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.AlignedText;
 import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
@@ -51,7 +52,7 @@ import opennlp.tools.util.normalizer.OffsetAwareNormalizer;
  *
  * @since 3.0.0
  */
-public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
+public final class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
 
   private final OffsetAwareNormalizer normalizer;
   private final Tokenizer tokenizer;
@@ -83,18 +84,9 @@ public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
    */
   public RetokenizingTermVectorAnnotator(OffsetAwareNormalizer normalizer, Tokenizer tokenizer,
       TermVectorAnnotator.Mode mode) {
-    if (normalizer == null) {
-      throw new IllegalArgumentException("normalizer must not be null");
-    }
-    if (tokenizer == null) {
-      throw new IllegalArgumentException("tokenizer must not be null");
-    }
-    if (mode == null) {
-      throw new IllegalArgumentException("mode must not be null");
-    }
-    this.normalizer = normalizer;
-    this.tokenizer = tokenizer;
-    this.mode = mode;
+    this.normalizer = ParamChecks.requireNonNullArg(normalizer, "normalizer");
+    this.tokenizer = ParamChecks.requireNonNullArg(tokenizer, "tokenizer");
+    this.mode = ParamChecks.requireNonNullArg(mode, "mode");
   }
 
   /**
@@ -111,9 +103,7 @@ public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     final AlignedText aligned = normalizer.normalizeAligned(document.text());
     final String normalized = aligned.normalizedString();
     final Span[] tokens = tokenizer.tokenizePos(normalized);

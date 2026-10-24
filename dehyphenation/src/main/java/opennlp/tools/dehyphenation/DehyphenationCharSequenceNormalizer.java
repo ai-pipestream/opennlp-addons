@@ -18,6 +18,7 @@ package opennlp.tools.dehyphenation;
 
 import java.io.Serial;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.normalizer.AlignedText;
 import opennlp.tools.util.normalizer.Alignment;
@@ -41,7 +42,10 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * {@code U+30A0}, are excluded.</p>
  *
  * <p>Breaks follow {@link UnicodeWhitespace#lineBreaks()}; CRLF counts as one.
- * Additional line breaks prevent a join. Indentation follows
+ * The set is wider than {@link StringUtil#isLineTerminator(int)}: a vertical tab, which
+ * word processors export for a manual line break, and a form feed, which PDF text
+ * extraction writes at a page end, break a line too. Additional line breaks prevent a
+ * join. Indentation follows
  * {@link StringUtil#isUnicodeWhitespace(char)}, excluding line breaks.
  * Letter checks support supplementary code points. Offsets use UTF-16 code units.</p>
  *
@@ -65,8 +69,6 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
 
   @Serial
   private static final long serialVersionUID = 3659585484250150798L;
-
-  private static final String NULL_TEXT_MESSAGE = "The text must not be null.";
 
   /** U+00AD SOFT HYPHEN, which marks a break inside one word. */
   private static final int SOFT_HYPHEN = 0x00AD;
@@ -98,9 +100,7 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
    */
   @Override
   public CharSequence normalize(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException(NULL_TEXT_MESSAGE);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final int length = text.length();
     StringBuilder out = null;
     int cursor = 0;
@@ -127,9 +127,7 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
    */
   @Override
   public AlignedText normalizeAligned(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException(NULL_TEXT_MESSAGE);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final int length = text.length();
     final StringBuilder out = new StringBuilder(length);
     final Alignment.Builder alignment = new Alignment.Builder(length);

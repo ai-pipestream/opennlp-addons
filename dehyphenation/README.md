@@ -25,11 +25,13 @@ Build and run the module tests from the repository root:
 mvn -pl dehyphenation -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
-## Source
+## Contents
 
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-dehyphenation](https://github.com/ai-pipestream/opennlp/tree/33ffab407faa70b2d1a326287cb296d26c5c1d9c).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.
+`DehyphenationCharSequenceNormalizer` joins a word that a hyphen and a line break split,
+such as `litiga-` and `tion`, and maps the joined word back to the original text.
+`RetokenizingTermVectorAnnotator` tokenizes the normalized text and writes the
+`opennlp:term-vectors` layer, so a joined word becomes one term. The manual chapter
+"De-hyphenation" lists the hyphens, line breaks and the cases that keep the hyphen.
