@@ -229,6 +229,24 @@ public class DehyphenationCharSequenceNormalizerTest {
     assertEquals(joined, NORMALIZER.normalize(text).toString());
   }
 
+  /**
+   * Han, Hiragana, Katakana and Hangul text breaks lines between any two characters without
+   * a hyphen, so a hyphen at a line end next to these scripts is part of the text.
+   *
+   * @param text The text to leave unchanged.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "\u6771\u4EAC-\n\u5927\u962A",                    // Han on both sides
+      "\u3072\u3089-\n\u304C\u306A",                    // Hiragana
+      "\u30B3\u30F3\u30D4\u30E5\u30FC-\n\u30BF\u30FC",  // Katakana after the sound mark
+      "\uD55C\uAD6D-\n\uC5B4",                          // Hangul
+      "\uD840\uDC00-\n\uD840\uDC01",                    // Han, supplementary plane
+      "abc-\n\u6771\u4EAC", "\u6771\u4EAC-\nabc"})
+  void testScriptsWithoutHyphenationAreLeftAlone(String text) {
+    assertSame(text, NORMALIZER.normalize(text));
+  }
+
   @Test
   void testMultipleJoinsInOneText() {
     assertEquals("litigation complete",
