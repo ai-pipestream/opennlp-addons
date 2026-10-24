@@ -215,7 +215,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
      *
      * <p>The file is read as RFC 4180 CSV: a field may be quoted, a quoted field may
      * carry commas, doubled quotes, and line breaks, and such a field stays part of the
-     * single row it belongs to.</p>
+     * single row it belongs to. Rows may end with {@code LF}, {@code CRLF} or {@code CR}.</p>
      *
      * <p>Every row must describe a usable place. Malformed rows report the line where the row
      * starts. This includes short rows, empty required fields, invalid parent identifiers, and
@@ -273,10 +273,10 @@ public final class ContainmentSpine implements PlaceHierarchy {
     /**
      * Parses a CSV file row by row, with double-quote quoting, doubled-quote escapes,
      * and quoted fields that may span lines, so a row is only ended by a line break
-     * outside a quoted field. Blank lines between rows are dropped. {@code LF} and {@code CRLF} end
-     * a line, inside a quoted field as well as outside, and a quoted line break is kept in the field
-     * as a single {@code LF}. A quote inside an unquoted field and content after a field's closing
-     * quote are rejected.
+     * outside a quoted field. Blank lines between rows are dropped. {@code LF}, {@code CRLF} and a
+     * bare {@code CR} end a line, inside a quoted field as well as outside, and a quoted line break
+     * is kept in the field as a single {@code LF}. A quote inside an unquoted field and content
+     * after a field's closing quote are rejected.
      *
      * <p>The file is streamed, never materialized whole, so a table of any size parses
      * in memory proportional to its longest row.</p>
@@ -308,10 +308,9 @@ public final class ContainmentSpine implements PlaceHierarchy {
           final char c = (char) read;
           boolean lineBreak = c == '\n';
           if (c == '\r') {
+            lineBreak = true;
             final int follow = in.read();
-            if (follow == '\n') {
-              lineBreak = true;
-            } else {
+            if (follow != '\n') {
               pending = follow;
             }
           }

@@ -42,7 +42,9 @@ import opennlp.tools.util.ParamChecks;
  *
  * <p>Suppressions hide entries of the base only, never additions, so a rule plus an addition
  * with the same name replaces a base entry. A suppressed entry is hidden from every query,
- * including {@link #byId(String, String)} and {@link #byRegion(String)}.</p>
+ * including {@link #byId(String, String)} and {@link #byRegion(String)}. An addition with the
+ * same (source, record id) as a base entry replaces it without a rule: {@link #byId} answers
+ * with the addition and {@link #lookup(CharSequence)} lists the record once.</p>
  *
  * <p>Instances are immutable and thread-safe when the composed gazetteers are.</p>
  */
@@ -87,7 +89,8 @@ public final class OverlayGazetteer implements Gazetteer {
    * {@inheritDoc}
    *
    * <p>Candidates from the additions come first, then the base candidates that no suppression
-   * matches; each side keeps its own documented ranking.</p>
+   * matches and that no addition carries under the same (source, recordId); each side keeps its
+   * own documented ranking.</p>
    */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) throws IOException {
@@ -97,7 +100,7 @@ public final class OverlayGazetteer implements Gazetteer {
       merged.addAll(additions.lookup(name));
     }
     for (final GazetteerEntry entry : base.lookup(name)) {
-      if (!suppressed(entry)) {
+      if (!suppressed(entry) && !replaced(entry, merged)) {
         merged.add(entry);
       }
     }
@@ -156,6 +159,23 @@ public final class OverlayGazetteer implements Gazetteer {
     }
     union.addAll(base.sources());
     return Collections.unmodifiableSet(union);
+  }
+
+  /**
+   * Tests whether an addition already listed carries the same (source, record id) as a base
+   * entry, in which case the addition replaces it.
+   *
+   * @param entry     The base entry.
+   * @param additions The candidates from the additions.
+   * @return {@code true} if an addition shares the entry's (source, record id).
+   */
+  private boolean replaced(GazetteerEntry entry, List<GazetteerEntry> additions) {
+    for (final GazetteerEntry added : additions) {
+      if (added.source().equals(entry.source()) && added.recordId().equals(entry.recordId())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** {@return {@code true} if any suppression rule matches {@code entry}} */
