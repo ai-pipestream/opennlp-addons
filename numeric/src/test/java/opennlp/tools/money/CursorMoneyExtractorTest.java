@@ -68,7 +68,11 @@ public class CursorMoneyExtractorTest {
       "-$5; -5; USD",
       "-5 USD; -5; USD",
       "$0.00; 0.00; USD",
-      "CHF 42; 42; CHF"
+      "CHF 42; 42; CHF",
+      "\u0661\u0662\u0663 USD; 123; USD",                     // Arabic-Indic digits
+      "$\u0661,\u0662\u0663\u0664.\u0665\u0660; 1234.50; USD",  // grouped and fractional
+      "\uFF15\uFF10 dollars; 50; USD",                        // fullwidth digits
+      "\u0967\u0968.\u0969 EUR; 12.3; EUR"                    // Devanagari digits
   })
   void testRecognizedShapesCoverTheFullMention(String text, String amount, String currency) {
     final MoneyAmount mention = single(text);
@@ -497,8 +501,8 @@ public class CursorMoneyExtractorTest {
   /**
    * Verifies the scan around supplementary-plane neighbors: a code point outside the
    * basic multilingual plane before a mention is an ordinary boundary crossed without
-   * splitting its surrogate pair, while a supplementary-plane digit directly before
-   * the number forbids a match exactly as an ASCII digit would.
+   * splitting its surrogate pair, while a supplementary-plane decimal digit directly
+   * before the number is read as part of it exactly as an ASCII digit would be.
    */
   @Test
   void testSupplementaryPlaneNeighbors() {
@@ -507,8 +511,23 @@ public class CursorMoneyExtractorTest {
     assertEquals(new Span(2, 4), mention.span());
     assertEquals(0, new BigDecimal("5").compareTo(mention.amount()));
 
-    // U+1D7D9 (mathematical double-struck one) is a digit, so no number starts after it
-    assertTrue(extractor.extract("\uD835\uDFD95 USD").isEmpty());
+    // U+1D7D9 (mathematical double-struck one) is a decimal digit worth one
+    final MoneyAmount mathematical = single("\uD835\uDFD95 USD");
+    assertEquals(new Span(0, 7), mathematical.span());
+    assertEquals(0, new BigDecimal("15").compareTo(mathematical.amount()));
+  }
+
+  /**
+   * Verifies that the grouping rule applies to every digit script: the Indian grouping
+   * of {@code 1,00,000} is rejected whole in Arabic-Indic digits as it is in ASCII.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "1,00,000 USD",
+      "\u0661,\u0660\u0660,\u0660\u0660\u0660 USD"
+  })
+  void testIndianGroupingIsRejectedInEveryDigitScript(String text) {
+    assertTrue(extractor.extract(text).isEmpty(), text);
   }
 
   @Test

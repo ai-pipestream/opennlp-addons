@@ -62,7 +62,9 @@ public class CursorQuantityExtractorTest {
       "1,250 GB; 1250; GB",
       "3 GHz; 3; GHz",
       "26.2 mi; 26.2; mi",
-      "500 ms; 500; ms"
+      "500 ms; 500; ms",
+      "\u0665\u0660%; 50; %",               // Arabic-Indic digits
+      "\u0967\u0968.\u096B km; 12.5; km"   // Devanagari digits
   })
   void testRecognizedShapesCoverTheFullMention(String text, String value, String unit) {
     final Quantity mention = single(text);

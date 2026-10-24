@@ -138,7 +138,8 @@ public class CursorTemporalExtractorTest {
       "Q3 24",                // two-digit years are out of scope
       "2026-07",              // ISO month form is out of scope
       "12026-07-14",          // year is part of a longer digit run
-      "2026-07-14Tomorrow"    // a T followed by prose letters is no time of day
+      "2026-07-14Tomorrow",   // a T followed by prose letters is no time of day
+      "\u0662\u0660\u0662\u0666-\u0660\u0667-\u0661\u0664"  // ISO 8601 is written in ASCII digits
   })
   void testRejectedShapes(String text) {
     assertTrue(extractor.extract(text).isEmpty(), text);
