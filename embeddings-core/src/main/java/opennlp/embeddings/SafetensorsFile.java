@@ -16,6 +16,7 @@
  */
 package opennlp.embeddings;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -223,8 +224,8 @@ public final class SafetensorsFile {
    * @throws InvalidFormatException Thrown if the tensor is not a supported float dtype
    *     ({@code F32}, {@code F16}, {@code BF16}), its data range disagrees with its shape, or
    *     it is larger than a Java array can hold.
-   * @throws IllegalStateException Thrown if the file has been truncated since
-   *     {@link #read(Path)} validated the tensor's byte range.
+   * @throws EOFException Thrown if the file has been truncated since {@link #read(Path)}
+   *     validated the tensor's byte range.
    * @throws IOException Thrown if reading the file fails.
    */
   public float[] readFloats(String name) throws IOException {
@@ -280,7 +281,7 @@ public final class SafetensorsFile {
    *     this file.
    * @throws InvalidFormatException Thrown if the tensor is not declared with dtype {@code F32},
    *     its data range disagrees with its shape, or it is larger than a Java array can hold.
-   * @throws IllegalStateException Thrown if the file has been truncated since {@link #read(Path)}.
+   * @throws EOFException Thrown if the file has been truncated since {@link #read(Path)}.
    * @throws IOException Thrown if reading the file fails.
    */
   float[] readFloat32(String name) throws IOException {
@@ -352,16 +353,16 @@ public final class SafetensorsFile {
    * @param buffer   The buffer to fill.
    * @param position The starting file position.
    * @param file     The file, for error messages.
+   * @throws EOFException Thrown if the file ends before the buffer is full, which can only
+   *     happen when the file shrank after {@link #read(Path)} validated its ranges.
    * @throws IOException Thrown if reading fails.
-   * @throws IllegalStateException Thrown if the file ends before the buffer is full, which can
-   *     only happen when the file shrank after {@link #read(Path)} validated its ranges.
    */
   private static void readFully(FileChannel channel, ByteBuffer buffer, long position, Path file)
       throws IOException {
     while (buffer.hasRemaining()) {
       final int read = channel.read(buffer, position + buffer.position());
       if (read < 0) {
-        throw new IllegalStateException("File " + file + " ended at byte "
+        throw new EOFException("File " + file + " ended at byte "
             + (position + buffer.position())
             + "; it has been truncated since its header was read");
       }
