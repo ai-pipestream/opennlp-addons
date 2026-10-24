@@ -301,6 +301,25 @@ public class ContainmentSpineTest {
         spine.ancestors("999"));
   }
 
+  /** Verifies that a bare CR ends a row and a quoted CR is kept as one LF, like CRLF. */
+  @Test
+  void testBareCrRowsParseLikeLf(@TempDir Path dir) throws IOException {
+    final Path meta = dir.resolve("cr.csv");
+    Files.write(meta, String.join("\r",
+        "id,parent_id,name,placetype",
+        "999,123,Child,neighbourhood",
+        "123,456,\"Sao Paulo\rZona Norte\",locality",
+        "456,-1,Brazil,country",
+        "").getBytes(StandardCharsets.UTF_8));
+
+    final ContainmentSpine spine = ContainmentSpine.builder().addWofMeta(meta).build();
+
+    Assertions.assertEquals(List.of(
+        new PlaceAncestor("123", "Sao Paulo\nZona Norte", "locality"),
+        new PlaceAncestor("456", "Brazil", "country")),
+        spine.ancestors("999"));
+  }
+
   /** Verifies the RFC 4180 doubled-quote escape. */
   @Test
   void testDoubledQuoteReadsAsOneLiteralQuote(@TempDir Path dir) throws IOException {

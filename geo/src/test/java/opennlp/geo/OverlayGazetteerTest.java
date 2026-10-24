@@ -98,6 +98,25 @@ public class OverlayGazetteerTest {
     assertEquals("mobile-office", candidates.get(0).recordId());
   }
 
+  /**
+   * The additions may carry a corrected copy of a base record under the same (source, recordId);
+   * {@code byId} already answers with the addition, so {@code lookup} lists the record once.
+   */
+  @Test
+  void testAnAdditionWithTheSameRecordIdReplacesTheBaseEntry() throws IOException {
+    final String corrected = "paris-fr\tParis\t\t48.86\t2.35\tFR\tCITY\t2200000\n";
+    final Gazetteer additions = UserGazetteer.load(
+        new ByteArrayInputStream(corrected.getBytes(StandardCharsets.UTF_8)), "test");
+    final OverlayGazetteer overlay = new OverlayGazetteer(base(), additions, List.of());
+
+    final List<GazetteerEntry> candidates = overlay.lookup("Paris");
+
+    assertEquals(List.of("paris-fr", "paris-us"),
+        candidates.stream().map(GazetteerEntry::recordId).toList());
+    assertEquals(2200000L, candidates.get(0).population(), "the addition's copy is listed");
+    assertEquals(2200000L, overlay.byId("test", "paris-fr").orElseThrow().population());
+  }
+
   @Test
   void testByIdConsultsAdditionsFirstAndKeepsSourcesApart() throws IOException {
     final OverlayGazetteer overlay = new OverlayGazetteer(base(), additions(), List.of());
