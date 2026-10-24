@@ -171,6 +171,34 @@ public class DehyphenationCharSequenceNormalizerTest {
     assertEquals("complete", NORMALIZER.normalize(text).toString());
   }
 
+  /**
+   * Joins when PDF or OCR output leaves spaces between the hyphen and the line break.
+   *
+   * @param text The hyphenated text with trailing whitespace on the first line.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"litiga- \ntion", "litiga-\t\r\ntion", "litiga-\u00A0 \n  tion",
+      "litiga-\u3000\u2028tion", "litiga\u00AD \ntion"})
+  void testJoinIgnoresWhitespaceBeforeTheBreak(String text) {
+    final AlignedText aligned = NORMALIZER.normalizeAligned(text);
+    assertEquals("litigation", NORMALIZER.normalize(text).toString());
+    assertEquals("litigation", aligned.normalizedString());
+    assertEquals(new Span(0, text.length()), aligned.toOriginalSpan(0, 10));
+  }
+
+  /**
+   * Whitespace before the hyphen, or a hyphen followed by spaces and no line break, is not
+   * a hyphenation break.
+   *
+   * @param text The text to leave unchanged.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"litiga -\ntion", "litiga- tion", "litiga-  ", "litiga- \n\ntion",
+      "litiga- \n \ntion"})
+  void testWhitespaceWithoutASingleBreakIsLeftAlone(String text) {
+    assertSame(text, NORMALIZER.normalize(text));
+  }
+
   @Test
   void testMultipleJoinsInOneText() {
     assertEquals("litigation complete",
