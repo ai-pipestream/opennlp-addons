@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 
 import opennlp.subword.sentencepiece.SentencePieceTokenizer;
@@ -125,7 +126,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   /** Holds the loaded, validated state; callers reach this through the {@code load} factories. */
   private StaticEmbeddingModel(float[] embeddings, float[] weights, int dimension,
                                 EmbeddingVocabulary vocabulary, SubwordTokenizer tokenizer,
-                                IntPredicate skipPieceId, boolean normalize, double[] rowNorms,
+                                IntPredicate skipPieceId, boolean normalize,
                                 boolean[] specialRows, TermTable terms) {
     this.embeddings = embeddings;
     this.weights = weights;
@@ -134,9 +135,9 @@ public final class StaticEmbeddingModel implements TextEmbedder {
     this.tokenizer = tokenizer;
     this.skipPieceId = skipPieceId;
     this.normalize = normalize;
-    this.rowNorms = rowNorms;
     this.specialRows = specialRows;
     this.terms = terms;
+    this.rowNorms = rowNorms(vocabulary.size() + terms.size());
   }
 
   /**
@@ -223,9 +224,8 @@ public final class StaticEmbeddingModel implements TextEmbedder {
         id -> tokenizer.isUnknown(id) || tokenizer.isControl(id);
     return new StaticEmbeddingModel(matrix.embeddings(), matrix.weights(), matrix.dimension(),
         vocabulary, tokenizer, skipPieceId, normalization == Normalization.L2,
-        rowNorms(matrix.embeddings(), matrix.dimension(), vocabulary.size() + terms.size()),
-        specialRows(vocabulary, SENTENCEPIECE_SPECIAL_TOKENS,
-            vocabulary.size() + terms.size(), tokenizer),
+        specialRows(vocabulary, SENTENCEPIECE_SPECIAL_TOKENS, vocabulary.size() + terms.size(),
+            tokenizer.vocabularySize(), skipPieceId, tokenizer::idToPiece),
         terms);
   }
 
@@ -401,7 +401,6 @@ public final class StaticEmbeddingModel implements TextEmbedder {
         id -> id == unknownId || id == classificationId || id == separatorId;
     return new StaticEmbeddingModel(matrix.embeddings(), matrix.weights(), matrix.dimension(),
         vocabulary, tokenizer, skipPieceId, normalization == Normalization.L2,
-        rowNorms(matrix.embeddings(), matrix.dimension(), vocabulary.size() + terms.size()),
         specialRows(vocabulary, WORDPIECE_SPECIAL_TOKENS, vocabulary.size() + terms.size()),
         terms);
   }
@@ -515,9 +514,8 @@ public final class StaticEmbeddingModel implements TextEmbedder {
         id -> tokenizer.isUnknown(id) || tokenizer.isControl(id);
     return new StaticEmbeddingModel(matrix.embeddings(), matrix.weights(), matrix.dimension(),
         vocabulary, tokenizer, skipPieceId, normalization == Normalization.L2,
-        rowNorms(matrix.embeddings(), matrix.dimension(), vocabulary.size() + terms.size()),
-        specialRows(vocabulary, SENTENCEPIECE_SPECIAL_TOKENS,
-            vocabulary.size() + terms.size(), tokenizer),
+        specialRows(vocabulary, SENTENCEPIECE_SPECIAL_TOKENS, vocabulary.size() + terms.size(),
+            tokenizer.vocabularySize(), skipPieceId, tokenizer::idToPiece),
         terms);
   }
 
@@ -637,11 +635,9 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   /**
    * {@return the L2 norm of every matrix row, precomputed for the neighbor scan}
    *
-   * @param embeddings The flat row-major matrix.
-   * @param dimension  The row width.
-   * @param rowCount   The number of rows.
+   * @param rowCount The number of rows.
    */
-  private static double[] rowNorms(float[] embeddings, int dimension, int rowCount) {
+  private double[] rowNorms(int rowCount) {
     final double[] rowNorms = new double[rowCount];
     for (int row = 0; row < rowCount; row++) {
       final int base = row * dimension;
@@ -679,27 +675,25 @@ public final class StaticEmbeddingModel implements TextEmbedder {
     return specialRows;
   }
 
-  /** Marks special rows declared by a self-contained Unigram tokenizer. */
+  /**
+   * {@return the mask of {@link #specialRows(EmbeddingVocabulary, Set, int)}, plus the rows of
+   * the unknown and control pieces a SentencePiece or Unigram tokenizer declares}
+   *
+   * @param vocabulary    The matrix row vocabulary.
+   * @param specialTokens The special-token strings of the model's convention.
+   * @param totalRows     The model's row count, the vocabulary's size plus the term count.
+   * @param pieceCount    The number of tokenizer pieces.
+   * @param special       Whether a piece id is an unknown or control piece.
+   * @param pieces        The piece text of a piece id.
+   */
   private static boolean[] specialRows(EmbeddingVocabulary vocabulary,
                                        Set<String> specialTokens, int totalRows,
-                                       Model2VecUnigramTokenizer tokenizer) {
+                                       int pieceCount, IntPredicate special,
+                                       IntFunction<String> pieces) {
     final boolean[] specialRows = specialRows(vocabulary, specialTokens, totalRows);
-    for (int id = 0; id < tokenizer.vocabularySize(); id++) {
-      if (tokenizer.isUnknown(id) || tokenizer.isControl(id)) {
-        markSpecialRow(specialRows, vocabulary, tokenizer.idToPiece(id));
-      }
-    }
-    return specialRows;
-  }
-
-  /** Marks special rows declared by a separate SentencePiece tokenizer. */
-  private static boolean[] specialRows(EmbeddingVocabulary vocabulary,
-                                       Set<String> specialTokens, int totalRows,
-                                       SentencePieceTokenizer tokenizer) {
-    final boolean[] specialRows = specialRows(vocabulary, specialTokens, totalRows);
-    for (int id = 0; id < tokenizer.vocabularySize(); id++) {
-      if (tokenizer.isUnknown(id) || tokenizer.isControl(id)) {
-        markSpecialRow(specialRows, vocabulary, tokenizer.idToPiece(id));
+    for (int id = 0; id < pieceCount; id++) {
+      if (special.test(id)) {
+        markSpecialRow(specialRows, vocabulary, pieces.apply(id));
       }
     }
     return specialRows;
@@ -777,7 +771,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   }
 
   /** Converts a finite double to the nearest finite float value. */
-  private static float finiteFloat(double value) {
+  private float finiteFloat(double value) {
     if (value > Float.MAX_VALUE) {
       return Float.MAX_VALUE;
     }

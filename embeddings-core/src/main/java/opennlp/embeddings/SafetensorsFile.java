@@ -299,8 +299,7 @@ public final class SafetensorsFile {
    * @param offset The index in {@code out} to write the first decoded element to.
    * @param count  The number of elements to decode from {@code chunk}.
    */
-  private static void decodeInto(ByteBuffer chunk, String dtype, float[] out, int offset,
-                                 int count) {
+  private void decodeInto(ByteBuffer chunk, String dtype, float[] out, int offset, int count) {
     switch (dtype) {
       case DTYPE_F32 -> chunk.asFloatBuffer().get(out, offset, count);
       case DTYPE_F16 -> {
@@ -327,7 +326,7 @@ public final class SafetensorsFile {
    * @param tensorName The tensor's name, for the error message.
    * @throws InvalidFormatException Thrown if {@code dtype} is not a supported float type.
    */
-  private static int floatElementBytes(String dtype, String tensorName)
+  private int floatElementBytes(String dtype, String tensorName)
       throws InvalidFormatException {
     return switch (dtype) {
       case DTYPE_F32 -> Float.BYTES;
@@ -339,7 +338,7 @@ public final class SafetensorsFile {
   }
 
   /** {@return whether {@code dtype} is a float type this reader decodes} */
-  private static boolean isFloatDtype(String dtype) {
+  private boolean isFloatDtype(String dtype) {
     return DTYPE_F32.equals(dtype) || DTYPE_F16.equals(dtype) || DTYPE_BF16.equals(dtype);
   }
 
