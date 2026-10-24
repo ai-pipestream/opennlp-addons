@@ -38,7 +38,12 @@
 			<code>U+0085</code>, <code>U+2028</code> and <code>U+2029</code>.
 			CRLF counts as one break. Additional breaks prevent a join, so
 			<code>"litiga-\n\fPage 3\ntion"</code> is unchanged.
-			No dictionary is used: a compound split at a hyphen, such as
+			A capitalized word after the break is the second part of a compound and keeps
+			the hyphen: <code>"Anglo-\nAmerican"</code>, <code>"non-\nEnglish"</code> and
+			<code>"NATO-\nGipfel"</code> are unchanged. Text in capitals, such as
+			<code>"LITIGA-\nTION"</code>, joins. The soft hyphen marks a break inside one
+			word, so it joins before a capital as well.
+			No dictionary is used: a lower-case compound split at a hyphen, such as
 			<code>"well-\nknown"</code>, becomes <code>"wellknown"</code>.
 		</para>
 		<para>

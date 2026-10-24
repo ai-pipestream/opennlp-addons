@@ -45,6 +45,11 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * {@link StringUtil#isUnicodeWhitespace(char)}, excluding line breaks.
  * Letter checks support supplementary code points. Offsets use UTF-16 code units.</p>
  *
+ * <p>A capitalized word after the break, as in {@code "Anglo-\nAmerican"} or
+ * {@code "NATO-\nGipfel"}, is the second part of a compound and keeps the hyphen. Text in
+ * capitals, such as {@code "LITIGA-\nTION"}, joins, and so does a soft hyphen before any
+ * letter, since it always marks a break inside one word.</p>
+ *
  * <p>No dictionary is used: {@code "well-\nknown"} becomes {@code "wellknown"}.
  * Text without a matching break is returned without copying. Aligned normalization
  * maps joined-word spans back to the original text, including the deleted break.
@@ -60,9 +65,12 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
 
   private static final String NULL_TEXT_MESSAGE = "The text must not be null.";
 
+  /** U+00AD SOFT HYPHEN, which marks a break inside one word. */
+  private static final int SOFT_HYPHEN = 0x00AD;
+
   /** The hyphens that may end a line inside a hyphenated word. */
   private static final CodePointSet HYPHENS =
-      CodePointSet.of(0x002D, 0x00AD, 0x058A, 0x1400, 0x2010, 0x2E17, 0x10EAD);
+      CodePointSet.of(0x002D, SOFT_HYPHEN, 0x058A, 0x1400, 0x2010, 0x2E17, 0x10EAD);
 
   private static final CodePointSet LINE_BREAKS = UnicodeWhitespace.lineBreakCodePointSet();
 
@@ -154,7 +162,11 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       return -1;
     }
     final int letterEnd = skipMarksBackward(text, hyphen);
-    if (letterEnd == 0 || !Character.isLetter(Character.codePointBefore(text, letterEnd))) {
+    if (letterEnd == 0) {
+      return -1;
+    }
+    final int before = Character.codePointBefore(text, letterEnd);
+    if (!Character.isLetter(before)) {
       return -1;
     }
     final int length = text.length();
@@ -171,10 +183,37 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       end++;  // CRLF is one break, not two
     }
     end = skipHorizontalWhitespace(text, end);
-    if (end >= length || !Character.isLetter(Character.codePointAt(text, end))) {
+    if (end >= length) {
+      return -1;
+    }
+    final int after = Character.codePointAt(text, end);
+    if (!Character.isLetter(after)
+        || (codePoint != SOFT_HYPHEN && isCapitalized(text, before, end, after))) {
       return -1;
     }
     return end;
+  }
+
+  /**
+   * Checks whether the word after the break is capitalized, which marks the second part of
+   * a compound rather than the rest of a split word. A word in capitals after a capital
+   * letter, as in {@code "LITIGA-\nTION"}, is not capitalized in this sense.
+   *
+   * @param text The input text.
+   * @param before The letter before the hyphen.
+   * @param start The offset of the first letter after the break.
+   * @param first The first letter after the break.
+   * @return Whether the hyphen joins a compound.
+   */
+  private boolean isCapitalized(CharSequence text, int before, int start, int first) {
+    if (!Character.isUpperCase(first) && !Character.isTitleCase(first)) {
+      return false;
+    }
+    if (!Character.isUpperCase(before)) {
+      return true;
+    }
+    final int second = skipMarksForward(text, start + Character.charCount(first));
+    return second < text.length() && Character.isLowerCase(Character.codePointAt(text, second));
   }
 
   /**
@@ -208,6 +247,26 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
         break;
       }
       end -= Character.charCount(codePoint);
+    }
+    return end;
+  }
+
+  /**
+   * Steps over the combining marks that start at an offset.
+   *
+   * @param text The input text.
+   * @param start The offset of the first code point to inspect.
+   * @return The offset of the first code point at or after {@code start} that is not a
+   *         mark, or the text length.
+   */
+  private int skipMarksForward(CharSequence text, int start) {
+    int end = start;
+    while (end < text.length()) {
+      final int codePoint = Character.codePointAt(text, end);
+      if (!isMark(codePoint)) {
+        break;
+      }
+      end += Character.charCount(codePoint);
     }
     return end;
   }
