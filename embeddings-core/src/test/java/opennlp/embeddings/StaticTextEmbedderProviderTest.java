@@ -16,13 +16,17 @@
  */
 package opennlp.embeddings;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.embeddings.TextEmbedderProvider;
@@ -40,25 +44,43 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StaticTextEmbedderProviderTest {
 
   private final StaticTextEmbedderProvider provider = new StaticTextEmbedderProvider();
+
+  /**
+   * {@return the specs the provider does not route to; JUnit requires the source to be static}
+   */
+  static List<ProviderSpec> unsupportedSpecs() {
+    return List.of(ProviderSpec.of(Path.of("model.onnx"), Map.of()),
+        ProviderSpec.of(Path.of("model.ONNX"), Map.of()),
+        ProviderSpec.of(URI.create("https://example.org/model")),
+        ProviderSpec.empty(),
+        ProviderSpec.of(Path.of("model"), Map.of("unexpected", "value")));
+  }
+
   @Test
-  void testSpecRoutingDoesNotDependOnExistingFiles(@TempDir Path dir) throws Exception {
-    final ProviderSpec spec = ProviderSpec.of(dir.resolve("missing-model"), Map.of());
+  void testSpecRoutingDoesNotDependOnExistingFiles(@TempDir Path dir) throws IOException {
+    final Path model = dir.resolve("missing-model");
+    final ProviderSpec spec = ProviderSpec.of(model, Map.of());
     assertTrue(provider.supports(spec));
-    assertThrows(IllegalArgumentException.class, () -> provider.create(spec));
-    Files.createDirectory(dir.resolve("missing-model"));
+    assertEquals("Model directory does not exist or is not a directory: " + model,
+        assertThrows(IllegalArgumentException.class, () -> provider.create(spec)).getMessage());
+    Files.createDirectory(model);
     assertTrue(provider.supports(spec));
-    assertFalse(provider.supports(ProviderSpec.of(dir.resolve("model.onnx"), Map.of())));
-    assertFalse(provider.supports(ProviderSpec.of(dir.resolve("model.ONNX"), Map.of())));
-    assertFalse(provider.supports(ProviderSpec.of(URI.create("https://example.org/model"))));
-    assertFalse(provider.supports(ProviderSpec.empty()));
-    assertFalse(provider.supports(ProviderSpec.of(dir, Map.of("unexpected", "value"))));
-    assertThrows(IllegalArgumentException.class, () -> provider.supports((ProviderSpec) null));
-    assertThrows(IllegalArgumentException.class, () -> provider.create(null));
-    assertThrows(IllegalArgumentException.class, () -> provider.create(ProviderSpec.empty()));
-    assertThrows(IllegalArgumentException.class,
-        () -> provider.create(ProviderSpec.of(URI.create("https://example.org/model"))));
-    assertThrows(IllegalArgumentException.class,
-        () -> provider.create(ProviderSpec.of(dir, Map.of("unexpected", "value"))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("unsupportedSpecs")
+  void testUnsupportedSpecsAreNotRoutedAndNotCreated(ProviderSpec spec) {
+    assertFalse(provider.supports(spec));
+    assertEquals("spec is not supported: " + spec,
+        assertThrows(IllegalArgumentException.class, () -> provider.create(spec)).getMessage());
+  }
+
+  @Test
+  void testNullSpecIsRejected() {
+    assertEquals("spec must not be null",
+        assertThrows(IllegalArgumentException.class, () -> provider.supports(null)).getMessage());
+    assertEquals("spec must not be null",
+        assertThrows(IllegalArgumentException.class, () -> provider.create(null)).getMessage());
   }
 
   @Test
@@ -68,46 +90,17 @@ class StaticTextEmbedderProviderTest {
     assertTrue(provider.isAvailable());
   }
 
-  @Test
-  void testSupportsAModelDirectoryWithoutOptions(@TempDir Path dir) throws Exception {
-    EmbeddingTestFixtures.writeSearchDirectory(dir);
-    assertTrue(provider.supports(dir, Map.of()));
-    assertFalse(provider.supports(dir, Map.of("vocabulary", "vocab.txt")));
-    assertFalse(provider.supports(dir, null));
-    assertFalse(provider.supports(null, Map.of()));
-  }
-
-  @Test
-  void testDoesNotSupportFilesOrIncompleteDirectories(@TempDir Path dir) throws Exception {
-    assertFalse(provider.supports(dir, Map.of()), "empty directory");
-    Files.createFile(dir.resolve("model.safetensors"));
-    assertFalse(provider.supports(dir, Map.of()), "no config.json");
-    Files.createFile(dir.resolve("config.json"));
-    assertTrue(provider.supports(dir, Map.of()));
-    assertFalse(provider.supports(dir.resolve("model.safetensors"), Map.of()), "a file");
-    assertFalse(provider.supports(dir.resolve("model.onnx"), Map.of()), "an ONNX file");
-  }
-
   /** The provider is registered in this module and is the one selected for a model directory. */
   @Test
-  void testRegisteredAndSelectedForModelDirectories(@TempDir Path dir) throws Exception {
+  void testRegisteredAndSelectedForModelDirectories(@TempDir Path dir) throws IOException {
     EmbeddingTestFixtures.writeSearchDirectory(dir);
-    assertInstanceOf(StaticTextEmbedderProvider.class,
-        Providers.of(TextEmbedderProvider.class).byName("static").orElseThrow());
-    assertInstanceOf(StaticTextEmbedderProvider.class,
-        Providers.of(TextEmbedderProvider.class).select(ProviderSpec.of(dir, Map.of())));
-    StaticEmbeddingModel expected = StaticEmbeddingModel.load(dir);
-    try (TextEmbedder actual = Providers.of(TextEmbedderProvider.class).select(ProviderSpec.of(dir, Map.of()))
-        .create(ProviderSpec.of(dir, Map.of()))) {
+    final Providers<TextEmbedderProvider> providers = Providers.of(TextEmbedderProvider.class);
+    final ProviderSpec spec = ProviderSpec.of(dir, Map.of());
+    assertInstanceOf(StaticTextEmbedderProvider.class, providers.byName("static").orElseThrow());
+    assertInstanceOf(StaticTextEmbedderProvider.class, providers.select(spec));
+    final StaticEmbeddingModel expected = StaticEmbeddingModel.load(dir);
+    try (TextEmbedder actual = providers.select(spec).create(spec)) {
       assertArrayEquals(expected.embed("king"), actual.embed("king"));
     }
-  }
-
-  @Test
-  void testLoadRejectsOptionsAndNull(@TempDir Path dir) {
-    assertThrows(IllegalArgumentException.class, () -> provider.load(null, Map.of()));
-    assertThrows(IllegalArgumentException.class, () -> provider.load(dir, null));
-    assertThrows(IllegalArgumentException.class,
-        () -> provider.load(dir, Map.of("lowerCase", "true")));
   }
 }

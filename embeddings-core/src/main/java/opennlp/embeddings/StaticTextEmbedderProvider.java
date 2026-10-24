@@ -17,12 +17,10 @@
 package opennlp.embeddings;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
 
 import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.embeddings.TextEmbedderProvider;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.ext.ProviderSpec;
 
 /**
@@ -50,9 +48,7 @@ public final class StaticTextEmbedderProvider implements TextEmbedderProvider {
   /** {@inheritDoc} */
   @Override
   public boolean supports(ProviderSpec spec) {
-    if (spec == null) {
-      throw new IllegalArgumentException("spec must not be null");
-    }
+    ParamChecks.requireNonNullArg(spec, "spec");
     return spec.path().isPresent() && !spec.locationEndsWith(".onnx") && spec.hasOnlyOptions();
   }
 
@@ -60,43 +56,8 @@ public final class StaticTextEmbedderProvider implements TextEmbedderProvider {
   @Override
   public TextEmbedder create(ProviderSpec spec) throws IOException {
     if (!supports(spec)) {
-      throw new IllegalArgumentException("spec must name a local static model with no options");
+      throw new IllegalArgumentException("spec is not supported: " + spec);
     }
-    return load(spec.path().orElseThrow(), spec.options());
-  }
-
-  /**
-   * Checks the files in a model directory. Unlike {@link #supports(ProviderSpec)},
-   * this convenience method inspects the file system. The tokenizer layout is checked
-   * by {@link #load(Path, Map)}.
-   *
-   * @param model The model directory.
-   * @param options An empty option map.
-   * @return Whether the directory contains the required model and configuration files.
-   */
-  public boolean supports(Path model, Map<String, String> options) {
-    return model != null && options != null && options.isEmpty()
-        && Files.isDirectory(model)
-        && Files.isRegularFile(model.resolve(ModelFileNames.SAFETENSORS))
-        && Files.isRegularFile(model.resolve(ModelFileNames.CONFIG));
-  }
-
-  /**
-   * Loads a static model directory.
-   *
-   * @param model The model directory.
-   * @param options An empty option map.
-   * @return The loaded model.
-   * @throws IllegalArgumentException If the path is null or options are null or nonempty.
-   * @throws IOException If model files cannot be read.
-   */
-  public TextEmbedder load(Path model, Map<String, String> options) throws IOException {
-    if (model == null) {
-      throw new IllegalArgumentException("model must not be null");
-    }
-    if (options == null || !options.isEmpty()) {
-      throw new IllegalArgumentException("options must be non-null and empty");
-    }
-    return StaticEmbeddingModel.load(model);
+    return StaticEmbeddingModel.load(spec.path().orElseThrow());
   }
 }
