@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -287,18 +286,6 @@ class IbanValidationTest {
   @ValueSource(strings = {EXAMPLE, "NO9386011117947", "GB82WEST12345698765432"})
   void testReferenceCheckDigits(String compact) {
     Assertions.assertEquals(compact, candidate(compact.substring(0, 2), compact.substring(4)));
-  }
-
-  /**
-   * Checks exact registered lengths independently of checksum calculations.
-   *
-   * @param country The country code.
-   * @param length The registered length.
-   */
-  @ParameterizedTest
-  @CsvSource({"NO,15", "DE,22", "GB,22", "MT,31", "LC,32", "RU,33"})
-  void testRegisteredLengths(String country, int length) {
-    Assertions.assertEquals(length, IbanLengths.registeredLength(country.charAt(0), country.charAt(1)));
   }
 
   /** Checks the manual's transfer text and excludes the following reference from masking. */

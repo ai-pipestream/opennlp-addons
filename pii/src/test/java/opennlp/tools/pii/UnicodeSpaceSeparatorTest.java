@@ -18,9 +18,13 @@
 package opennlp.tools.pii;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -136,14 +140,36 @@ public class UnicodeSpaceSeparatorTest {
   }
 
   /**
-   * Tabs and line breaks still end a grouped candidate.
+   * Provides grouped candidates of every detector that accepts a space between groups.
    *
-   * @param separator The separator that must not join groups.
+   * @return The extractor and the candidate written with ASCII spaces.
+   */
+  private static Stream<Arguments> groupedCandidates() {
+    return Stream.of(
+        Arguments.of(new CursorPiiExtractor(Set.of(PiiMention.TYPE_IBAN)),
+            "DE89 3704 0044 0532 0130 00"),
+        Arguments.of(new CursorPiiExtractor(Set.of(PiiMention.TYPE_CARD)), "4111 1111 1111 1111"),
+        Arguments.of(new CursorPiiExtractor(Set.of(PiiMention.TYPE_PHONE)), "+33 6 12 34 56 78"),
+        Arguments.of(new EuIdentityPiiExtractor(), "943 476 5919"),
+        Arguments.of(new UsIdentityPiiExtractor(), "123 45 6789"),
+        Arguments.of(new CaIdentityPiiExtractor(), "SIN: 046 454 286"),
+        Arguments.of(new DevicePiiExtractor(), "IMEI: 35 693803 564380 9"));
+  }
+
+  /**
+   * Tabs and line breaks still end a grouped candidate, for every detector. The labels
+   * of SIN and IMEI accept any Unicode whitespace before the value; the value itself does
+   * not.
+   *
+   * @param extractor The detector.
+   * @param template The candidate written with ASCII spaces.
    */
   @ParameterizedTest
-  @ValueSource(strings = {"\t", "\n"})
-  void testTabsAndLineBreaksDoNotJoinGroups(String separator) {
-    Assertions.assertTrue(new UsIdentityPiiExtractor()
-        .extract(spaced("123 45 6789", separator)).isEmpty());
+  @MethodSource("groupedCandidates")
+  void testTabsAndLineBreaksDoNotJoinGroups(PiiExtractor extractor, String template) {
+    for (final String separator : List.of("\t", "\n", "\r\n", "\u000b", "\f", "\u0085")) {
+      final String text = spaced(template, separator);
+      Assertions.assertEquals(List.of(), extractor.extract(text), text);
+    }
   }
 }

@@ -273,6 +273,34 @@ public class HmacTokenizerTest {
         () -> TOKENIZER.rewrite(Document.of("mail jane@example.com now")));
   }
 
+  /**
+   * Verifies the rewrite of what the widest pack reports: the grouped IBAN also carries a
+   * ten digit phone candidate in its last three groups, and only the IBAN is tokenized.
+   */
+  @Test
+  void testResolvesTheOverlapsAnExtractorReports() {
+    final Document document = new PiiAnnotator(PiiPacks.allStructured())
+        .annotate(Document.of("IBAN DE89 3704 0044 0532 0130 00 received"));
+    Assertions.assertEquals(2, document.get(PiiAnnotator.PII).size());
+
+    final PiiRewrite rewrite = TOKENIZER.rewrite(document);
+
+    Assertions.assertEquals("IBAN " + TOKENIZER.token(PiiMention.TYPE_IBAN,
+        "DE89370400440532013000") + " received", rewrite.text());
+    Assertions.assertEquals(List.of(PiiMention.TYPE_IBAN),
+        rewrite.mentions().stream().map(PiiMention::type).toList());
+  }
+
+  @Test
+  void testKeepsTheLongerOfTwoOverlappingMentions() {
+    final List<PiiMention> mentions = List.of(
+        new PiiMention(new Span(5, 12), PiiMention.TYPE_EMAIL, "a@b.com"),
+        new PiiMention(new Span(0, 10), PiiMention.TYPE_PHONE, "5551234567"));
+
+    Assertions.assertEquals(TOKENIZER.token(PiiMention.TYPE_PHONE, "5551234567") + "xy",
+        TOKENIZER.rewrite("0123456789xy", mentions).text());
+  }
+
   @Test
   void testRejectsNullRewriteArguments() {
     Assertions.assertThrows(IllegalArgumentException.class,
