@@ -215,16 +215,17 @@ public class TemporalAnnotatorTest {
 
   /**
    * Verifies that a day-granularity mention whose value is not an ISO 8601 date, as a
-   * third-party extractor may supply, elects no reference: the mentions stay the
-   * absolute ones instead of the annotator failing or inventing a date.
+   * third-party extractor may supply, is rejected the way {@link DocumentDateAnnotator}
+   * rejects it, instead of silently leaving relative expressions unresolved.
    */
   @Test
-  void testNonIsoDayValueElectsNoReference() {
-    final List<Annotation<TemporalExpression>> mentions =
-        temporals(new TemporalAnnotator(new UnIsoExtractor()), "Filed July 14, 2026.");
+  void testNonIsoDayValueIsRejected() {
+    final TemporalAnnotator unIso = new TemporalAnnotator(new UnIsoExtractor());
 
-    Assertions.assertEquals(1, mentions.size());
-    Assertions.assertEquals("July 14, 2026", mentions.get(0).value().value());
+    final IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> temporals(unIso, "Filed July 14, 2026."));
+
+    Assertions.assertEquals("not an ISO 8601 day value at [6..19): July 14, 2026", e.getMessage());
   }
 
   /**
