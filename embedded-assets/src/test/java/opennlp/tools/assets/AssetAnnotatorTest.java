@@ -69,9 +69,10 @@ public class AssetAnnotatorTest {
 
   @Test
   void testRejectsContractViolations() {
-    assertThrows(IllegalArgumentException.class, () -> new AssetAnnotator(null));
-    assertThrows(IllegalArgumentException.class,
-        () -> new AssetAnnotator().annotate(null));
+    assertEquals("detector must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new AssetAnnotator(null)).getMessage());
+    assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new AssetAnnotator().annotate(null)).getMessage());
   }
 
   /**

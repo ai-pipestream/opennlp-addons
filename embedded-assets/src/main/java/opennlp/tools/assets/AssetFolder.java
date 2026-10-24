@@ -21,6 +21,7 @@ import java.util.function.Function;
 
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.normalizer.AlignedText;
 import opennlp.tools.util.normalizer.Alignment;
 
@@ -53,12 +54,8 @@ public final class AssetFolder {
    */
   public static AlignedText fold(Document document,
       Function<Annotation<EmbeddedAsset>, String> replacement) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
-    if (replacement == null) {
-      throw new IllegalArgumentException("replacement must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
+    ParamChecks.requireNonNullArg(replacement, "replacement");
     if (!document.layers().contains(AssetAnnotator.ASSETS)) {
       throw new IllegalArgumentException("the document has no "
           + AssetAnnotator.ASSETS.id() + " layer; run an AssetAnnotator first");

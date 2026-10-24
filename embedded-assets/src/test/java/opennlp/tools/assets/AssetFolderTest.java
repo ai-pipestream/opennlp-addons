@@ -154,11 +154,12 @@ public class AssetFolderTest {
   @Test
   void testRejectsContractViolations() {
     final Document document = annotated();
-    assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(null, AssetFolder.caption()));
-    assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(document, null));
-    assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(document, annotation -> null));
+    assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
+        () -> AssetFolder.fold(null, AssetFolder.caption())).getMessage());
+    assertEquals("replacement must not be null", assertThrows(IllegalArgumentException.class,
+        () -> AssetFolder.fold(document, null)).getMessage());
+    assertEquals("replacement must not return null",
+        assertThrows(IllegalArgumentException.class,
+            () -> AssetFolder.fold(document, annotation -> null)).getMessage());
   }
 }

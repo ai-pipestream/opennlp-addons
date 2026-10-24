@@ -629,6 +629,7 @@ public class CursorAssetDetectorTest {
 
   @Test
   void testRejectsNull() {
-    assertThrows(IllegalArgumentException.class, () -> detector.detect(null));
+    assertEquals("text must not be null", assertThrows(IllegalArgumentException.class,
+        () -> detector.detect(null)).getMessage());
   }
 }

@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -194,9 +195,7 @@ public final class CursorAssetDetector implements AssetDetector {
    */
   @Override
   public List<EmbeddedAsset> detect(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final List<EmbeddedAsset> assets = new ArrayList<>();
     final int length = text.length();
     int i = 0;

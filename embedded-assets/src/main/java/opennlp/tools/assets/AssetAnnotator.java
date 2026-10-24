@@ -26,6 +26,7 @@ import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Adds an {@link #ASSETS} layer by scanning the document text with an
@@ -36,7 +37,7 @@ import opennlp.tools.document.Layers;
  *
  * @since 3.0.0
  */
-public class AssetAnnotator implements DocumentAnnotator {
+public final class AssetAnnotator implements DocumentAnnotator {
 
   /**
    * Embedded binary assets; each annotation covers one asset and carries its
@@ -59,10 +60,7 @@ public class AssetAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code detector} is {@code null}.
    */
   public AssetAnnotator(AssetDetector detector) {
-    if (detector == null) {
-      throw new IllegalArgumentException("detector must not be null");
-    }
-    this.detector = detector;
+    this.detector = ParamChecks.requireNonNullArg(detector, "detector");
   }
 
   /**
@@ -74,9 +72,7 @@ public class AssetAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     final CharSequence text = document.text();
     final List<EmbeddedAsset> detected = detector.detect(text);
     if (detected == null) {

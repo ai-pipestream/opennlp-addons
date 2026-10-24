@@ -19,8 +19,8 @@ package opennlp.tools.assets;
 
 import java.util.Base64;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * An encoded payload with source spans, a format, and metadata from its header.
@@ -135,24 +135,14 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
    *         is neither positive nor -1.
    */
   public EmbeddedAsset {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (payload == null) {
-      throw new IllegalArgumentException("payload must not be null");
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonNullArg(payload, "payload");
     if (payload.getStart() < span.getStart() || payload.getEnd() > span.getEnd()) {
       throw new IllegalArgumentException("payload must lie inside the span");
     }
-    if (StringUtil.isUnicodeBlank(format)) {
-      throw new IllegalArgumentException("format must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(mediaType)) {
-      throw new IllegalArgumentException("mediaType must not be null or blank");
-    }
-    if (decodedLength < 0) {
-      throw new IllegalArgumentException("decodedLength must not be negative");
-    }
+    ParamChecks.requireNonBlank(format, "format");
+    ParamChecks.requireNonBlank(mediaType, "mediaType");
+    ParamChecks.requireNonNegative(decodedLength, "decodedLength");
     if (width != -1 && width <= 0) {
       throw new IllegalArgumentException("width must be positive or -1");
     }
@@ -175,9 +165,7 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
    *         MIME base64, or base64url.
    */
   public byte[] decode(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     if (text.length() < payload.getEnd()) {
       throw new IllegalArgumentException("text is shorter than the payload span");
     }
