@@ -319,6 +319,25 @@ public class CursorAssetDetectorTest {
     assertArrayEquals(bytes, asset.decode(text));
   }
 
+  /**
+   * The URI scheme and the {@code base64} extension are ASCII case-insensitive, so an
+   * upper- or mixed-case prefix still yields a data URI whose span starts at the scheme
+   * and whose media type is the declared one.
+   *
+   * @param prefix The scheme and extension spelling.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"DATA:image/png;BASE64,", "Data:image/png;Base64,",
+      "data:image/png;BASE64,", "DATA:image/png;base64,"})
+  void testDataUriPrefixIsCaseInsensitive(String prefix) {
+    final String uri = prefix + Base64.getEncoder().encodeToString(png(2, 3));
+    final String text = embed(uri);
+    final List<EmbeddedAsset> assets = detector.detect(text);
+    assertEquals(1, assets.size());
+    assertEquals(uri, assets.get(0).span().getCoveredText(text).toString());
+    assertEquals("image/png", assets.get(0).mediaType());
+  }
+
   @Test
   void testDataUriWithUnknownHeaderKeepsTheDeclaredFormat() {
     final byte[] bytes = "just some plain bytes padded out".getBytes(
