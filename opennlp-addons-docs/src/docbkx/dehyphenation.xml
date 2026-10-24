@@ -21,8 +21,10 @@
 			<code>DehyphenationCharSequenceNormalizer</code> joins words split at a
 			line break, such as <code>"litiga-\ntion"</code> to <code>"litigation"</code>.
 			A letter, optionally followed by combining marks, must precede the hyphen,
-			and a letter must follow the break, with optional horizontal whitespace
-			before the continuation. The supported hyphens are
+			and a letter must follow the break. Horizontal whitespace between the hyphen
+			and the break, as PDF and OCR output often leaves it, and before the
+			continuation is deleted with the hyphen, so <code>"litiga- \n  tion"</code>
+			becomes <code>"litigation"</code> as well. The supported hyphens are
 			<code>U+002D</code>, the soft hyphen <code>U+00AD</code>, <code>U+2010</code>,
 			and the hyphens other scripts use at a line end: <code>U+058A</code> (Armenian),
 			<code>U+1400</code> (Canadian syllabics), <code>U+2E17</code> (Fraktur) and

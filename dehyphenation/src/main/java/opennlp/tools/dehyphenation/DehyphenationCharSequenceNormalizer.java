@@ -30,8 +30,8 @@ import opennlp.tools.util.normalizer.UnicodeWhitespace;
  * {@code "litiga-\ntion"} to {@code "litigation"}.
  *
  * <p>The hyphen must have a letter, optionally followed by combining marks, immediately
- * before it and a forced line break immediately after it. Horizontal whitespace may
- * precede the next letter.
+ * before it and a forced line break after it. Horizontal whitespace may come between the
+ * hyphen and the break and between the break and the next letter; the join deletes it.
  * Supported hyphens are {@code U+002D HYPHEN-MINUS}, {@code U+00AD SOFT HYPHEN},
  * {@code U+2010 HYPHEN}, and the hyphens other scripts use at a line end:
  * {@code U+058A ARMENIAN HYPHEN}, {@code U+1400 CANADIAN SYLLABICS HYPHEN},
@@ -158,7 +158,7 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
       return -1;
     }
     final int length = text.length();
-    int end = hyphen + Character.charCount(codePoint);
+    int end = skipHorizontalWhitespace(text, hyphen + Character.charCount(codePoint));
     if (end >= length) {
       return -1;
     }
@@ -170,11 +170,25 @@ public class DehyphenationCharSequenceNormalizer implements OffsetAwareNormalize
     if (breakStart == '\r' && end < length && text.charAt(end) == '\n') {
       end++;  // CRLF is one break, not two
     }
-    while (end < length && isHorizontalWhitespace(text.charAt(end))) {
-      end++;
-    }
+    end = skipHorizontalWhitespace(text, end);
     if (end >= length || !Character.isLetter(Character.codePointAt(text, end))) {
       return -1;
+    }
+    return end;
+  }
+
+  /**
+   * Steps over horizontal whitespace.
+   *
+   * @param text The input text.
+   * @param start The offset to start at.
+   * @return The offset of the first character at or after {@code start} that is not
+   *         horizontal whitespace, or the text length.
+   */
+  private int skipHorizontalWhitespace(CharSequence text, int start) {
+    int end = start;
+    while (end < text.length() && isHorizontalWhitespace(text.charAt(end))) {
+      end++;
     }
     return end;
   }
