@@ -110,6 +110,34 @@ class SentencePieceModelValidationTest {
   }
 
   @Test
+  void testCharsMapTrieReferencingAUnitOutsideItIsRejectedOnLoad() {
+    // A 256-unit trie whose root unit points its children at unit 1000.
+    final byte[] charsMap = new byte[4 + 1024 + 1];
+    charsMap[1] = 0x04; // trie size 1024 bytes, little-endian
+    final int rootUnit = 1000 << 10;
+    charsMap[4] = (byte) rootUnit;
+    charsMap[5] = (byte) (rootUnit >>> 8);
+    charsMap[6] = (byte) (rootUnit >>> 16);
+    charsMap[7] = (byte) (rootUnit >>> 24);
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    writePiece(out, "<unk>", 2);
+    writePiece(out, "a", 1);
+    // normalizer_spec { precompiled_charsmap = <charsMap> }
+    out.write(0x1A);
+    writeVarint(out, 1 + 2 + charsMap.length);
+    out.write(0x12);
+    writeVarint(out, charsMap.length);
+    out.writeBytes(charsMap);
+    final byte[] model = out.toByteArray();
+
+    final InvalidFormatException e = assertThrows(InvalidFormatException.class,
+        () -> SentencePieceTokenizer.load(new ByteArrayInputStream(model)));
+
+    assertEquals("The precompiled character map trie references a unit outside its 256 units.",
+        e.getMessage());
+  }
+
+  @Test
   void testConcurrentEncodingIsConsistent() throws Exception {
     final SentencePieceTokenizer tokenizer = SentencePieceFixtures.tokenizer("tiny-unigram");
     final String[] inputs = {
@@ -298,6 +326,15 @@ class SentencePieceModelValidationTest {
     writePiece(out, "a", 1);
     writePiece(out, "b", 1);
     return out.toByteArray();
+  }
+
+  private void writeVarint(ByteArrayOutputStream out, int value) {
+    int rest = value;
+    while (rest >= 0x80) {
+      out.write(0x80 | rest & 0x7F);
+      rest >>>= 7;
+    }
+    out.write(rest);
   }
 
   private static void writePiece(ByteArrayOutputStream out, String piece, int type) {
