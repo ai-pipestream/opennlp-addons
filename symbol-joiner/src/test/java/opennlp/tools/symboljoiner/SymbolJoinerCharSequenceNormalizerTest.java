@@ -69,13 +69,34 @@ public class SymbolJoinerCharSequenceNormalizerTest {
   }
 
   /**
+   * Maps the fullwidth and small compatibility forms of the ASCII symbols like the symbols
+   * themselves.
+   *
+   * @param symbol The compatibility form.
+   * @param word The English replacement.
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "\uFF06, and",      // U+FF06 FULLWIDTH AMPERSAND
+      "\uFE60, and",      // U+FE60 SMALL AMPERSAND
+      "\uFF0B, plus",     // U+FF0B FULLWIDTH PLUS SIGN
+      "\uFE62, plus",     // U+FE62 SMALL PLUS SIGN
+      "\uFF20, at",       // U+FF20 FULLWIDTH COMMERCIAL AT
+      "\uFE6B, at",       // U+FE6B SMALL COMMERCIAL AT
+      "\uFF05, percent",  // U+FF05 FULLWIDTH PERCENT SIGN
+      "\uFE6A, percent"}) // U+FE6A SMALL PERCENT SIGN
+  void testCompatibilityFormsSpellOut(String symbol, String word) {
+    assertEquals(word, NORMALIZER.normalize(symbol).toString());
+  }
+
+  /**
    * Does not expand embedded symbols, padded input, variants, or unsupported forms.
    *
    * @param token The input to preserve.
    */
   @ParameterizedTest
   @ValueSource(strings = {"R&D", "AT&T", "TSR®", "&&", "& ", " &", "(R)", "(TM)", "(C)",
-      "©\uFE0F", "®\uFE0F", "\uFF06", "€", "$", "£", "&\u0301", "™ ", "\u00A0&"})
+      "©\uFE0F", "®\uFE0F", "€", "$", "£", "&\u0301", "™ ", "\u00A0&"})
   void testEmbeddedSymbolsAreLeftAlone(String token) {
     assertSame(token, NORMALIZER.normalize(token));
     final CharBuffer buffer = CharBuffer.wrap(token);
