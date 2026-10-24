@@ -23,17 +23,20 @@ import opennlp.tools.commons.Internal;
 import opennlp.tools.util.StringUtil;
 
 /**
- * Scans ASCII digits with strict grouping, an optional fractional part, and optional
+ * Scans decimal digits with strict grouping, an optional fractional part, and optional
  * scale markers for the typed extractors.
  *
- * <p>Which character groups digits and which marks the fraction is the caller's
+ * <p>Digits are the decimal digits of every script, the Unicode category {@code Nd}, so
+ * Arabic-Indic, Devanagari or fullwidth digits read like ASCII ones; the normalized value
+ * is always written in ASCII digits. Which character groups digits and which marks the
+ * fraction is the caller's
  * {@link NumberNotation}. Grouping is strict: once a group separator appears, the leading
  * group must have at most three digits and every further group exactly three. A scan that
  * stops at another numeric separator directly followed by a digit fails entirely instead
  * of truncating, because the text continues a number this scanner cannot parse, for
  * example the Indian-grouped {@code 1,00,000}, a repeated decimal separator, or a European
  * {@code 1.234,56} read in {@link NumberNotation#LATIN_US}. Nonbreaking and thin spaces,
- * apostrophes, and Arabic numeric separators between ASCII digits also reject the scan;
+ * apostrophes, and Arabic numeric separators between digits also reject the scan;
  * they are not converted to the selected notation. One Unicode whitespace character
  * separates a number from a following scale word.
  * Scientific notation such as {@code 1e-3} is not supported and rejects the scan.
@@ -83,34 +86,23 @@ public final class NumberScan {
       NumberNotation notation) {
     final char group = notation.groupSeparator();
     final char decimal = notation.decimalSeparator();
-    int i = start;
-    int digits = 0;
     final StringBuilder normalized = new StringBuilder();
-    while (isAsciiDigit(charAt(text, i))) {
-      normalized.append(text.charAt(i));
-      i++;
-      digits++;
-    }
-    if (digits == 0) {
+    int i = appendDigits(text, start, normalized);
+    if (i == start) {
       return null;
     }
-    if (charAt(text, i) == group && digits <= 3) {
+    if (charAt(text, i) == group && normalized.length() <= 3) {
       while (charAt(text, i) == group && groupOfThree(text, i + 1)) {
-        normalized.append(text, i + 1, i + 4);
-        i += 4;
+        i = appendDigits(text, i + 1, normalized);
       }
     }
-    if (charAt(text, i) == decimal && isAsciiDigit(charAt(text, i + 1))) {
+    if (charAt(text, i) == decimal && Character.isDigit(codePointAt(text, i + 1))) {
       normalized.append('.');
-      i++;
-      while (isAsciiDigit(charAt(text, i))) {
-        normalized.append(text.charAt(i));
-        i++;
-      }
+      i = appendDigits(text, i + 1, normalized);
     }
     if ((charAt(text, i) == group || charAt(text, i) == decimal
         || unsupportedSeparator(charAt(text, i)))
-        && isAsciiDigit(charAt(text, i + 1))) {
+        && Character.isDigit(codePointAt(text, i + 1))) {
       // Another separator followed by a digit continues the malformed number. Returning
       // a valid prefix here would let a typed extractor report the wrong value.
       return null;
@@ -139,7 +131,7 @@ public final class NumberScan {
     final char before = charAt(text, index - 1);
     if ((before == notation.groupSeparator() || before == notation.decimalSeparator()
         || unsupportedSeparator(before))
-        && isAsciiDigit(charAt(text, index - 2))) {
+        && digitBefore(text, index - 1)) {
       return true;
     }
     final int exponent = index - (before == '+' || before == '-' ? 2 : 1);
@@ -148,9 +140,41 @@ public final class NumberScan {
       return false;
     }
     final char mantissaEnd = charAt(text, exponent - 1);
-    return isAsciiDigit(mantissaEnd)
+    return digitBefore(text, exponent)
         || ((mantissaEnd == notation.groupSeparator() || mantissaEnd == notation.decimalSeparator())
-            && isAsciiDigit(charAt(text, exponent - 2)));
+            && digitBefore(text, exponent - 1));
+  }
+
+  /**
+   * Checks whether the code point ending at a position is a decimal digit.
+   *
+   * @param text The text. Must not be {@code null}.
+   * @param index The exclusive end offset of the candidate digit.
+   * @return {@code true} if a decimal digit ends at {@code index}.
+   */
+  private static boolean digitBefore(CharSequence text, int index) {
+    return index > 0 && index <= text.length() && Character.isDigit(Character.codePointBefore(text, index));
+  }
+
+  /**
+   * Copies a run of decimal digits, of any script, to the normalized buffer as ASCII
+   * digits.
+   *
+   * @param text The text being scanned. Must not be {@code null}.
+   * @param start The offset of the first candidate digit.
+   * @param normalized The buffer receiving the ASCII digits.
+   * @return The exclusive end offset of the run, equal to {@code start} when no digit
+   *         starts there.
+   */
+  private static int appendDigits(CharSequence text, int start, StringBuilder normalized) {
+    int i = start;
+    int cp = codePointAt(text, i);
+    while (Character.isDigit(cp)) {
+      normalized.append((char) ('0' + Character.digit(cp, 10)));
+      i += Character.charCount(cp);
+      cp = codePointAt(text, i);
+    }
+    return i;
   }
 
   /**
@@ -166,13 +190,13 @@ public final class NumberScan {
       return false;
     }
     final char sign = charAt(text, start + 1);
-    return isAsciiDigit(charAt(text, start + (sign == '+' || sign == '-' ? 2 : 1)));
+    return Character.isDigit(codePointAt(text, start + (sign == '+' || sign == '-' ? 2 : 1)));
   }
 
   /**
    * Identifies numeric separators that neither supported notation consumes.
    *
-   * @param separator The character between ASCII digits.
+   * @param separator The character between digits.
    * @return Whether the character indicates unsupported grouping or a decimal separator.
    */
   private static boolean unsupportedSeparator(char separator) {
@@ -269,8 +293,15 @@ public final class NumberScan {
    * @return {@code true} if a complete group of three digits starts at {@code start}.
    */
   private static boolean groupOfThree(CharSequence text, int start) {
-    return isAsciiDigit(charAt(text, start)) && isAsciiDigit(charAt(text, start + 1))
-        && isAsciiDigit(charAt(text, start + 2)) && !isAsciiDigit(charAt(text, start + 3));
+    int i = start;
+    for (int count = 0; count < 3; count++) {
+      final int cp = codePointAt(text, i);
+      if (!Character.isDigit(cp)) {
+        return false;
+      }
+      i += Character.charCount(cp);
+    }
+    return !Character.isDigit(codePointAt(text, i));
   }
 
   /**
@@ -365,14 +396,6 @@ public final class NumberScan {
           Character.CONNECTOR_PUNCTUATION -> true;
       default -> false;
     };
-  }
-
-  /**
-   * @param cp The code point to classify.
-   * @return {@code true} if {@code cp} is an ASCII digit.
-   */
-  public static boolean isAsciiDigit(int cp) {
-    return cp >= '0' && cp <= '9';
   }
 
   /**

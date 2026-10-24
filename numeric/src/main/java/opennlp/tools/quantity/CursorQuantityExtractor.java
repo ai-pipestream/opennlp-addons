@@ -221,7 +221,7 @@ public class CursorQuantityExtractor implements QuantityExtractor {
       negative = true;
       i++;
     }
-    if (!NumberScan.isAsciiDigit(NumberScan.charAt(text, i))
+    if (!Character.isDigit(NumberScan.codePointAt(text, i))
         || NumberScan.continuesNumber(text, i, notation)
         || !(negative ? NumberScan.signBoundaryBefore(text, start)
             : NumberScan.boundaryBefore(text, start))) {

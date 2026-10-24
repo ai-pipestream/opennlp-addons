@@ -334,7 +334,7 @@ public class CursorMoneyExtractor implements MoneyExtractor {
         return isoFirst;
       }
     }
-    if (NumberScan.isAsciiDigit(cp)
+    if (Character.isDigit(cp)
         && !NumberScan.continuesNumber(text, i, notation)
         && (negative ? NumberScan.signBoundaryBefore(text, start)
             : NumberScan.boundaryBefore(text, i))) {

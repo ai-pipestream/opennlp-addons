@@ -389,11 +389,15 @@ Document american = NumericPacks.fullPipeline().analyze(text);
 			</programlisting>
 		</para>
 		<para>
-			Both notations read ASCII digits only. Nonbreaking spaces (U+00A0 and U+202F),
-			thin spaces (U+2009), apostrophes (U+0027 and U+2019), and Arabic numeric
-			separators (U+066B and U+066C) between ASCII digits reject an amount rather than
+			Both notations read the decimal digits of every script, the Unicode category Nd,
+			and normalize them to ASCII: Arabic-Indic, Devanagari or fullwidth digits yield the
+			same amount as ASCII digits. The grouping rule applies whichever script is used, so
+			the Indian grouping of 1,00,000 is rejected whole. Nonbreaking spaces (U+00A0 and
+			U+202F), thin spaces (U+2009), apostrophes (U+0027 and U+2019), and Arabic numeric
+			separators (U+066B and U+066C) between digits reject an amount rather than
 			produce a partial value. This does not add support for those formats. Ordinary
-			spaces separate tokens and are not interpreted as grouping.
+			spaces separate tokens and are not interpreted as grouping. Calendar dates are
+			read in ASCII digits only, as ISO 8601 writes them.
 			<programlisting language="java"><![CDATA[
 MoneyAmount grouped = new CursorMoneyExtractor(NumberNotation.LATIN_US)
     .extract("1,234 USD").getFirst(); // amount: 1234

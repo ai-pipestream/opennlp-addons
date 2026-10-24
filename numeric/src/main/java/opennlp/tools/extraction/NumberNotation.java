@@ -81,7 +81,7 @@ public enum NumberNotation {
    * <p>The decision is taken from the locale's own {@link DecimalFormatSymbols}, so it
    * follows the JDK's locale data: a comma decimal separator selects {@link #LATIN_EU};
    * every other decimal separator selects {@link #LATIN_US}. This selection does not
-   * add support for the locale's other grouping characters or non-ASCII digits.</p>
+   * add support for the locale's other grouping characters.</p>
    *
    * @param locale The locale to resolve. Must not be {@code null}.
    * @return The notation of {@code locale}. Never {@code null}.

@@ -183,12 +183,13 @@ public class CursorTemporalExtractor implements TemporalExtractor {
    * @return The mention starting at {@code start}, or {@code null} when none matches.
    */
   private TemporalExpression matchAt(CharSequence text, int start, LocalDate reference) {
+    // ISO 8601 writes dates in ASCII digits, and so do the English calendar forms read here.
     final char c = NumberScan.charAt(text, start);
-    if ((!NumberScan.isAsciiDigit(c) && !Character.isLetter(c))
+    if ((!StringUtil.isAsciiDigit(c) && !Character.isLetter(c))
         || !NumberScan.boundaryBefore(text, start)) {
       return null;
     }
-    if (NumberScan.isAsciiDigit(c)) {
+    if (StringUtil.isAsciiDigit(c)) {
       if (NumberScan.continuesNumber(text, start, NumberNotation.LATIN_US)) {
         return null;
       }
@@ -202,7 +203,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
       }
       return reference == null ? null : countAgo(text, start, reference);
     }
-    if ((c == 'Q' || c == 'q') && NumberScan.isAsciiDigit(NumberScan.charAt(text, start + 1))) {
+    if ((c == 'Q' || c == 'q') && StringUtil.isAsciiDigit(NumberScan.charAt(text, start + 1))) {
       return quarter(text, start);
     }
     if (Character.isLetter(c)) {
@@ -420,7 +421,7 @@ public class CursorTemporalExtractor implements TemporalExtractor {
     int i = start + 6;
     int second = 0;
     if (NumberScan.charAt(text, i) == TIME_SEPARATOR
-        && NumberScan.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
+        && StringUtil.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
       second = digits(text, i + 1, 2);
       if (second < 0 || second > SECONDS_PER_MINUTE) {
         return false;
@@ -430,9 +431,9 @@ public class CursorTemporalExtractor implements TemporalExtractor {
     final char decimal = NumberScan.charAt(text, i);
     boolean nonzeroFraction = false;
     if ((decimal == FRACTION_DOT || decimal == FRACTION_COMMA)
-        && NumberScan.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
+        && StringUtil.isAsciiDigit(NumberScan.charAt(text, i + 1))) {
       i++;
-      while (NumberScan.isAsciiDigit(NumberScan.charAt(text, i))) {
+      while (StringUtil.isAsciiDigit(NumberScan.charAt(text, i))) {
         nonzeroFraction |= NumberScan.charAt(text, i) != '0';
         i++;
       }
@@ -611,12 +612,12 @@ public class CursorTemporalExtractor implements TemporalExtractor {
   private NumberInText shortNumber(CharSequence text, int start) {
     int i = start;
     int value = 0;
-    while (NumberScan.isAsciiDigit(NumberScan.charAt(text, i)) && i - start < 3) {
+    while (StringUtil.isAsciiDigit(NumberScan.charAt(text, i)) && i - start < 3) {
       value = value * 10 + (NumberScan.charAt(text, i) - '0');
       i++;
     }
     final int length = i - start;
-    if (length < 1 || length > 2 || NumberScan.isAsciiDigit(NumberScan.charAt(text, i))) {
+    if (length < 1 || length > 2 || StringUtil.isAsciiDigit(NumberScan.charAt(text, i))) {
       return null;
     }
     return new NumberInText(value, i);
@@ -653,12 +654,12 @@ public class CursorTemporalExtractor implements TemporalExtractor {
     int value = 0;
     for (int i = start; i < start + width; i++) {
       final char c = NumberScan.charAt(text, i);
-      if (!NumberScan.isAsciiDigit(c)) {
+      if (!StringUtil.isAsciiDigit(c)) {
         return -1;
       }
       value = value * 10 + (c - '0');
     }
-    return NumberScan.isAsciiDigit(NumberScan.charAt(text, start + width)) ? -1 : value;
+    return StringUtil.isAsciiDigit(NumberScan.charAt(text, start + width)) ? -1 : value;
   }
 
   /**
