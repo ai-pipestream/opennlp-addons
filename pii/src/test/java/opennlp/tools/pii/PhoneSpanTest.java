@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -142,9 +143,35 @@ class PhoneSpanTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"+123", "415-555-012", "4155550123", "+999 (1234)",
-      "123(456)", "+65 (123456)"})
+      "123(456)", "+65 (123456)", "0-306-40615-2", "3 16 148410 0", "0221 123 45-6"})
   void testRejectedNumbers(String text) {
     Assertions.assertTrue(extractor.extract(text).isEmpty());
+  }
+
+  /**
+   * Checks that a domestic number may end in a single digit, as a German extension
+   * (Durchwahl) does, as long as it has at most 3 groups.
+   *
+   * @param text The number with a 1-digit final group.
+   * @param normalized The expected digits.
+   */
+  @ParameterizedTest
+  @CsvSource({"'0221 12345-6', 0221123456", "'030 1234567-0', 03012345670"})
+  void testExtensionDigitEndsANumber(String text, String normalized) {
+    Assertions.assertEquals(List.of(new PiiMention(new Span(0, text.length()),
+        PiiMention.TYPE_PHONE, normalized)), extractor.extract(text));
+  }
+
+  /**
+   * Checks that a number does not start after a digit and a hyphen: the national part of
+   * a number written with a dialing prefix is not a candidate of its own, while the same
+   * number in international form is reported.
+   */
+  @Test
+  void testNumberDoesNotStartAfterDigitAndHyphen() {
+    Assertions.assertTrue(extractor.extract("call 001-555-123-4567").isEmpty());
+    Assertions.assertEquals(List.of(new PiiMention(new Span(5, 20), PiiMention.TYPE_PHONE,
+        "+15551234567")), extractor.extract("call +1 555-123-4567"));
   }
 
   /** Checks the manual example with a closing parenthesis at the end of the number. */

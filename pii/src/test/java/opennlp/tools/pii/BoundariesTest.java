@@ -47,7 +47,11 @@ public class BoundariesTest {
       "'1,23', 2, false",
       "'. 23', 2, true",
       "'.23', 1, true",
-      "'a. 23', 3, true"
+      "'a. 23', 3, true",
+      "'1-23', 2, false",
+      "'a-23', 2, true",
+      "'-23', 1, true",
+      "'1- 23', 3, true"
   })
   void testNumberStart(String text, int start, boolean expected) {
     Assertions.assertEquals(expected, Boundaries.onNumberStart(text, start));
