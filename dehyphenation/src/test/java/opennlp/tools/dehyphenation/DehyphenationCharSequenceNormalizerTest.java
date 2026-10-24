@@ -21,6 +21,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.CharBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,6 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.AlignedText;
+import opennlp.tools.util.normalizer.TextNormalizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -48,8 +57,8 @@ public class DehyphenationCharSequenceNormalizerTest {
   /**
    * Deserialization restores the shared normalizer and aligned output.
    *
-   * @throws IOException If serialization fails.
-   * @throws ClassNotFoundException If the normalizer class cannot be loaded.
+   * @throws IOException Thrown if serialization fails.
+   * @throws ClassNotFoundException Thrown if the normalizer class cannot be loaded.
    */
   @Test
   void testSerializationRestoresSharedInstance() throws IOException, ClassNotFoundException {
@@ -272,10 +281,10 @@ public class DehyphenationCharSequenceNormalizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"-\nword", "\u0301-\nword", "3\u0301-\nword"})
+  @ValueSource(strings = {"-\nword", "\u0301-\nword", "3\u0301-\nword", "\u216B-\nword"})
   void testHyphenWithoutPrecedingLetterIsLeftAlone(String text) {
-    // A hyphen at the start, after a lone combining mark, or after a digit with a mark has no
-    // letter before it, so there is nothing to join.
+    // A hyphen at the start, after a lone combining mark, after a digit with a mark, or after
+    // the letter number U+216B ROMAN NUMERAL TWELVE has no letter before it.
     assertEquals(text, NORMALIZER.normalize(text).toString());
   }
 
@@ -370,9 +379,65 @@ public class DehyphenationCharSequenceNormalizerTest {
 
   @Test
   void testNullIsRejected() {
-    assertThrows(IllegalArgumentException.class, () -> NORMALIZER.normalize(null));
-    assertThrows(IllegalArgumentException.class, () -> NORMALIZER.normalizeAligned(null));
+    assertEquals("text must not be null", assertThrows(IllegalArgumentException.class,
+        () -> NORMALIZER.normalize(null)).getMessage());
+    assertEquals("text must not be null", assertThrows(IllegalArgumentException.class,
+        () -> NORMALIZER.normalizeAligned(null)).getMessage());
   }
+
+  /** Text without a join comes back as the supplied sequence, whatever its type. */
+  @Test
+  void testNoOpReturnsTheSuppliedSequence() {
+    final StringBuilder builder = new StringBuilder("word\nnext");
+    assertSame(builder, NORMALIZER.normalize(builder));
+    final CharBuffer buffer = CharBuffer.wrap("x well-known y");
+    buffer.position(2).limit(12);
+    assertSame(buffer, NORMALIZER.normalize(buffer));
+    assertEquals(2, buffer.position());
+    assertEquals("litigation", NORMALIZER.normalize(new StringBuilder("litiga-\ntion")).toString());
+  }
+
+  /**
+   * The de-hyphenation step must come before the steps that change line breaks or hyphens.
+   */
+  @Test
+  void testPipelineOrder() {
+    final String text = "litiga-\ntion well\u2011\nknown";
+    assertEquals("litigation well\u2011 known", TextNormalizer.builder().with(NORMALIZER)
+        .whitespace().build().normalize(text).toString());
+    assertEquals("litiga- tion well\u2011 known", TextNormalizer.builder().whitespace()
+        .with(NORMALIZER).build().normalize(text).toString());
+    assertEquals("litigation wellknown", TextNormalizer.builder().dashes()
+        .with(NORMALIZER).build().normalize(text).toString());
+  }
+
+  /**
+   * The shared instance gives the serial results from several threads.
+   *
+   * @throws InterruptedException Thrown if the test is interrupted.
+   * @throws ExecutionException Thrown if a normalization task fails.
+   */
+  @Test
+  void testConcurrentCallsMatchSerialResults() throws InterruptedException, ExecutionException {
+    final List<String> texts = List.of("litiga-\ntion", "Anglo-\nAmerican", "com-\r\n  plete",
+        "\u6771\u4EAC-\n\u5927\u962A", "Gesell\u2E17\nschaft");
+    final List<String> expected = new ArrayList<>();
+    for (final String text : texts) {
+      expected.add(NORMALIZER.normalize(text).toString());
+    }
+    final List<Callable<String>> tasks = new ArrayList<>();
+    for (int i = 0; i < 64; i++) {
+      final String text = texts.get(i % texts.size());
+      tasks.add(() -> NORMALIZER.normalizeAligned(new StringBuilder(text)).normalizedString());
+    }
+    try (ExecutorService executor = Executors.newFixedThreadPool(4)) {
+      final List<Future<String>> results = executor.invokeAll(tasks);
+      for (int i = 0; i < results.size(); i++) {
+        assertEquals(expected.get(i % texts.size()), results.get(i).get());
+      }
+    }
+  }
+
   /** Retains empty-input coverage from core's shared normalizer contract suite. */
   @Test
   void testEmptyInputContract() {

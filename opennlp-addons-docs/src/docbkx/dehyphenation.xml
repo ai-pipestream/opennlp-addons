@@ -21,10 +21,10 @@
 			<code>DehyphenationCharSequenceNormalizer</code> joins words split at a
 			line break, such as <code>"litiga-\ntion"</code> to <code>"litigation"</code>.
 			A letter, optionally followed by combining marks, must precede the hyphen,
-			and a letter must follow the break. Horizontal whitespace between the hyphen
-			and the break, as PDF and OCR output often leaves it, and before the
-			continuation is deleted with the hyphen, so <code>"litiga- \n  tion"</code>
-			becomes <code>"litigation"</code> as well. The supported hyphens are
+			and a letter must follow the break. Spaces between the hyphen and the break,
+			which PDF and OCR output often leaves, and the indentation of the next line
+			are deleted with the hyphen, so <code>"litiga- \n  tion"</code> becomes
+			<code>"litigation"</code> as well. The supported hyphens are
 			<code>U+002D</code>, the soft hyphen <code>U+00AD</code>, <code>U+2010</code>,
 			and the hyphens other scripts use at a line end: <code>U+058A</code> (Armenian),
 			<code>U+1400</code> (Canadian syllabics), <code>U+2E17</code> (Fraktur) and
@@ -36,7 +36,10 @@
 			Breaks use <code>UnicodeWhitespace.lineBreaks()</code>: <code>U+000A</code>,
 			<code>U+000B</code>, <code>U+000C</code>, <code>U+000D</code>,
 			<code>U+0085</code>, <code>U+2028</code> and <code>U+2029</code>.
-			CRLF counts as one break. Additional breaks prevent a join, so
+			CRLF counts as one break. The set is wider than
+			<code>StringUtil.isLineTerminator</code>: word processors export a manual line
+			break as a vertical tab, and PDF text extraction writes a form feed at a page
+			end. Additional breaks prevent a join, so
 			<code>"litiga-\n\fPage 3\ntion"</code> is unchanged.
 			A capitalized word after the break is the second part of a compound and keeps
 			the hyphen: <code>"Anglo-\nAmerican"</code>, <code>"non-\nEnglish"</code> and
@@ -47,6 +50,13 @@
 			to a letter of these scripts is kept.
 			No dictionary is used: a lower-case compound split at a hyphen, such as
 			<code>"well-\nknown"</code>, becomes <code>"wellknown"</code>.
+		</para>
+		<para>
+			In a <code>TextNormalizer</code> pipeline, add the de-hyphenation step first.
+			<code>whitespace()</code> turns the line break into a space,
+			<code>stripInvisible()</code> deletes the soft hyphen, and
+			<code>dashes()</code> and <code>nfkc()</code> turn the non-breaking hyphen into a
+			hyphen that would then join.
 		</para>
 		<para>
 			<code>opennlp.tools.dehyphenation.RetokenizingTermVectorAnnotator</code>

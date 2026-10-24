@@ -158,12 +158,13 @@ public class RetokenizingTermVectorAnnotatorTest {
   @Test
   void testNullArgumentsAreRejected() {
     final WhitespaceTokenizer tokenizer = WhitespaceTokenizer.INSTANCE;
-    assertThrows(IllegalArgumentException.class,
-        () -> new RetokenizingTermVectorAnnotator(null, tokenizer));
-    assertThrows(IllegalArgumentException.class,
-        () -> new RetokenizingTermVectorAnnotator(DEHYPHENATION, null));
-    assertThrows(IllegalArgumentException.class,
-        () -> new RetokenizingTermVectorAnnotator(DEHYPHENATION, tokenizer, null));
-    assertThrows(IllegalArgumentException.class, () -> annotator().annotate(null));
+    assertEquals("normalizer must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new RetokenizingTermVectorAnnotator(null, tokenizer)).getMessage());
+    assertEquals("tokenizer must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new RetokenizingTermVectorAnnotator(DEHYPHENATION, null)).getMessage());
+    assertEquals("mode must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new RetokenizingTermVectorAnnotator(DEHYPHENATION, tokenizer, null)).getMessage());
+    assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
+        () -> annotator().annotate(null)).getMessage());
   }
 }
