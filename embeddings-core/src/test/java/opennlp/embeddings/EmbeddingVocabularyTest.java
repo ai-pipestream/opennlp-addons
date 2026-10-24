@@ -59,8 +59,8 @@ class EmbeddingVocabularyTest {
   void testDuplicateTokenReportsBothLines() {
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> EmbeddingVocabulary.fromLines(List.of("hello", "world", "hello"), "test"));
-    assertTrue(e.getMessage().contains("hello"), e.getMessage());
-    assertTrue(e.getMessage().contains("0") && e.getMessage().contains("2"), e.getMessage());
+    assertEquals("Vocabulary test declares token 'hello' more than once, at rows 0 and 2",
+        e.getMessage());
   }
 
   @Test

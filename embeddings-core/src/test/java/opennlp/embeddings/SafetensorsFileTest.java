@@ -191,7 +191,7 @@ class SafetensorsFileTest {
 
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> parsed.readFloat32("ids"));
-    assertTrue(e.getMessage().contains("I64"));
+    assertEquals("Tensor 'ids' has dtype I64, not F32", e.getMessage());
   }
 
   @Test
@@ -334,7 +334,8 @@ class SafetensorsFileTest {
 
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> parsed.readFloat32("w"));
-    assertTrue(e.getMessage().contains("more than a Java array can hold"));
+    assertEquals("Tensor 'w' declares 4000000000 elements, more than a Java array can hold "
+        + "(2147483639); decoding to a float[] is capped there", e.getMessage());
   }
 
   @Test
@@ -363,7 +364,8 @@ class SafetensorsFileTest {
     final SafetensorsFile parsed = SafetensorsFile.read(file);
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> parsed.readFloat32("w"));
-    assertTrue(e.getMessage().contains("2 F32 elements"), e.getMessage());
+    assertEquals("Tensor 'w' declares 2 F32 elements but its data range is 4 bytes",
+        e.getMessage());
   }
 
   @Test
@@ -405,7 +407,8 @@ class SafetensorsFileTest {
         new int[] {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE}, 0, 8);
     final IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, crafted::elementCount);
-    assertTrue(e.getMessage().contains("overflows"), e.getMessage());
+    assertEquals("Tensor 't' declares a shape [2147483647, 2147483647, 2147483647] whose element "
+        + "count overflows a long", e.getMessage());
   }
 
   @Test
@@ -419,7 +422,8 @@ class SafetensorsFileTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> parsed.readFloats("huge"));
 
-    assertTrue(error.getMessage().contains("overflows"), error.getMessage());
+    assertEquals("Tensor 'huge' declares a shape [2147483647, 2147483647, 2147483647] whose "
+        + "element count overflows a long", error.getMessage());
   }
 
   // F16 is Model2Vec's default output dtype, so widening is the common downloaded-model case;

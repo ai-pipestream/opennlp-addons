@@ -65,12 +65,9 @@ class Model2VecUnigramTokenizerTest {
     final Path tokenizer = dir.resolve("tokenizer.json");
     final String sequence = "\"normalizer\":{\"type\":\"Sequence\",\"normalizers\":["
         + "{\"type\":\"Precompiled\",\"precompiled_charsmap\":\"\"},"
-        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"▁\"},"
-        + "\"content\":\" ▁ \"},"
-        + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},"
-        + "\"content\":\" \"},"
-        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"a\"},"
-        + "\"content\":\" a \"},"
+        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"▁\"},\"content\":\" ▁ \"},"
+        + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},\"content\":\" \"},"
+        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"a\"},\"content\":\" a \"},"
         + "{\"type\":\"Strip\",\"strip_left\":false,\"strip_right\":true}]}";
     Files.writeString(tokenizer, "{" + sequence + "," + PRE_TOKENIZER + "," + MODEL + "}");
 
@@ -89,7 +86,9 @@ class Model2VecUnigramTokenizerTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> Model2VecUnigramTokenizer.load(tokenizer));
 
-    assertTrue(error.getMessage().contains("more than once"), error.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 262: top-level field 'model' occurs more than "
+        + "once",
+        error.getMessage());
   }
 
   /**
@@ -136,7 +135,7 @@ class Model2VecUnigramTokenizerTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> Model2VecUnigramTokenizer.load(tokenizer));
 
-    assertTrue(error.getMessage().contains("added token id 1 occurs more than once"),
+    assertEquals("Malformed tokenizer.json at offset 95: added token id 1 occurs more than once",
         error.getMessage());
   }
 
@@ -199,8 +198,7 @@ class Model2VecUnigramTokenizerTest {
     final Path tokenizer = dir.resolve("tokenizer.json");
     Files.writeString(tokenizer,
         "{\"normalizer\":{\"type\":\"Sequence\",\"normalizers\":["
-            + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},"
-            + "\"content\":\" \"},"
+            + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},\"content\":\" \"},"
             + "{\"type\":\"Precompiled\",\"precompiled_charsmap\":\"\"}]},"
             + "\"pre_tokenizer\":{\"type\":\"Metaspace\",\"replacement\":\"▁\","
             + "\"prepend_scheme\":\"always\",\"split\":false},"
@@ -210,8 +208,8 @@ class Model2VecUnigramTokenizerTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> Model2VecUnigramTokenizer.load(tokenizer));
 
-    assertTrue(error.getMessage().contains("Precompiled normalizer must precede"),
-        error.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 158: Precompiled normalizer must precede "
+        + "other normalization steps", error.getMessage());
   }
 
   @Test
@@ -219,13 +217,13 @@ class Model2VecUnigramTokenizerTest {
     final Path tokenizer = dir.resolve("tokenizer.json");
     final String sequence = "\"normalizer\":{\"type\":\"Sequence\",\"normalizers\":["
         + "{\"type\":\"Precompiled\",\"precompiled_charsmap\":\"\"},"
-        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"\"},"
-        + "\"content\":\"  \"}]}";
+        + "{\"type\":\"Replace\",\"pattern\":{\"String\":\"\"},\"content\":\"  \"}]}";
     Files.writeString(tokenizer, "{" + sequence + "," + PRE_TOKENIZER + "," + MODEL + "}");
 
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> Model2VecUnigramTokenizer.load(tokenizer));
 
-    assertTrue(error.getMessage().contains("empty literal"), error.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 154: Replace normalizer has an unsupported "
+        + "empty literal pattern", error.getMessage());
   }
 }

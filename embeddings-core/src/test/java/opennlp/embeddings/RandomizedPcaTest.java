@@ -265,7 +265,8 @@ class RandomizedPcaTest {
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> new RandomizedPca(data, ROWS, COLS).fitTransform(RANK, 42));
-    assertTrue(e.getMessage().contains("total variance"), e.getMessage());
+    assertEquals("Data has a total variance of 0.0; there is no subspace to find. Every row is "
+        + "identical, or a value is not finite.", e.getMessage());
   }
 
   /**

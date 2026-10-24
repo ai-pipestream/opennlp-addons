@@ -52,8 +52,7 @@ class TeacherTokenizerTest {
   // content row pair. The post-processor wraps sequences in [CLS]/[SEP] (ids 2 and 3).
   private static final String WORDPIECE_TEACHER =
       "{\"version\":\"1.0\","
-          + "\"normalizer\":{\"type\":\"BertNormalizer\",\"lowercase\":true},"
-          + "\"added_tokens\":["
+          + "\"normalizer\":{\"type\":\"BertNormalizer\",\"lowercase\":true},\"added_tokens\":["
           + "{\"id\":0,\"content\":\"[PAD]\",\"special\":true},"
           + "{\"id\":1,\"content\":\"[UNK]\",\"special\":true},"
           + "{\"id\":2,\"content\":\"[CLS]\",\"special\":true},"
@@ -73,13 +72,11 @@ class TeacherTokenizerTest {
   // trails it; all five are special added tokens.
   private static final String UNIGRAM_TEACHER =
       "{\"version\":\"1.0\","
-          + "\"added_tokens\":["
-          + "{\"id\":0,\"content\":\"<s>\",\"special\":true},"
+          + "\"added_tokens\":[{\"id\":0,\"content\":\"<s>\",\"special\":true},"
           + "{\"id\":1,\"content\":\"<pad>\",\"special\":true},"
           + "{\"id\":2,\"content\":\"</s>\",\"special\":true},"
           + "{\"id\":3,\"content\":\"<unk>\",\"special\":true},"
-          + "{\"id\":6,\"content\":\"<mask>\",\"special\":true}],"
-          + "\"post_processor\":null,"
+          + "{\"id\":6,\"content\":\"<mask>\",\"special\":true}],\"post_processor\":null,"
           + "\"model\":{\"type\":\"Unigram\",\"unk_id\":3,\"byte_fallback\":false,"
           + "\"vocab\":[[\"<s>\",0.0],[\"<pad>\",0.0],[\"</s>\",0.0],[\"<unk>\",0.0],"
           + "[\"a\",-1.5],[\"b\",-2.5],[\"<mask>\",0.0]]}}";
@@ -243,8 +240,7 @@ class TeacherTokenizerTest {
           + "\"[CLS]\":{\"ids\":[0]},\"[CLS]\":{\"ids\":[0]}}},"
           + MINIMAL_WORDPIECE_MODEL + "}",
       "{\"post_processor\":{\"type\":\"TemplateProcessing\","
-          + "\"single\":\"[CLS] $A\",\"special_tokens\":{"
-          + "\"[CLS]\":{\"ids\":[0],\"ids\":[0]}}},"
+          + "\"single\":\"[CLS] $A\",\"special_tokens\":{\"[CLS]\":{\"ids\":[0],\"ids\":[0]}}},"
           + MINIMAL_WORDPIECE_MODEL + "}",
       "{\"added_tokens\":[{\"content\":\"a\",\"content\":\"a\"}],"
           + MINIMAL_WORDPIECE_MODEL + "}"
@@ -329,8 +325,7 @@ class TeacherTokenizerTest {
       "an overflowing post-processor id;{\"post_processor\":{\"type\":\"TemplateProcessing\","
           + "\"single\":\"[CLS] $A\",\"special_tokens\":{\"[CLS]\":{"
           + "\"ids\":[4294967296]}}},\"model\":{\"type\":\"WordPiece\","
-          + "\"unk_token\":\"[UNK]\",\"vocab\":{\"[UNK]\":0}}};"
-          + "outside the supported integer range",
+          + "\"unk_token\":\"[UNK]\",\"vocab\":{\"[UNK]\":0}}};outside the supported integer range",
       "a structured special token without an id;{\"post_processor\":{"
           + "\"type\":\"TemplateProcessing\",\"single\":[{\"SpecialToken\":{}}]},"
           + "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\","
@@ -359,8 +354,7 @@ class TeacherTokenizerTest {
   void testReadsAStringTemplatePostProcessor(@TempDir Path dir) throws IOException {
     final Path tokenizerJson = write(dir, "tokenizer.json",
         "{\"post_processor\":{\"type\":\"TemplateProcessing\","
-            + "\"single\":\"<s> $A </s>\","
-            + "\"special_tokens\":{\"<s>\":{\"id\":\"<s>\",\"ids\":[0]},"
+            + "\"single\":\"<s> $A </s>\",\"special_tokens\":{\"<s>\":{\"id\":\"<s>\",\"ids\":[0]},"
             + "\"</s>\":{\"id\":\"</s>\",\"ids\":[2]}}},"
             + "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"<unk>\","
             + "\"vocab\":{\"<s>\":0,\"<pad>\":1,\"</s>\":2,\"<unk>\":3,\"a\":4}}}");
@@ -476,7 +470,9 @@ class TeacherTokenizerTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> TeacherTokenizer.read(tokenizerJson, null));
-    assertTrue(e.getMessage().contains("assigned more than once"), e.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 65: Vocabulary id 0 is assigned more than "
+        + "once",
+        e.getMessage());
   }
 
   @Test
@@ -574,8 +570,7 @@ class TeacherTokenizerTest {
     final Path tokenizerJson = write(dir, "tokenizer.json",
         "{\"version\":\"1.0\","
             + "\"added_tokens\":[{\"id\":0,\"content\":" + rawToken + ",\"special\":true}],"
-            + "\"post_processor\":null,"
-            + "\"model\":{\"type\":\"Unigram\",\"unk_id\":0,"
+            + "\"post_processor\":null,\"model\":{\"type\":\"Unigram\",\"unk_id\":0,"
             + "\"vocab\":[[" + rawToken + ",0.0],[\"a\",-1.0]]}}");
     final TeacherTokenizer tokenizer = TeacherTokenizer.read(tokenizerJson, null);
 
@@ -615,8 +610,7 @@ class TeacherTokenizerTest {
     final Path tokenizerJson = write(dir, "tokenizer.json",
         "{\"version\":\"1.0\","
             + "\"added_tokens\":[{\"id\":1,\"content\":\"[UNK]\",\"special\":true},"
-            + "{\"id\":2,\"content\":\"covid\",\"special\":false}],"
-            + "\"post_processor\":null,"
+            + "{\"id\":2,\"content\":\"covid\",\"special\":false}],\"post_processor\":null,"
             + "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\","
             + "\"vocab\":{\"hello\":0,\"[UNK]\":1,\"covid\":2}}}");
 

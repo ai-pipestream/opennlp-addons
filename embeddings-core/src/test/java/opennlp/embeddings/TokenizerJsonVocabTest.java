@@ -112,7 +112,8 @@ class TokenizerJsonVocabTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> TokenizerJsonVocab.read(file));
 
-    assertTrue(error.getMessage().contains("id 0 occurs more than once"), error.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 93: added token id 0 occurs more than once",
+        error.getMessage());
   }
 
   @Test
@@ -152,7 +153,9 @@ class TokenizerJsonVocabTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> TokenizerJsonVocab.rows(file));
-    assertTrue(e.getMessage().contains("object"), e.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 35: model.vocab is an object; only the "
+        + "Unigram "
+        + "list layout ([piece, score] pairs) maps pieces to matrix rows here", e.getMessage());
   }
 
   @Test
@@ -173,7 +176,9 @@ class TokenizerJsonVocabTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> TokenizerJsonVocab.rows(file));
-    assertTrue(e.getMessage().contains("id"), e.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 37: An added token must carry 'id' and "
+        + "'content'",
+        e.getMessage());
   }
 
   @Test
@@ -183,7 +188,8 @@ class TokenizerJsonVocabTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> TokenizerJsonVocab.rows(file));
-    assertTrue(e.getMessage().contains("more than once"), e.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 56: Field 'model' appears more than once",
+        e.getMessage());
   }
 
   @Test

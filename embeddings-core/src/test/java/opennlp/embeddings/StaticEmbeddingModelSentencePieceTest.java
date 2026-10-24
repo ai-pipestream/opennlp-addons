@@ -277,8 +277,10 @@ class StaticEmbeddingModelSentencePieceTest {
 
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> StaticEmbeddingModel.load(dir));
-    assertTrue(e.getMessage().contains("self-contained tokenizer.json"), e.getMessage());
-    assertTrue(e.getMessage().contains("trained SentencePiece .model"), e.getMessage());
+    assertEquals("Unigram model needs either a self-contained tokenizer.json or a trained "
+        + "SentencePiece "
+        + ".model file: Malformed tokenizer.json at offset 165: Precompiled normalizer has no "
+        + "character map", e.getMessage());
   }
 
   @Test

@@ -73,8 +73,8 @@ class TermTableTest {
   void testRejectsATermThatIsNotNormalized() {
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> table("HABEAS CORPUS"));
-    assertTrue(e.getMessage().contains("HABEAS CORPUS"), e.getMessage());
-    assertTrue(e.getMessage().contains(SOURCE), e.getMessage());
+    assertEquals("Term 0 in terms.txt ('HABEAS CORPUS') is not in normalized form (lower-cased "
+        + "words joined by single spaces)", e.getMessage());
   }
 
   @ParameterizedTest
@@ -87,7 +87,7 @@ class TermTableTest {
   void testRejectsADuplicateTerm() {
     final InvalidFormatException e =
         assertThrows(InvalidFormatException.class, () -> table("habeas corpus", "habeas corpus"));
-    assertTrue(e.getMessage().contains("more than once"), e.getMessage());
+    assertEquals("Term 'habeas corpus' appears more than once in terms.txt", e.getMessage());
   }
 
   @Test

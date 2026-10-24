@@ -28,7 +28,6 @@ import opennlp.tools.util.InvalidFormatException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlatJsonFieldsTest {
 
@@ -83,7 +82,8 @@ class FlatJsonFieldsTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> FlatJsonFields.topLevelBoolean(file, "normalize"));
-    assertTrue(e.getMessage().contains("must be a boolean"));
+    assertEquals("Malformed config.json at offset 13: Field 'normalize' must be a boolean or null",
+        e.getMessage());
   }
 
   @Test
@@ -92,7 +92,8 @@ class FlatJsonFieldsTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> FlatJsonFields.topLevelBoolean(file, "normalize"));
-    assertTrue(e.getMessage().contains("more than once"));
+    assertEquals("Malformed config.json at offset 30: Field 'normalize' appears more than once",
+        e.getMessage());
   }
 
   @Test
@@ -101,7 +102,7 @@ class FlatJsonFieldsTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> FlatJsonFields.topLevelBoolean(file, "normalize"));
-    assertTrue(e.getMessage().contains("config.json"));
+    assertEquals("Malformed config.json at offset 14: Expected ':', got 't'", e.getMessage());
   }
 
   @Test
@@ -147,7 +148,8 @@ class FlatJsonFieldsTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> FlatJsonFields.topLevelString(file, "pad_token"));
-    assertTrue(e.getMessage().contains("must be a string"));
+    assertEquals("Malformed config.json at offset 13: Field 'pad_token' must be a string or null",
+        e.getMessage());
   }
 
   @Test
@@ -156,7 +158,8 @@ class FlatJsonFieldsTest {
 
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> FlatJsonFields.topLevelString(file, "pad_token"));
-    assertTrue(e.getMessage().contains("more than once"));
+    assertEquals("Malformed config.json at offset 29: Field 'pad_token' appears more than once",
+        e.getMessage());
   }
 
   @Test

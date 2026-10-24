@@ -235,7 +235,8 @@ class HuggingFaceModelCacheTest {
   void testRelativePathWithParentSegmentIsRejected(@TempDir Path cacheRoot) {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> hubCache(cacheRoot).resolve("src/.."));
-    assertTrue(e.getMessage().contains("org/model"), e.getMessage());
+    assertEquals("Teacher 'src/..' is neither a local directory nor a Hugging Face model id "
+        + "(expected 'org/model' or 'org/model@revision')", e.getMessage());
     assertTrue(hub.requests.isEmpty(), hub.requests.toString());
   }
 
@@ -305,10 +306,10 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("SHA-256 checksum validation failed"), e.getMessage());
-    assertTrue(e.getMessage().contains(ModelFileNames.ONNX_MODEL), e.getMessage());
-    assertTrue(e.getMessage().contains(ONNX_SHA256), e.getMessage());
-    assertTrue(e.getMessage().contains("but got:"), e.getMessage());
+    assertEquals("SHA-256 checksum validation failed for onnx/model.onnx of acme/teacher at commit "
+        + "1110a243fdf4706b3f48f1d95db1a4f5529b4d41. Expected: "
+        + "faffaa0a29c6cf303b7a0dfc59d54131b17b2658c22e02c5da3a66d7526360ef, but got: "
+        + "661b1a634f3c1a4ce423c55728349c676e43c49f62046b5b1c9a4408c2426e46", e.getMessage());
     assertNothingUsable(cacheRoot.resolve(CACHE_NAME), ModelFileNames.ONNX_MODEL);
   }
 
@@ -324,9 +325,10 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("git blob SHA-1 checksum validation failed"),
-        e.getMessage());
-    assertTrue(e.getMessage().contains(TOKENIZER_BLOB_SHA1), e.getMessage());
+    assertEquals("git blob SHA-1 checksum validation failed for tokenizer.json of acme/teacher at "
+        + "commit 1110a243fdf4706b3f48f1d95db1a4f5529b4d41. Expected: "
+        + "4d02516eda32c9ae5c590766d9e055835e0bb2c7, but got: "
+        + "296101682cfaaf7c2d1e2394062858aea9dd3ea5", e.getMessage());
   }
 
   /**
@@ -374,8 +376,8 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("Expected checksum could not be retrieved"), e.getMessage());
-    assertTrue(e.getMessage().contains(ModelFileNames.TOKENIZER_JSON), e.getMessage());
+    assertEquals("Expected checksum could not be retrieved for tokenizer.json of acme/teacher: the "
+        + "hub sent no x-linked-etag header, so the file cannot be verified", e.getMessage());
     assertNothingUsable(cacheRoot.resolve(CACHE_NAME), ModelFileNames.TOKENIZER_JSON);
   }
 
@@ -405,8 +407,9 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("Expected checksum could not be retrieved"), e.getMessage());
-    assertTrue(e.getMessage().contains("neither a git blob SHA-1 nor a SHA-256"), e.getMessage());
+    assertEquals("Expected checksum could not be retrieved for tokenizer.json of acme/teacher: "
+        + "x-linked-etag '296101682cfaaf7c2d1e\"2394062858aea9dd3ea5' is neither a git blob "
+        + "SHA-1 nor a SHA-256, so the file cannot be verified", e.getMessage());
   }
 
   /** A file the repository does not have is absent, and one it has is downloaded and verified. */
@@ -437,8 +440,9 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains(ModelFileNames.ONNX_MODEL), e.getMessage());
-    assertTrue(e.getMessage().contains("the distillation needs this file"), e.getMessage());
+    assertEquals("Failed to download onnx/model.onnx of acme/teacher at commit "
+        + "1110a243fdf4706b3f48f1d95db1a4f5529b4d41: HTTP 404; the distillation needs this file",
+        e.getMessage());
   }
 
   /** Only a 404 means absent; another error status must remain visible to the caller. */
@@ -450,8 +454,8 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains(ModelFileNames.TOKENIZER_CONFIG), e.getMessage());
-    assertTrue(e.getMessage().contains("HTTP 503"), e.getMessage());
+    assertEquals("Failed to download tokenizer_config.json of acme/teacher at commit "
+        + "1110a243fdf4706b3f48f1d95db1a4f5529b4d41: HTTP 503", e.getMessage());
   }
 
   /**
@@ -488,7 +492,9 @@ class HuggingFaceModelCacheTest {
     final IOException error = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(error.getMessage().contains("x-repo-commit"), error.getMessage());
+    assertEquals("Revision 'main' of acme/teacher could not be pinned: the hub sent no "
+        + "x-repo-commit "
+        + "header; every downloaded file must be attributable to one revision", error.getMessage());
   }
 
   @Test
@@ -504,7 +510,8 @@ class HuggingFaceModelCacheTest {
     final IOException error = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(error.getMessage().contains("x-linked-etag"), error.getMessage());
+    assertEquals("Expected checksum could not be retrieved for tokenizer.json of acme/teacher: the "
+        + "hub sent no x-linked-etag header, so the file cannot be verified", error.getMessage());
   }
 
   /** A complete cache directory is a usable teacher with the hub unreachable. */
@@ -756,7 +763,8 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID + "@" + OTHER_COMMIT));
 
-    assertTrue(e.getMessage().contains("resolved to commit " + COMMIT), e.getMessage());
+    assertEquals("Revision '0f2b8b1d4c7e6a5938271605f4e3d2c1b0a99887' of acme/teacher resolved to "
+        + "commit 1110a243fdf4706b3f48f1d95db1a4f5529b4d41 instead", e.getMessage());
   }
 
   /** A directory recording one commit is not the answer to a reference naming another. */
@@ -787,7 +795,9 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("could not be pinned"), e.getMessage());
+    assertEquals("Revision 'main' of acme/teacher could not be pinned: the hub sent no "
+        + "x-repo-commit "
+        + "header; every downloaded file must be attributable to one revision", e.getMessage());
     assertTrue(Files.notExists(cacheRoot.resolve(CACHE_NAME)));
   }
 
@@ -796,7 +806,8 @@ class HuggingFaceModelCacheTest {
     final IOException e = assertThrows(IOException.class,
         () -> hubCache(cacheRoot).resolve(MODEL_ID));
 
-    assertTrue(e.getMessage().contains("Failed to resolve revision 'main'"), e.getMessage());
+    assertEquals("Failed to resolve revision 'main' of acme/teacher: HTTP 404 for tokenizer.json",
+        e.getMessage());
   }
 
   /** Verifies that flattening reference characters does not create cache-name collisions. */

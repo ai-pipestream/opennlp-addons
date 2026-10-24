@@ -106,7 +106,9 @@ class SafetensorsHeaderParserTest {
   void testRejectsTrailingGarbage() {
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> SafetensorsHeaderParser.parse("{} x"));
-    assertTrue(e.getMessage().contains("Trailing content"));
+    assertEquals("Malformed safetensors header at offset 3: Trailing content after the header "
+        + "object",
+        e.getMessage());
   }
 
   @Test

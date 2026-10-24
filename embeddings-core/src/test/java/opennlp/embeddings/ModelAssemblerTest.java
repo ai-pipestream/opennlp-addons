@@ -46,8 +46,7 @@ class ModelAssemblerTest {
   private static final String WORDPIECE_TOKENIZER_JSON =
       "{\"version\":\"1.0\","
           + "\"normalizer\":{\"type\":\"BertNormalizer\",\"strip_accents\":null,"
-          + "\"lowercase\":true},"
-          + "\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\","
+          + "\"lowercase\":true},\"model\":{\"type\":\"WordPiece\",\"unk_token\":\"[UNK]\","
           + "\"vocab\":{\"[PAD]\":0,\"hello\":2,\"[UNK]\":1,\"cat\":4,\"world\":3}}}";
 
   private static final float[][] ROWS = {
@@ -130,8 +129,8 @@ class ModelAssemblerTest {
 
     final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
         () -> ModelAssembler.assemble(dir));
-    assertTrue(exception.getMessage().contains("model")
-        && exception.getMessage().contains("more than once"), exception.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 209: Field 'model' appears more than once",
+        exception.getMessage());
   }
 
   @Test
@@ -145,8 +144,9 @@ class ModelAssemblerTest {
 
     final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
         () -> ModelAssembler.assemble(dir));
-    assertTrue(exception.getMessage().contains("model.type")
-        && exception.getMessage().contains("more than once"), exception.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 129: Field 'model.type' appears more than "
+        + "once",
+        exception.getMessage());
   }
 
   @Test
@@ -160,8 +160,8 @@ class ModelAssemblerTest {
 
     final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
         () -> ModelAssembler.assemble(dir));
-    assertTrue(exception.getMessage().contains("normalizer.lowercase")
-        && exception.getMessage().contains("more than once"), exception.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 105: Field 'normalizer.lowercase' appears "
+        + "more than once", exception.getMessage());
   }
 
   @Test
@@ -175,8 +175,9 @@ class ModelAssemblerTest {
 
     final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
         () -> ModelAssembler.assemble(dir));
-    assertTrue(exception.getMessage().contains("normalizer.lowercase")
-        && exception.getMessage().contains("boolean"), exception.getMessage());
+    assertEquals("Malformed tokenizer.json at offset 88: Field 'normalizer.lowercase' must be a "
+        + "boolean",
+        exception.getMessage());
   }
 
   @Test
@@ -200,15 +201,12 @@ class ModelAssemblerTest {
     Files.writeString(dir.resolve("tokenizer.json"),
         "{\"normalizer\":{\"type\":\"Sequence\",\"normalizers\":["
             + "{\"type\":\"Precompiled\",\"precompiled_charsmap\":\"\"},"
-            + "{\"type\":\"Replace\",\"pattern\":{\"String\":\".\"},"
-            + "\"content\":\" . \"},"
-            + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},"
-            + "\"content\":\" \"},"
+            + "{\"type\":\"Replace\",\"pattern\":{\"String\":\".\"},\"content\":\" . \"},"
+            + "{\"type\":\"Replace\",\"pattern\":{\"Regex\":\"\\\\s+\"},\"content\":\" \"},"
             + "{\"type\":\"Strip\",\"strip_left\":true,\"strip_right\":true}]},"
             + "\"pre_tokenizer\":{\"type\":\"Metaspace\",\"replacement\":\"▁\","
             + "\"prepend_scheme\":\"always\",\"split\":false},"
-            + "\"model\":{\"type\":\"Unigram\",\"unk_id\":1,"
-            + "\"byte_fallback\":false,\"vocab\":["
+            + "\"model\":{\"type\":\"Unigram\",\"unk_id\":1,\"byte_fallback\":false,\"vocab\":["
             + "[\"[PAD]\",-10.0],[\"[UNK]\",-10.0],[\"▁hello\",-1.0],"
             + "[\"▁world\",-1.0],[\"▁\",-2.0],[\".\",-1.0]]}}");
     Files.writeString(dir.resolve("config.json"), "{\"normalize\":false}");

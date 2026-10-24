@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.cmdline.BasicCmdLineTool;
+import opennlp.tools.util.StringUtil;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -66,7 +67,7 @@ class CLITest {
   void testEveryRegisteredToolDescribesItself(BasicCmdLineTool tool) {
     assertTrue(CLI.getToolNames().contains(tool.getName()),
         tool.getName() + " must be registered with the dispatcher");
-    assertFalse(tool.getShortDescription().isBlank(),
+    assertFalse(StringUtil.isUnicodeBlank(tool.getShortDescription()),
         tool.getName() + " must have a short description for the usage listing");
     assertTrue(tool.getHelp().contains(tool.getName()), tool.getHelp());
   }

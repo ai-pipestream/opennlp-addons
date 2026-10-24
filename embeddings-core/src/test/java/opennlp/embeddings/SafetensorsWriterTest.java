@@ -93,8 +93,11 @@ class SafetensorsWriterTest {
     final long headerLength = buffer.getLong();
     final byte[] headerBytes = new byte[(int) headerLength];
     buffer.get(headerBytes);
-    assertEquals("{\"embeddings\":{\"dtype\":\"F32\",\"shape\":[3,2],\"data_offsets\":[0,24]}}",
-        new String(headerBytes, StandardCharsets.UTF_8).stripTrailing());
+    final String json =
+        "{\"embeddings\":{\"dtype\":\"F32\",\"shape\":[3,2],\"data_offsets\":[0,24]}}";
+    // The header is padded with spaces, which the format allows after the JSON object.
+    assertEquals(json + " ".repeat(headerBytes.length - json.length()),
+        new String(headerBytes, StandardCharsets.UTF_8));
     assertEquals(Long.BYTES + headerLength + (long) values.length * Float.BYTES, bytes.length,
         "the file is the length prefix, the header, and the values, with nothing after");
     for (int i = 0; i < values.length; i++) {
