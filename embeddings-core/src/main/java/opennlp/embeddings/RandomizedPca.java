@@ -67,8 +67,29 @@ final class RandomizedPca {
   /** Number of jitter values tried before the factorization is given up on. */
   private static final int JITTER_ATTEMPTS = 5;
 
-  /** Not instantiable. */
-  private RandomizedPca() {
+  private final float[] data;
+  private final int rows;
+  private final int cols;
+
+  /**
+   * Wraps a matrix for one decomposition.
+   *
+   * @param data The row-major {@code rows x cols} matrix; centered in place by
+   *             {@link #fitTransform(int, long)}. Must not be {@code null}.
+   * @param rows The number of rows.
+   * @param cols The number of columns (the original dimension).
+   * @throws IllegalArgumentException Thrown if {@code data} is {@code null} or does not hold
+   *     {@code rows x cols} values.
+   */
+  RandomizedPca(float[] data, int rows, int cols) {
+    ParamChecks.requireNonNullArg(data, "data");
+    if (rows < 1 || cols < 1 || data.length != (long) rows * cols) {
+      throw new IllegalArgumentException("Data has " + data.length + " elements, not " + rows
+          + " x " + cols);
+    }
+    this.data = data;
+    this.rows = rows;
+    this.cols = cols;
   }
 
   /** The outcome of a PCA: the projected data and how much variance the projection keeps. */
@@ -78,31 +99,23 @@ final class RandomizedPca {
   /**
    * Centers {@code data} and projects it onto its top {@code components} principal components.
    *
-   * @param data       The row-major {@code rows x cols} matrix; centered in place.
-   * @param rows       The number of rows.
-   * @param cols       The number of columns (the original dimension).
    * @param components The number of principal components to keep; at most {@code cols} and less
    *                   than {@code rows}.
    * @param seed       The random seed of the range finder; a fixed seed makes the projection
    *                   deterministic.
    * @return The projected row-major {@code rows x components} matrix and the ratio of total
    *     variance it explains.
-   * @throws IllegalArgumentException Thrown if the arguments are inconsistent, or if the data has
-   *     no variance to decompose (every row is identical, or a value is not finite).
+   * @throws IllegalArgumentException Thrown if {@code components} is out of range, or if the data
+   *     has no variance to decompose (every row is identical, or a value is not finite).
    */
-  static Result fitTransform(float[] data, int rows, int cols, int components, long seed) {
-    ParamChecks.requireNonNullArg(data, "data");
-    if (rows < 1 || cols < 1 || data.length != (long) rows * cols) {
-      throw new IllegalArgumentException("Data has " + data.length + " elements, not " + rows
-          + " x " + cols);
-    }
+  Result fitTransform(int components, long seed) {
     if (components < 1 || components > cols || components >= rows) {
       throw new IllegalArgumentException("Components must be in [1, " + Math.min(cols, rows - 1)
           + "], got " + components);
     }
-    final double[] mean = columnMean(data, rows, cols);
-    subtractMean(data, rows, cols, mean);
-    final double totalVariance = totalVariance(data, rows, cols);
+    final double[] mean = columnMean();
+    subtractMean(mean);
+    final double totalVariance = totalVariance();
     if (!Double.isFinite(totalVariance) || totalVariance <= 0) {
       throw new IllegalArgumentException("Data has a total variance of " + totalVariance
           + "; there is no subspace to find. Every row is identical, or a value is not finite.");
@@ -113,18 +126,16 @@ final class RandomizedPca {
     for (int i = 0; i < omega.length; i++) {
       omega[i] = random.nextGaussian();
     }
-    double[] sample = multiplyDataByDense(data, rows, cols, omega, sampleDimensions);
+    double[] sample = multiplyDataByDense(omega, sampleDimensions);
     for (int iteration = 0; iteration < POWER_ITERATIONS; iteration++) {
-      orthonormalizeInPlace(sample, rows, sampleDimensions);
-      final double[] transposed = multiplyDataTransposedByDense(data, rows, cols, sample,
-          sampleDimensions);
-      sample = multiplyDataByDense(data, rows, cols, transposed, sampleDimensions);
+      orthonormalizeInPlace(sample, sampleDimensions);
+      final double[] transposed = multiplyDataTransposedByDense(sample, sampleDimensions);
+      sample = multiplyDataByDense(transposed, sampleDimensions);
     }
-    orthonormalizeInPlace(sample, rows, sampleDimensions);
+    orthonormalizeInPlace(sample, sampleDimensions);
     // The small matrix B = Q'X holds the data's action on the found subspace; its right singular
     // vectors rotated back are the principal components.
-    final double[] small = multiplyBasisTransposedByData(sample, rows, sampleDimensions,
-        data, cols);
+    final double[] small = multiplyBasisTransposedByData(sample, sampleDimensions);
     final double[] gram = new double[sampleDimensions * sampleDimensions];
     for (int a = 0; a < sampleDimensions; a++) {
       for (int b = 0; b <= a; b++) {
@@ -153,7 +164,7 @@ final class RandomizedPca {
       }
       fixSign(componentsMajor, j * cols, cols);
     }
-    final float[] transformed = project(data, rows, cols, componentsMajor, components);
+    final float[] transformed = project(componentsMajor, components);
     double keptVariance = 0;
     for (int j = 0; j < components; j++) {
       keptVariance += eigenvalues[j];
@@ -169,7 +180,7 @@ final class RandomizedPca {
    * @param offset         The component's start offset.
    * @param length         The component's length.
    */
-  private static void fixSign(double[] componentMajor, int offset, int length) {
+  private void fixSign(double[] componentMajor, int offset, int length) {
     int maxIndex = 0;
     double maxAbs = 0;
     for (int c = 0; c < length; c++) {
@@ -189,16 +200,13 @@ final class RandomizedPca {
   /**
    * {@return the per-column means of the matrix, computed row-parallel}
    *
-   * @param data The row-major matrix.
-   * @param rows The number of rows.
-   * @param cols The number of columns.
    */
-  private static double[] columnMean(float[] data, int rows, int cols) {
+  private double[] columnMean() {
     final double[][] partials = new double[BLOCKS][cols];
-    forBlocks(rows, block -> {
+    forBlocks(block -> {
       final double[] partial = partials[block];
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         for (int c = 0; c < cols; c++) {
           partial[c] += data[i * cols + c];
@@ -220,15 +228,12 @@ final class RandomizedPca {
   /**
    * Subtracts the per-column means from the matrix in place, row-parallel.
    *
-   * @param data The row-major matrix.
-   * @param rows The number of rows.
-   * @param cols The number of columns.
    * @param mean The per-column means.
    */
-  private static void subtractMean(float[] data, int rows, int cols, double[] mean) {
-    forBlocks(rows, block -> {
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+  private void subtractMean(double[] mean) {
+    forBlocks(block -> {
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         for (int c = 0; c < cols; c++) {
           final int index = i * cols + c;
@@ -241,16 +246,13 @@ final class RandomizedPca {
   /**
    * {@return the total variance of the centered matrix (the squared Frobenius norm), row-parallel}
    *
-   * @param data The centered row-major matrix.
-   * @param rows The number of rows.
-   * @param cols The number of columns.
    */
-  private static double totalVariance(float[] data, int rows, int cols) {
+  private double totalVariance() {
     final double[] partials = new double[BLOCKS];
-    forBlocks(rows, block -> {
+    forBlocks(block -> {
       double sum = 0;
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start * cols; i < end * cols; i++) {
         sum += (double) data[i] * data[i];
       }
@@ -267,18 +269,14 @@ final class RandomizedPca {
    * {@return the product {@code data * dense} of the float data matrix with a dense double
    * matrix, row-parallel over the data}
    *
-   * @param data  The row-major {@code rows x cols} float matrix.
-   * @param rows  The number of rows.
-   * @param cols  The number of columns.
    * @param dense The row-major {@code cols x width} double matrix.
    * @param width The number of columns of {@code dense}.
    */
-  private static double[] multiplyDataByDense(float[] data, int rows, int cols, double[] dense,
-                                              int width) {
+  private double[] multiplyDataByDense(double[] dense, int width) {
     final double[] out = new double[rows * width];
-    forBlocks(rows, block -> {
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+    forBlocks(block -> {
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int rowBase = i * cols;
         final int outBase = i * width;
@@ -300,19 +298,15 @@ final class RandomizedPca {
    * {@return the product {@code data' * dense} of the transposed float data matrix with a dense
    * double matrix, row-parallel over the data with per-block partial results}
    *
-   * @param data  The row-major {@code rows x cols} float matrix.
-   * @param rows  The number of rows.
-   * @param cols  The number of columns.
    * @param dense The row-major {@code rows x width} double matrix.
    * @param width The number of columns of {@code dense}.
    */
-  private static double[] multiplyDataTransposedByDense(float[] data, int rows, int cols,
-                                                        double[] dense, int width) {
+  private double[] multiplyDataTransposedByDense(double[] dense, int width) {
     final double[][] partials = new double[BLOCKS][cols * width];
-    forBlocks(rows, block -> {
+    forBlocks(block -> {
       final double[] partial = partials[block];
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int rowBase = i * cols;
         final int denseBase = i * width;
@@ -341,18 +335,14 @@ final class RandomizedPca {
    * data matrix, row-parallel over the data with per-block partial results}
    *
    * @param basis  The row-major {@code rows x width} orthonormal basis.
-   * @param rows   The number of rows.
    * @param width  The basis width.
-   * @param data   The row-major {@code rows x cols} float matrix.
-   * @param cols   The number of data columns.
    */
-  private static double[] multiplyBasisTransposedByData(double[] basis, int rows, int width,
-                                                        float[] data, int cols) {
+  private double[] multiplyBasisTransposedByData(double[] basis, int width) {
     final double[][] partials = new double[BLOCKS][width * cols];
-    forBlocks(rows, block -> {
+    forBlocks(block -> {
       final double[] partial = partials[block];
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int basisBase = i * width;
         final int rowBase = i * cols;
@@ -378,18 +368,14 @@ final class RandomizedPca {
    * {@return the projection {@code data * components'} onto the component-major components,
    * row-parallel}
    *
-   * @param data            The centered row-major {@code rows x cols} float matrix.
-   * @param rows            The number of rows.
-   * @param cols            The number of columns.
    * @param componentsMajor The row-major {@code components x cols} components.
    * @param components      The number of components.
    */
-  private static float[] project(float[] data, int rows, int cols, double[] componentsMajor,
-                                 int components) {
+  private float[] project(double[] componentsMajor, int components) {
     final float[] out = new float[rows * components];
-    forBlocks(rows, block -> {
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+    forBlocks(block -> {
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int rowBase = i * cols;
         final int outBase = i * components;
@@ -413,15 +399,14 @@ final class RandomizedPca {
    * columns toward linear dependence.
    *
    * @param matrix The row-major tall matrix, orthonormalized in place.
-   * @param rows   The number of rows.
    * @param width  The number of columns.
    */
-  private static void orthonormalizeInPlace(double[] matrix, int rows, int width) {
+  private void orthonormalizeInPlace(double[] matrix, int width) {
     final double[][] partials = new double[BLOCKS][width * width];
-    forBlocks(rows, block -> {
+    forBlocks(block -> {
       final double[] partial = partials[block];
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int base = i * width;
         for (int a = 0; a < width; a++) {
@@ -465,9 +450,9 @@ final class RandomizedPca {
     // Solve Q L' = Y row-wise. Transposed, that is L q' = y': a forward substitution against
     // the lower-triangular L.
     final double[] factor = lower;
-    forBlocks(rows, block -> {
-      final int start = blockStart(rows, block);
-      final int end = blockStart(rows, block + 1);
+    forBlocks(block -> {
+      final int start = blockStart(block);
+      final int end = blockStart(block + 1);
       for (int i = start; i < end; i++) {
         final int base = i * width;
         for (int j = 0; j < width; j++) {
@@ -489,7 +474,7 @@ final class RandomizedPca {
    * @param width  The matrix order.
    * @param jitter The value added to the diagonal before factoring.
    */
-  private static double[] cholesky(double[] matrix, int width, double jitter) {
+  private double[] cholesky(double[] matrix, int width, double jitter) {
     final double[] lower = new double[width * width];
     for (int a = 0; a < width; a++) {
       for (int b = 0; b <= a; b++) {
@@ -521,7 +506,7 @@ final class RandomizedPca {
    * @param matrix The row-major symmetric matrix; not modified.
    * @param width  The matrix order.
    */
-  private static double[][] jacobiEigen(double[] matrix, int width) {
+  private double[][] jacobiEigen(double[] matrix, int width) {
     final double[] a = matrix.clone();
     final double[] eigenvectors = new double[width * width];
     for (int i = 0; i < width; i++) {
@@ -598,20 +583,18 @@ final class RandomizedPca {
   /**
    * Runs {@code action} for every row-block index in parallel over the common pool.
    *
-   * @param rows   The total number of rows.
    * @param action Receives the block index, in {@code [0, BLOCKS)}.
    */
-  private static void forBlocks(int rows, IntConsumer action) {
+  private void forBlocks(IntConsumer action) {
     IntStream.range(0, Math.min(BLOCKS, rows)).parallel().forEach(action);
   }
 
   /**
    * {@return the first row of a block}
    *
-   * @param rows  The total number of rows.
    * @param block The block index; the effective block count yields the end sentinel.
    */
-  private static int blockStart(int rows, int block) {
+  private int blockStart(int block) {
     return (int) ((long) rows * block / Math.min(BLOCKS, rows));
   }
 }

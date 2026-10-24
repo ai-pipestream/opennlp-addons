@@ -317,8 +317,8 @@ public final class ModelDistiller {
     } else {
       report("Reducing " + totalRows + " x " + teacherDimension + " to " + requested
           + " principal components");
-      final RandomizedPca.Result pca = RandomizedPca.fitTransform(embeddings, totalRows,
-          teacherDimension, requested, PCA_SEED);
+      final RandomizedPca.Result pca = new RandomizedPca(embeddings, totalRows, teacherDimension)
+          .fitTransform(requested, PCA_SEED);
       transformed = pca.transformed();
       components = requested;
       explainedVarianceRatio = pca.explainedVarianceRatio();

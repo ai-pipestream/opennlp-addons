@@ -100,7 +100,7 @@ class RandomizedPcaTest {
     }
 
     final RandomizedPca.Result result =
-        RandomizedPca.fitTransform(original.clone(), ROWS, COLS, RANK, 42);
+        new RandomizedPca(original.clone(), ROWS, COLS).fitTransform(RANK, 42);
 
     assertEquals(ROWS * RANK, result.transformed().length);
     assertTrue(result.explainedVarianceRatio() > 0.999,
@@ -120,9 +120,9 @@ class RandomizedPcaTest {
   @Test
   void testDeterministicForAFixedSeed() {
     final float[] first =
-        RandomizedPca.fitTransform(lowRankData(), ROWS, COLS, RANK, 42).transformed();
+        new RandomizedPca(lowRankData(), ROWS, COLS).fitTransform(RANK, 42).transformed();
     final float[] second =
-        RandomizedPca.fitTransform(lowRankData(), ROWS, COLS, RANK, 42).transformed();
+        new RandomizedPca(lowRankData(), ROWS, COLS).fitTransform(RANK, 42).transformed();
     assertArrayEquals(first, second);
   }
 
@@ -134,14 +134,14 @@ class RandomizedPcaTest {
   @Test
   void testIsUnchangedByRescalingTheWholeMatrix() {
     final RandomizedPca.Result unscaled =
-        RandomizedPca.fitTransform(lowRankData(), ROWS, COLS, RANK, 42);
+        new RandomizedPca(lowRankData(), ROWS, COLS).fitTransform(RANK, 42);
     final float[] scaledData = lowRankData();
     for (int i = 0; i < scaledData.length; i++) {
       scaledData[i] *= SMALL_SCALE;
     }
 
     final RandomizedPca.Result scaled =
-        RandomizedPca.fitTransform(scaledData, ROWS, COLS, RANK, 42);
+        new RandomizedPca(scaledData, ROWS, COLS).fitTransform(RANK, 42);
 
     assertEquals(unscaled.explainedVarianceRatio(), scaled.explainedVarianceRatio(), 1e-6,
         "the explained variance ratio must not depend on the magnitude of the input");
@@ -164,12 +164,12 @@ class RandomizedPcaTest {
   @ValueSource(ints = {1, 2, 7})
   void testDeterministicAcrossThreadCounts(int parallelism) throws Exception {
     final float[] expected =
-        RandomizedPca.fitTransform(lowRankData(), ROWS, COLS, RANK, 42).transformed();
+        new RandomizedPca(lowRankData(), ROWS, COLS).fitTransform(RANK, 42).transformed();
     final ForkJoinPool pool = new ForkJoinPool(parallelism);
 
     try {
       final float[] actual = pool.submit(
-          () -> RandomizedPca.fitTransform(lowRankData(), ROWS, COLS, RANK, 42).transformed())
+          () -> new RandomizedPca(lowRankData(), ROWS, COLS).fitTransform(RANK, 42).transformed())
           .get();
       assertArrayEquals(expected, actual);
     } finally {
@@ -180,7 +180,7 @@ class RandomizedPcaTest {
   @Test
   void testCentersTheDataInPlace() {
     final float[] data = lowRankData();
-    RandomizedPca.fitTransform(data, ROWS, COLS, RANK, 42);
+    new RandomizedPca(data, ROWS, COLS).fitTransform(RANK, 42);
     for (int c = 0; c < COLS; c++) {
       double mean = 0;
       for (int i = 0; i < ROWS; i++) {
@@ -203,7 +203,7 @@ class RandomizedPcaTest {
     }
 
     final RandomizedPca.Result result =
-        RandomizedPca.fitTransform(data, rows, cols, components, 42);
+        new RandomizedPca(data, rows, cols).fitTransform(components, 42);
 
     assertEquals(rows * components, result.transformed().length);
     assertTrue(result.explainedVarianceRatio() > 0.999999,
@@ -216,7 +216,7 @@ class RandomizedPcaTest {
   @Test
   void testRejectsNullData() {
     assertEquals("data must not be null", assertThrows(IllegalArgumentException.class,
-        () -> RandomizedPca.fitTransform(null, 3, 4, 2, 42)).getMessage());
+        () -> new RandomizedPca(null, 3, 4).fitTransform(2, 42)).getMessage());
   }
 
   /**
@@ -229,7 +229,7 @@ class RandomizedPcaTest {
     final float[] data = new float[12];
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> RandomizedPca.fitTransform(data, rows, cols, components, 42));
+        () -> new RandomizedPca(data, rows, cols).fitTransform(components, 42));
     assertTrue(e.getMessage().startsWith("Data has 12 elements, not " + rows + " x " + cols),
         e.getMessage());
   }
@@ -245,7 +245,7 @@ class RandomizedPcaTest {
     final float[] data = new float[12];
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> RandomizedPca.fitTransform(data, 3, 4, components, 42));
+        () -> new RandomizedPca(data, 3, 4).fitTransform(components, 42));
     assertTrue(e.getMessage().startsWith("Components must be in [1, 2], got " + components),
         e.getMessage());
   }
@@ -264,7 +264,7 @@ class RandomizedPcaTest {
     }
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> RandomizedPca.fitTransform(data, ROWS, COLS, RANK, 42));
+        () -> new RandomizedPca(data, ROWS, COLS).fitTransform(RANK, 42));
     assertTrue(e.getMessage().contains("total variance"), e.getMessage());
   }
 
@@ -279,6 +279,6 @@ class RandomizedPcaTest {
     data[0] = value;
 
     assertThrows(IllegalArgumentException.class,
-        () -> RandomizedPca.fitTransform(data, ROWS, COLS, RANK, 42));
+        () -> new RandomizedPca(data, ROWS, COLS).fitTransform(RANK, 42));
   }
 }
