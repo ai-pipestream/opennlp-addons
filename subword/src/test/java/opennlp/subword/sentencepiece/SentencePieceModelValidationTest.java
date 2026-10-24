@@ -80,7 +80,8 @@ class SentencePieceModelValidationTest {
     final byte[] model = minimalModel(3);
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> SentencePieceTokenizer.load(new ByteArrayInputStream(model)));
-    assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+    assertEquals("The model type 3 is not supported; only the unigram and BPE algorithms are.",
+        e.getMessage());
   }
 
   @Test
@@ -88,7 +89,7 @@ class SentencePieceModelValidationTest {
     final byte[] model = minimalModelWithoutUnk();
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> SentencePieceTokenizer.load(new ByteArrayInputStream(model)));
-    assertTrue(e.getMessage().contains("unknown piece"), e.getMessage());
+    assertEquals("The model defines no unknown piece.", e.getMessage());
   }
 
   @Test
@@ -106,7 +107,7 @@ class SentencePieceModelValidationTest {
     final byte[] model = out.toByteArray();
     final InvalidFormatException e = assertThrows(InvalidFormatException.class,
         () -> SentencePieceTokenizer.load(new ByteArrayInputStream(model)));
-    assertTrue(e.getMessage().contains("character map"), e.getMessage());
+    assertEquals("The precompiled character map is truncated.", e.getMessage());
   }
 
   @Test
@@ -185,9 +186,10 @@ class SentencePieceModelValidationTest {
       }
     }
     assertEquals(tokenizer.unknownId(), tokenizer.pieceToId("definitely-not-in-the-vocabulary"));
-    assertThrows(IllegalArgumentException.class, () -> tokenizer.idToPiece(-1));
-    assertThrows(IllegalArgumentException.class,
-        () -> tokenizer.idToPiece(tokenizer.vocabularySize()));
+    assertEquals("The id -1 is outside [0, 300).", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.idToPiece(-1)).getMessage());
+    assertEquals("The id 300 is outside [0, 300).", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.idToPiece(tokenizer.vocabularySize())).getMessage());
     assertEquals("piece must not be null", assertThrows(IllegalArgumentException.class,
         () -> tokenizer.pieceToId(null)).getMessage());
   }
@@ -198,9 +200,10 @@ class SentencePieceModelValidationTest {
     for (int id = 0; id < tokenizer.vocabularySize(); id++) {
       assertTrue(Float.isFinite(tokenizer.score(id)), "score of piece " + id);
     }
-    assertThrows(IllegalArgumentException.class, () -> tokenizer.score(-1));
-    assertThrows(IllegalArgumentException.class,
-        () -> tokenizer.score(tokenizer.vocabularySize()));
+    assertEquals("The id -1 is outside [0, 300).", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.score(-1)).getMessage());
+    assertEquals("The id 300 is outside [0, 300).", assertThrows(IllegalArgumentException.class,
+        () -> tokenizer.score(tokenizer.vocabularySize())).getMessage());
   }
 
   @Test
@@ -221,7 +224,8 @@ class SentencePieceModelValidationTest {
     for (int id = 0; id < plain.vocabularySize(); id++) {
       assertFalse(plain.isByte(id), "piece " + id + " must not be a byte piece");
     }
-    assertThrows(IllegalArgumentException.class, () -> plain.isByte(-1));
+    assertEquals("The id -1 is outside [0, 300).", assertThrows(IllegalArgumentException.class,
+        () -> plain.isByte(-1)).getMessage());
   }
 
   @Test
@@ -234,7 +238,8 @@ class SentencePieceModelValidationTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> ModelProtoReader.read(model));
 
-    assertTrue(error.getMessage().contains("message boundary"), error.getMessage());
+    assertEquals("The model data is malformed at byte 4: length 4 crosses its message boundary.",
+        error.getMessage());
   }
 
   @Test
@@ -246,7 +251,8 @@ class SentencePieceModelValidationTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> ModelProtoReader.read(model));
 
-    assertTrue(error.getMessage().contains("UTF-8"), error.getMessage());
+    assertEquals("The model data is malformed at byte 4: string is not valid UTF-8.",
+        error.getMessage());
   }
 
   /** Verifies that the tenth byte of a 64-bit varint cannot carry more than one value bit. */
@@ -263,7 +269,7 @@ class SentencePieceModelValidationTest {
     final InvalidFormatException error = assertThrows(InvalidFormatException.class,
         () -> ModelProtoReader.read(out.toByteArray()));
 
-    assertTrue(error.getMessage().contains("64 bits"), error.getMessage());
+    assertEquals("The model data is malformed at byte 52: varint exceeds 64 bits.", error.getMessage());
   }
 
   @Test
@@ -272,7 +278,7 @@ class SentencePieceModelValidationTest {
         () -> SentencePieceTokenizer.load(new ByteArrayInputStream(
             byteFallbackModel("<0x\uff26F>"))));
 
-    assertTrue(error.getMessage().contains("invalid"), error.getMessage());
+    assertEquals("The byte piece '<0x\uff26F>' is invalid.", error.getMessage());
   }
 
   /**
@@ -281,7 +287,7 @@ class SentencePieceModelValidationTest {
    * @param lastBytePiece The text of the piece assigned to byte {@code 0xFF}.
    * @return The encoded model.
    */
-  private static byte[] byteFallbackModel(String lastBytePiece) {
+  private byte[] byteFallbackModel(String lastBytePiece) {
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
     writePiece(out, "<unk>", 2);
     for (int b = 0; b < 256; b++) {
@@ -298,7 +304,7 @@ class SentencePieceModelValidationTest {
     return out.toByteArray();
   }
 
-  private static byte[] readModel() throws IOException {
+  private byte[] readModel() throws IOException {
     try (InputStream in =
              SentencePieceModelValidationTest.class.getResourceAsStream("tiny-unigram.model")) {
       return in.readAllBytes();
@@ -307,7 +313,7 @@ class SentencePieceModelValidationTest {
 
   // Hand-encodes a minimal ModelProto: three pieces (<unk>, <s>, </s>) and a trainer spec with
   // the requested model type.
-  private static byte[] minimalModel(int modelType) {
+  private byte[] minimalModel(int modelType) {
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
     writePiece(out, "<unk>", 2);
     writePiece(out, "<s>", 3);
@@ -321,7 +327,7 @@ class SentencePieceModelValidationTest {
     return out.toByteArray();
   }
 
-  private static byte[] minimalModelWithoutUnk() {
+  private byte[] minimalModelWithoutUnk() {
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
     writePiece(out, "a", 1);
     writePiece(out, "b", 1);
@@ -337,7 +343,7 @@ class SentencePieceModelValidationTest {
     out.write(rest);
   }
 
-  private static void writePiece(ByteArrayOutputStream out, String piece, int type) {
+  private void writePiece(ByteArrayOutputStream out, String piece, int type) {
     final byte[] utf8 = piece.getBytes(StandardCharsets.UTF_8);
     // pieces { piece = <piece>; score = 0.0; type = <type> } as nested length-delimited field 1.
     final int inner = 2 + utf8.length + 2;

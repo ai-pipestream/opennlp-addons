@@ -44,7 +44,7 @@ class SentencePieceRealModelEvalTest {
   @Test
   void testRealModelParity() throws IOException {
     final String dir = System.getProperty("opennlp.subword.eval.dir");
-    assumeTrue(dir != null && !StringUtil.isUnicodeBlank(dir),
+    assumeTrue(!StringUtil.isUnicodeBlank(dir),
         "set -Dopennlp.subword.eval.dir to run the real-model parity check");
 
     int models = 0;

@@ -111,6 +111,8 @@ class PieceTrieTest {
   @Test
   void testDuplicatePiecesAreRejected() {
     final byte[][] pieces = {{'a'}, {'a'}};
-    assertThrows(IllegalArgumentException.class, () -> PieceTrie.build(pieces, new int[] {0, 1}));
+    assertEquals("The piece 'a' is defined more than once.", assertThrows(
+        IllegalArgumentException.class, () -> PieceTrie.build(pieces, new int[] {0, 1}))
+        .getMessage());
   }
 }

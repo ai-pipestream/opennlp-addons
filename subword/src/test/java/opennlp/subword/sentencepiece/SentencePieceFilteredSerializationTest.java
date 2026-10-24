@@ -59,7 +59,7 @@ class SentencePieceFilteredSerializationTest {
    * @return The serialized bytes.
    * @throws IOException Thrown if the model cannot be read or serialized.
    */
-  private static byte[] serialized(String model) throws IOException {
+  private byte[] serialized(String model) throws IOException {
     final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     SentencePieceFixtures.tokenizer(model).serialize(bytes);
     return bytes.toByteArray();
@@ -92,8 +92,9 @@ class SentencePieceFilteredSerializationTest {
       foreign.add("not a tokenizer");
       out.writeObject(foreign);
     }
-    assertThrows(InvalidClassException.class, () ->
-        SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    final InvalidClassException e = assertThrows(InvalidClassException.class,
+        () -> SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    assertEquals("filter status: REJECTED", e.getMessage());
   }
 
   /**
@@ -105,8 +106,9 @@ class SentencePieceFilteredSerializationTest {
     try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
       out.writeObject("not a tokenizer");
     }
-    assertThrows(InvalidClassException.class, () ->
-        SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    final InvalidClassException e = assertThrows(InvalidClassException.class,
+        () -> SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    assertEquals("Expected a SentencePieceTokenizer, found java.lang.String.", e.getMessage());
   }
 
   /** Verifies that a serialized null cannot be returned as a tokenizer. */
@@ -116,8 +118,9 @@ class SentencePieceFilteredSerializationTest {
     try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
       out.writeObject(null);
     }
-    assertThrows(InvalidClassException.class, () ->
-        SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    final InvalidClassException e = assertThrows(InvalidClassException.class,
+        () -> SentencePieceTokenizer.deserialize(new ByteArrayInputStream(bytes.toByteArray())));
+    assertEquals("Expected a SentencePieceTokenizer, found null.", e.getMessage());
   }
 
   /**
@@ -129,8 +132,9 @@ class SentencePieceFilteredSerializationTest {
     final byte[] legitimate = serialized("tiny-unigram");
     final SentencePieceTokenizer.DeserializationLimits tight =
         new SentencePieceTokenizer.DeserializationLimits(1, 1, 1);
-    assertThrows(InvalidClassException.class, () ->
-        SentencePieceTokenizer.deserialize(new ByteArrayInputStream(legitimate), tight));
+    final InvalidClassException e = assertThrows(InvalidClassException.class,
+        () -> SentencePieceTokenizer.deserialize(new ByteArrayInputStream(legitimate), tight));
+    assertEquals("filter status: REJECTED", e.getMessage());
   }
 
   /**
