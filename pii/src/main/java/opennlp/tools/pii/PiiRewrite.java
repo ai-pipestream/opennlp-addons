@@ -51,28 +51,51 @@ public final class PiiRewrite {
   private final int originalLength;
 
   /**
-   * Initializes an immutable rewrite result from output text and offset tables.
+   * Computes the rewrite of a text, its output mentions and the offset tables.
    *
-   * @param text The output text.
-   * @param mentions The output mentions.
-   * @param originalStarts Original start offsets.
-   * @param originalEnds Original exclusive end offsets.
-   * @param rewrittenStarts Output start offsets.
-   * @param rewrittenEnds Output exclusive end offsets.
-   * @param cumulativeShifts Offset shift after each mention.
-   * @param originalLength The original text length.
+   * @param source The original text.
+   * @param candidates The mentions to replace, in any order.
+   * @param labeler Assigns the replacement for a mention.
+   * @throws IllegalArgumentException Thrown if a mention is {@code null}, a span lies
+   *         outside the text, or the labeler returns {@code null} or an empty label.
    */
-  private PiiRewrite(String text, List<PiiMention> mentions, int[] originalStarts,
-      int[] originalEnds, int[] rewrittenStarts, int[] rewrittenEnds,
-      int[] cumulativeShifts, int originalLength) {
-    this.text = text;
-    this.mentions = mentions;
-    this.originalStarts = originalStarts;
-    this.originalEnds = originalEnds;
-    this.rewrittenStarts = rewrittenStarts;
-    this.rewrittenEnds = rewrittenEnds;
-    this.cumulativeShifts = cumulativeShifts;
-    this.originalLength = originalLength;
+  private PiiRewrite(CharSequence source, List<PiiMention> candidates,
+      Function<PiiMention, String> labeler) {
+    final List<PiiMention> ordered = ordered(source, candidates);
+    final int count = ordered.size();
+    originalStarts = new int[count];
+    originalEnds = new int[count];
+    rewrittenStarts = new int[count];
+    rewrittenEnds = new int[count];
+    cumulativeShifts = new int[count];
+    final List<PiiMention> labelled = new ArrayList<>(count);
+    final StringBuilder rewritten = new StringBuilder(source.length());
+    int copied = 0;
+    for (int i = 0; i < count; i++) {
+      final PiiMention mention = ordered.get(i);
+      final int start = mention.span().getStart();
+      final int end = mention.span().getEnd();
+      final String label = labeler.apply(mention);
+      if (label == null || label.isEmpty()) {
+        throw new IllegalArgumentException("labeler must not return a null or empty label");
+      }
+      rewritten.append(source, copied, start);
+      originalStarts[i] = start;
+      originalEnds[i] = end;
+      rewrittenStarts[i] = rewritten.length();
+      rewritten.append(label);
+      rewrittenEnds[i] = rewritten.length();
+      final int previousShift = i == 0 ? 0 : cumulativeShifts[i - 1];
+      cumulativeShifts[i] = previousShift
+          + (rewrittenEnds[i] - rewrittenStarts[i]) - (end - start);
+      labelled.add(new PiiMention(new Span(rewrittenStarts[i], rewrittenEnds[i]),
+          mention.type(), label));
+      copied = end;
+    }
+    rewritten.append(source, copied, source.length());
+    text = rewritten.toString();
+    mentions = Collections.unmodifiableList(labelled);
+    originalLength = source.length();
   }
 
   /**
@@ -96,41 +119,7 @@ public final class PiiRewrite {
     ParamChecks.requireNonNullArg(text, "text");
     ParamChecks.requireNonNullArg(mentions, "mentions");
     ParamChecks.requireNonNullArg(labeler, "labeler");
-    final List<PiiMention> ordered = ordered(text, mentions);
-    final int count = ordered.size();
-    final int[] originalStarts = new int[count];
-    final int[] originalEnds = new int[count];
-    final int[] rewrittenStarts = new int[count];
-    final int[] rewrittenEnds = new int[count];
-    final int[] cumulativeShifts = new int[count];
-    final List<PiiMention> labelled = new ArrayList<>(count);
-    final StringBuilder rewritten = new StringBuilder(text.length());
-    int copied = 0;
-    for (int i = 0; i < count; i++) {
-      final PiiMention mention = ordered.get(i);
-      final int start = mention.span().getStart();
-      final int end = mention.span().getEnd();
-      final String label = labeler.apply(mention);
-      if (label == null || label.isEmpty()) {
-        throw new IllegalArgumentException("labeler must not return a null or empty label");
-      }
-      rewritten.append(text, copied, start);
-      originalStarts[i] = start;
-      originalEnds[i] = end;
-      rewrittenStarts[i] = rewritten.length();
-      rewritten.append(label);
-      rewrittenEnds[i] = rewritten.length();
-      final int previousShift = i == 0 ? 0 : cumulativeShifts[i - 1];
-      cumulativeShifts[i] = previousShift
-          + (rewrittenEnds[i] - rewrittenStarts[i]) - (end - start);
-      labelled.add(new PiiMention(new Span(rewrittenStarts[i], rewrittenEnds[i]),
-          mention.type(), label));
-      copied = end;
-    }
-    rewritten.append(text, copied, text.length());
-    return new PiiRewrite(rewritten.toString(), Collections.unmodifiableList(labelled),
-        originalStarts, originalEnds, rewrittenStarts, rewrittenEnds, cumulativeShifts,
-        text.length());
+    return new PiiRewrite(text, mentions, labeler);
   }
 
   /**
@@ -147,7 +136,7 @@ public final class PiiRewrite {
    * @return A mutable copy of the surviving mentions sorted by start offset.
    * @throws IllegalArgumentException Thrown if a mention is null or outside the text.
    */
-  private static List<PiiMention> ordered(CharSequence text, List<PiiMention> mentions) {
+  private List<PiiMention> ordered(CharSequence text, List<PiiMention> mentions) {
     final List<PiiMention> candidates = new ArrayList<>(mentions.size());
     for (final PiiMention mention : mentions) {
       if (mention == null) {
@@ -179,7 +168,7 @@ public final class PiiRewrite {
    * @param kept The mentions kept so far.
    * @return {@code true} if {@code candidate} overlaps any of {@code kept}.
    */
-  private static boolean overlapsAny(PiiMention candidate, List<PiiMention> kept) {
+  private boolean overlapsAny(PiiMention candidate, List<PiiMention> kept) {
     for (final PiiMention mention : kept) {
       if (candidate.span().getStart() < mention.span().getEnd()
           && mention.span().getStart() < candidate.span().getEnd()) {
