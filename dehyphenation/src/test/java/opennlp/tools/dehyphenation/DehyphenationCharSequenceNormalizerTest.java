@@ -199,6 +199,36 @@ public class DehyphenationCharSequenceNormalizerTest {
     assertSame(text, NORMALIZER.normalize(text));
   }
 
+  /**
+   * A capitalized word after the break starts the second part of a compound, so the hyphen
+   * stays.
+   *
+   * @param text The text to leave unchanged.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"Anglo-\nAmerican", "non-\nEnglish", "e-\nMail", "Vitamin-\nC",
+      "NATO-\nGipfel", "non-\nE\u0301tude", "x-\n\u01C5ab",
+      "\u0421\u0430\u043D\u043A\u0442-\n\u041F\u0435\u0442\u0435\u0440\u0431\u0443\u0440\u0433"})
+  void testCapitalizedContinuationKeepsTheHyphen(String text) {
+    assertSame(text, NORMALIZER.normalize(text));
+  }
+
+  /**
+   * Text in capitals joins, and a soft hyphen always marks a break inside one word.
+   *
+   * @param text The hyphenated text.
+   * @param joined The joined word.
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "'LITIGA-\nTION', 'LITIGATION'",
+      "'\u041F\u0415\u0422\u0415\u0420-\n\u0411\u0423\u0420\u0413', "
+          + "'\u041F\u0415\u0422\u0415\u0420\u0411\u0423\u0420\u0413'",
+      "'Mc\u00AD\nDonald', 'McDonald'"})
+  void testCapitalsJoin(String text, String joined) {
+    assertEquals(joined, NORMALIZER.normalize(text).toString());
+  }
+
   @Test
   void testMultipleJoinsInOneText() {
     assertEquals("litigation complete",
