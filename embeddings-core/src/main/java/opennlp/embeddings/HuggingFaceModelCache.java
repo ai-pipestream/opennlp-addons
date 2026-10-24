@@ -170,8 +170,9 @@ final class HuggingFaceModelCache {
    * @return The local teacher directory.
    * @throws IllegalArgumentException Thrown if {@code teacher} is {@code null}, or is neither a
    *     directory nor a well-formed model id.
-   * @throws IOException Thrown if a required file cannot be downloaded, or if a downloaded file
-   *     cannot be verified against the digest the hub publishes for it.
+   * @throws IOException Thrown if the records of a cached snapshot cannot be read, if a required
+   *     file cannot be downloaded, or if a downloaded file cannot be verified against the digest
+   *     the hub publishes for it.
    */
   static Path resolve(String teacher, ModelDistiller.ProgressListener listener) throws IOException {
     return resolve(teacher, HUB_BASE, defaultCacheRoot(), listener);
@@ -191,8 +192,9 @@ final class HuggingFaceModelCache {
    * @throws IllegalArgumentException Thrown if {@code teacher}, {@code hubBase}, or
    *     {@code cacheRoot} is {@code null}, or if {@code teacher} is neither a directory nor a
    *     well-formed model id.
-   * @throws IOException Thrown if a required file cannot be downloaded, or if a downloaded file
-   *     cannot be verified against the digest the hub publishes for it.
+   * @throws IOException Thrown if the records of a cached snapshot cannot be read, if a required
+   *     file cannot be downloaded, or if a downloaded file cannot be verified against the digest
+   *     the hub publishes for it.
    */
   static Path resolve(String teacher, String hubBase, Path cacheRoot,
                       ModelDistiller.ProgressListener listener) throws IOException {
@@ -237,7 +239,8 @@ final class HuggingFaceModelCache {
    * @param requestedRevision The requested revision, or {@code null} for the default branch.
    * @param listener          The progress listener; may be {@code null}.
    * @return The completed cache directory.
-   * @throws IOException Thrown if the snapshot cannot be resolved, downloaded, or verified.
+   * @throws IOException Thrown if the cache records cannot be read, or if the snapshot cannot be
+   *     resolved, downloaded, or verified.
    */
   private static Path resolveLocked(Path cache, String hubBase, String modelId,
                                     String requestedRevision,
@@ -347,14 +350,14 @@ final class HuggingFaceModelCache {
    * {@return whether the cache contains exactly the known files recorded for its snapshot}
    *
    * @param cache The cache directory.
+   * @throws IOException Thrown if the file record exists but cannot be read.
    */
-  private static boolean hasCompleteSnapshot(Path cache) {
-    final List<String> recorded;
-    try {
-      recorded = Files.readAllLines(cache.resolve(FILES_FILE), StandardCharsets.UTF_8);
-    } catch (IOException e) {
+  private static boolean hasCompleteSnapshot(Path cache) throws IOException {
+    final Path record = cache.resolve(FILES_FILE);
+    if (!Files.isRegularFile(record)) {
       return false;
     }
+    final List<String> recorded = Files.readAllLines(record, StandardCharsets.UTF_8);
     if (recorded.size() != recorded.stream().distinct().count()) {
       return false;
     }
