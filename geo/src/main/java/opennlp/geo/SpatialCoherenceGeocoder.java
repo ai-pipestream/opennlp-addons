@@ -28,6 +28,7 @@ import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.geo.GeoResolution;
 import opennlp.tools.geo.Geocoder;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -72,9 +73,7 @@ public final class SpatialCoherenceGeocoder implements Geocoder {
    * @throws IllegalArgumentException Thrown if {@code gazetteer} is {@code null}.
    */
   public SpatialCoherenceGeocoder(Gazetteer gazetteer) {
-    if (gazetteer == null) {
-      throw new IllegalArgumentException("gazetteer must not be null");
-    }
+    ParamChecks.requireNonNullArg(gazetteer, "gazetteer");
     this.gazetteer = gazetteer;
   }
 

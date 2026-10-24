@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import opennlp.tools.commons.ThreadSafe;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -113,50 +114,34 @@ public record GazetteerEntry(
    * @throws IllegalArgumentException Thrown if any component violates its documented constraint.
    */
   public GazetteerEntry {
-    if (StringUtil.isUnicodeBlank(source)) {
-      throw new IllegalArgumentException("source must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(recordId)) {
-      throw new IllegalArgumentException("recordId must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(name)) {
-      throw new IllegalArgumentException("name must not be null or blank");
-    }
-    if (alternateNames == null) {
-      throw new IllegalArgumentException("alternateNames must not be null");
-    }
+    ParamChecks.requireNonBlank(source, "source");
+    ParamChecks.requireNonBlank(recordId, "recordId");
+    ParamChecks.requireNonBlank(name, "name");
+    ParamChecks.requireNonNullArg(alternateNames, "alternateNames");
     for (final String alternateName : alternateNames) {
       if (StringUtil.isUnicodeBlank(alternateName)) {
         throw new IllegalArgumentException(
             "alternateNames must not contain a null or blank element, got: " + alternateNames);
       }
     }
-    if (location == null) {
-      throw new IllegalArgumentException("location must not be null");
-    }
+    ParamChecks.requireNonNullArg(location, "location");
     if (countryCode != null && !isAlpha2(countryCode)) {
       throw new IllegalArgumentException(
           "countryCode must be an ISO 3166-1 alpha-2 code (two ASCII capital letters) or null, got: "
               + countryCode);
     }
-    if (containment == null) {
-      throw new IllegalArgumentException("containment must not be null");
-    }
+    ParamChecks.requireNonNullArg(containment, "containment");
     for (final String level : containment) {
       if (StringUtil.isUnicodeBlank(level)) {
         throw new IllegalArgumentException(
             "containment must not contain a null or blank element, got: " + containment);
       }
     }
-    if (population < 0) {
-      throw new IllegalArgumentException("population must not be negative, got: " + population);
-    }
+    ParamChecks.requireNonNegative(population, "population");
     if (featureClass != null && StringUtil.isUnicodeBlank(featureClass)) {
       throw new IllegalArgumentException("featureClass must be null when unknown, not blank");
     }
-    if (attributes == null) {
-      throw new IllegalArgumentException("attributes must not be null");
-    }
+    ParamChecks.requireNonNullArg(attributes, "attributes");
     for (final Map.Entry<String, AttributeValue> entry : attributes.entrySet()) {
       if (StringUtil.isUnicodeBlank(entry.getKey()) || entry.getValue() == null) {
         throw new IllegalArgumentException(

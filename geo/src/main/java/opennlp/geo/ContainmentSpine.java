@@ -33,6 +33,7 @@ import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.geo.PlaceAncestor;
 import opennlp.tools.geo.PlaceHierarchy;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -115,9 +116,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
    */
   @Override
   public List<PlaceAncestor> ancestors(String id) {
-    if (id == null) {
-      throw new IllegalArgumentException("id must not be null");
-    }
+    ParamChecks.requireNonNullArg(id, "id");
     final List<PlaceAncestor> chain = new ArrayList<>();
     final Set<String> visited = new HashSet<>();
     visited.add(id);
@@ -159,15 +158,9 @@ public final class ContainmentSpine implements PlaceHierarchy {
      *         blank.
      */
     public Builder add(String id, String parentId, String name, String type) {
-      if (StringUtil.isUnicodeBlank(id)) {
-        throw new IllegalArgumentException("id must not be null or blank");
-      }
-      if (StringUtil.isUnicodeBlank(name)) {
-        throw new IllegalArgumentException("name must not be null or blank");
-      }
-      if (StringUtil.isUnicodeBlank(type)) {
-        throw new IllegalArgumentException("type must not be null or blank");
-      }
+      ParamChecks.requireNonBlank(id, "id");
+      ParamChecks.requireNonBlank(name, "name");
+      ParamChecks.requireNonBlank(type, "type");
       if (parentId != null && StringUtil.isUnicodeBlank(parentId)) {
         throw new IllegalArgumentException("parentId must be null or non-blank");
       }
@@ -188,9 +181,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
      * @throws IllegalArgumentException Thrown if {@code table} is {@code null}.
      */
     public Builder addTable(Path table) throws IOException {
-      if (table == null) {
-        throw new IllegalArgumentException("table must not be null");
-      }
+      ParamChecks.requireNonNullArg(table, "table");
       int lineNumber = 0;
       for (final String line : readLines(table)) {
         lineNumber++;
@@ -239,9 +230,7 @@ public final class ContainmentSpine implements PlaceHierarchy {
      * @throws IllegalArgumentException Thrown if {@code metaCsv} is {@code null}.
      */
     public Builder addWofMeta(Path metaCsv) throws IOException {
-      if (metaCsv == null) {
-        throw new IllegalArgumentException("metaCsv must not be null");
-      }
+      ParamChecks.requireNonNullArg(metaCsv, "metaCsv");
       final WofMetaRows consumer = new WofMetaRows(this, metaCsv);
       parseCsv(metaCsv, consumer);
       if (!consumer.sawHeader) {

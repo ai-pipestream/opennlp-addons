@@ -26,6 +26,7 @@ import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoResolution;
 import opennlp.tools.geo.Geocoder;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -59,9 +60,7 @@ public final class PopulationPriorGeocoder implements Geocoder {
    * @throws IllegalArgumentException Thrown if {@code gazetteer} is {@code null}.
    */
   public PopulationPriorGeocoder(Gazetteer gazetteer) {
-    if (gazetteer == null) {
-      throw new IllegalArgumentException("gazetteer must not be null");
-    }
+    ParamChecks.requireNonNullArg(gazetteer, "gazetteer");
     this.gazetteer = gazetteer;
   }
 

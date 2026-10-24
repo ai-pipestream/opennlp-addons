@@ -35,6 +35,7 @@ import java.util.Set;
 import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 import opennlp.tools.util.normalizer.Term;
 import opennlp.tools.util.normalizer.TermAnalyzer;
@@ -133,9 +134,7 @@ final class GazetteerIndex {
    *     contains an entry with a name that folds to an empty match key.
    */
   static GazetteerIndex of(List<GazetteerEntry> entries) {
-    if (entries == null) {
-      throw new IllegalArgumentException("entries must not be null");
-    }
+    ParamChecks.requireNonNullArg(entries, "entries");
     final Builder builder = new Builder(UnmatchableAlternates.REJECT);
     for (final GazetteerEntry entry : entries) {
       if (entry == null) {
@@ -274,9 +273,7 @@ final class GazetteerIndex {
    *     two ASCII letters.
    */
   static String normalizeRegionCode(String isoCountryCode) {
-    if (isoCountryCode == null) {
-      throw new IllegalArgumentException("isoCountryCode must not be null");
-    }
+    ParamChecks.requireNonNullArg(isoCountryCode, "isoCountryCode");
     if (isoCountryCode.length() != 2
         || !isAsciiLetter(isoCountryCode.charAt(0)) || !isAsciiLetter(isoCountryCode.charAt(1))) {
       throw new IllegalArgumentException(
@@ -296,9 +293,7 @@ final class GazetteerIndex {
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
    */
   static BufferedReader utf8Reader(InputStream in) {
-    if (in == null) {
-      throw new IllegalArgumentException("in must not be null");
-    }
+    ParamChecks.requireNonNullArg(in, "in");
     return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder()
         .onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT)));

@@ -33,6 +33,7 @@ import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -98,21 +99,15 @@ public final class BundledGazetteer implements Gazetteer {
   /** {@inheritDoc} */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     return index.lookup(name);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) {
-    if (source == null) {
-      throw new IllegalArgumentException("source must not be null");
-    }
-    if (recordId == null) {
-      throw new IllegalArgumentException("recordId must not be null");
-    }
+    ParamChecks.requireNonNullArg(source, "source");
+    ParamChecks.requireNonNullArg(recordId, "recordId");
     return index.byId(source, recordId);
   }
 

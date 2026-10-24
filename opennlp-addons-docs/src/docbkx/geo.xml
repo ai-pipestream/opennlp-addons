@@ -260,9 +260,7 @@ final class CrmGazetteer implements Gazetteer {
   private final Map<String, GazetteerEntry> byId;
 
   CrmGazetteer(List<GazetteerEntry> entries) {
-    if (entries == null) {
-      throw new IllegalArgumentException("entries must not be null");
-    }
+    ParamChecks.requireNonNullArg(entries, "entries");
     final Map<String, GazetteerEntry> names = new HashMap<>();
     final Map<String, GazetteerEntry> ids = new HashMap<>();
     for (final GazetteerEntry entry : entries) {
@@ -275,28 +273,23 @@ final class CrmGazetteer implements Gazetteer {
 
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     final GazetteerEntry found = byName.get(StringUtil.toLowerCase(name));
     return found == null ? List.of() : List.of(found);
   }
 
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) {
-    if (source == null) {
-      throw new IllegalArgumentException("source must not be null");
-    }
-    if (recordId == null) {
-      throw new IllegalArgumentException("recordId must not be null");
-    }
+    ParamChecks.requireNonNullArg(source, "source");
+    ParamChecks.requireNonNullArg(recordId, "recordId");
     return SOURCE.equals(source) ? Optional.ofNullable(byId.get(recordId)) : Optional.empty();
   }
 
   @Override
   public Optional<GazetteerEntry> byRegion(String isoCountryCode) {
-    if (isoCountryCode == null || isoCountryCode.length() != 2
-        || !isAsciiLetter(isoCountryCode.charAt(0)) || !isAsciiLetter(isoCountryCode.charAt(1))) {
+    ParamChecks.requireNonNullArg(isoCountryCode, "isoCountryCode");
+    if (isoCountryCode.length() != 2 || !StringUtil.isAsciiLetter(isoCountryCode.charAt(0))
+        || !StringUtil.isAsciiLetter(isoCountryCode.charAt(1))) {
       throw new IllegalArgumentException(
           "isoCountryCode must be two ASCII letters, got: " + isoCountryCode);
     }
@@ -314,10 +307,6 @@ final class CrmGazetteer implements Gazetteer {
   @Override
   public Set<String> sources() {
     return Set.of(SOURCE);
-  }
-
-  private boolean isAsciiLetter(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
   }
 }]]>
 			</programlisting>

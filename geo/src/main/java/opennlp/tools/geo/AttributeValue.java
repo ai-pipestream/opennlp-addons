@@ -17,7 +17,7 @@
 package opennlp.tools.geo;
 
 import opennlp.tools.commons.ThreadSafe;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * One provenance-tagged attribute value of a {@link GazetteerEntry}: a value plus the identifier
@@ -44,14 +44,8 @@ public record AttributeValue(String value, String source, String notes) {
    *     blank, or if {@code notes} is {@code null}.
    */
   public AttributeValue {
-    if (StringUtil.isUnicodeBlank(value)) {
-      throw new IllegalArgumentException("value must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(source)) {
-      throw new IllegalArgumentException("source must not be null or blank");
-    }
-    if (notes == null) {
-      throw new IllegalArgumentException("notes must not be null");
-    }
+    ParamChecks.requireNonBlank(value, "value");
+    ParamChecks.requireNonBlank(source, "source");
+    ParamChecks.requireNonNullArg(notes, "notes");
   }
 }

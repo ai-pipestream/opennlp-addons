@@ -27,6 +27,7 @@ import java.util.Set;
 
 import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * A {@link Gazetteer} composing a base gazetteer with user-supplied changes: additions from a
@@ -65,12 +66,8 @@ public final class OverlayGazetteer implements Gazetteer {
    *     empty.
    */
   public OverlayGazetteer(Gazetteer base, Gazetteer additions, List<Suppression> suppressions) {
-    if (base == null) {
-      throw new IllegalArgumentException("base must not be null");
-    }
-    if (suppressions == null) {
-      throw new IllegalArgumentException("suppressions must not be null");
-    }
+    ParamChecks.requireNonNullArg(base, "base");
+    ParamChecks.requireNonNullArg(suppressions, "suppressions");
     for (final Suppression suppression : suppressions) {
       if (suppression == null) {
         throw new IllegalArgumentException("suppressions must not contain a null element");
@@ -94,9 +91,7 @@ public final class OverlayGazetteer implements Gazetteer {
    */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) throws IOException {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     final List<GazetteerEntry> merged = new ArrayList<>();
     if (additions != null) {
       merged.addAll(additions.lookup(name));
@@ -117,12 +112,8 @@ public final class OverlayGazetteer implements Gazetteer {
    */
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) throws IOException {
-    if (source == null) {
-      throw new IllegalArgumentException("source must not be null");
-    }
-    if (recordId == null) {
-      throw new IllegalArgumentException("recordId must not be null");
-    }
+    ParamChecks.requireNonNullArg(source, "source");
+    ParamChecks.requireNonNullArg(recordId, "recordId");
     if (additions != null) {
       final Optional<GazetteerEntry> added = additions.byId(source, recordId);
       if (added.isPresent()) {

@@ -18,6 +18,7 @@ package opennlp.geo;
 
 import java.util.List;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -42,12 +43,8 @@ final class GeocoderInput {
    * @throws IllegalArgumentException Thrown if any of the above conditions is violated.
    */
   static void validateResolveArguments(CharSequence text, List<Span> locationMentions) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
-    if (locationMentions == null) {
-      throw new IllegalArgumentException("locationMentions must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
+    ParamChecks.requireNonNullArg(locationMentions, "locationMentions");
     for (final Span mention : locationMentions) {
       if (mention == null) {
         throw new IllegalArgumentException(

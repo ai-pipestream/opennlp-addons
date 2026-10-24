@@ -19,6 +19,7 @@ package opennlp.geo;
 
 import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.geo.GazetteerEntry;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -57,9 +58,7 @@ public record Suppression(String name, String countryCode, String featureClass) 
    *     letters, or {@code featureClass} is present but blank.
    */
   public Suppression {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     if (GazetteerIndex.foldKey(name).isEmpty()) {
       throw new IllegalArgumentException(
           "name must contain a word token, otherwise the rule could never match: " + name);
@@ -92,9 +91,7 @@ public record Suppression(String name, String countryCode, String featureClass) 
    * @throws IllegalArgumentException Thrown if {@code entry} is {@code null}.
    */
   public boolean matches(GazetteerEntry entry) {
-    if (entry == null) {
-      throw new IllegalArgumentException("entry must not be null");
-    }
+    ParamChecks.requireNonNullArg(entry, "entry");
     if (countryCode != null && !countryCode.equals(entry.countryCode())) {
       return false;
     }

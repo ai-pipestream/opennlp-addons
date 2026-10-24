@@ -18,7 +18,7 @@
 package opennlp.tools.geo;
 
 import opennlp.tools.commons.ThreadSafe;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * One step of a place's containment chain: an enclosing place with its identifier in
@@ -38,14 +38,8 @@ public record PlaceAncestor(String id, String name, String type) {
    * @throws IllegalArgumentException Thrown if a component is {@code null} or blank.
    */
   public PlaceAncestor {
-    if (StringUtil.isUnicodeBlank(id)) {
-      throw new IllegalArgumentException("id must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(name)) {
-      throw new IllegalArgumentException("name must not be null or blank");
-    }
-    if (StringUtil.isUnicodeBlank(type)) {
-      throw new IllegalArgumentException("type must not be null or blank");
-    }
+    ParamChecks.requireNonBlank(id, "id");
+    ParamChecks.requireNonBlank(name, "name");
+    ParamChecks.requireNonBlank(type, "type");
   }
 }

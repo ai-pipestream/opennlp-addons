@@ -36,6 +36,7 @@ import opennlp.tools.geo.GazetteerEntry;
 import opennlp.tools.geo.GeoBoundingBox;
 import opennlp.tools.geo.GeoPoint;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -98,12 +99,6 @@ public final class UserGazetteer implements Gazetteer {
   /** The number of edges in the bounding-box field. */
   private static final int BOX_EDGES = 4;
 
-  /** The failure for a missing table path. */
-  private static final String TABLE_REQUIRED = "table must not be null";
-
-  /** The failure for a missing input stream. */
-  private static final String IN_REQUIRED = "in must not be null";
-
   private final String source;
   private final GazetteerIndex index;
 
@@ -125,10 +120,8 @@ public final class UserGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if an argument violates its constraint.
    */
   public static UserGazetteer load(Path table, String source) throws IOException {
-    if (table == null) {
-      throw new IllegalArgumentException(TABLE_REQUIRED);
-    }
-    validateSource(source);
+    ParamChecks.requireNonNullArg(table, "table");
+    ParamChecks.requireNonBlank(source, "source");
     try (InputStream in = Files.newInputStream(table)) {
       return load(in, source);
     }
@@ -148,10 +141,8 @@ public final class UserGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if an argument violates its constraint.
    */
   public static UserGazetteer load(InputStream in, String source) throws IOException {
-    if (in == null) {
-      throw new IllegalArgumentException(IN_REQUIRED);
-    }
-    validateSource(source);
+    ParamChecks.requireNonNullArg(in, "in");
+    ParamChecks.requireNonBlank(source, "source");
     final GazetteerIndex index = GazetteerIndex.load(in, true,
         (line, lineNumber) -> parseRow(line, lineNumber, source),
         GazetteerIndex.UnmatchableAlternates.REJECT);
@@ -172,9 +163,7 @@ public final class UserGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if {@code table} is {@code null}.
    */
   public static List<Suppression> loadSuppressions(Path table) throws IOException {
-    if (table == null) {
-      throw new IllegalArgumentException(TABLE_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(table, "table");
     try (InputStream in = Files.newInputStream(table)) {
       return loadSuppressions(in);
     }
@@ -192,9 +181,7 @@ public final class UserGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
    */
   public static List<Suppression> loadSuppressions(InputStream in) throws IOException {
-    if (in == null) {
-      throw new IllegalArgumentException(IN_REQUIRED);
-    }
+    ParamChecks.requireNonNullArg(in, "in");
     final List<Suppression> rules = new ArrayList<>();
     final BufferedReader reader = GazetteerIndex.utf8Reader(in);
     String line;
@@ -227,21 +214,15 @@ public final class UserGazetteer implements Gazetteer {
   /** {@inheritDoc} */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     return index.lookup(name);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) {
-    if (source == null) {
-      throw new IllegalArgumentException("source must not be null");
-    }
-    if (recordId == null) {
-      throw new IllegalArgumentException("recordId must not be null");
-    }
+    ParamChecks.requireNonNullArg(source, "source");
+    ParamChecks.requireNonNullArg(recordId, "recordId");
     return index.byId(source, recordId);
   }
 
@@ -350,18 +331,6 @@ public final class UserGazetteer implements Gazetteer {
   /** {@return {@code true} if the column at {@code i} is missing or empty after trimming} */
   private static boolean absent(String[] fields, int i) {
     return fields.length <= i || trim(fields[i]).isEmpty();
-  }
-
-  /**
-   * Validates the source identifier shared by both load entry points.
-   *
-   * @param source The source identifier. Must not be {@code null} or blank.
-   * @throws IllegalArgumentException Thrown if {@code source} is {@code null} or blank.
-   */
-  private static void validateSource(String source) {
-    if (StringUtil.isUnicodeBlank(source)) {
-      throw new IllegalArgumentException("source must not be null or blank");
-    }
   }
 
   /**

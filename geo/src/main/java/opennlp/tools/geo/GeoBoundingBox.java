@@ -17,6 +17,7 @@
 package opennlp.tools.geo;
 
 import opennlp.tools.commons.ThreadSafe;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * A geographic bounding box in <a href="https://epsg.org/crs_4326/WGS-84.html">WGS84
@@ -75,9 +76,7 @@ public record GeoBoundingBox(double west, double south, double east, double nort
    * @throws IllegalArgumentException Thrown if {@code point} is {@code null}.
    */
   public boolean contains(GeoPoint point) {
-    if (point == null) {
-      throw new IllegalArgumentException("point must not be null");
-    }
+    ParamChecks.requireNonNullArg(point, "point");
     if (point.latitude() < south || point.latitude() > north) {
       return false;
     }

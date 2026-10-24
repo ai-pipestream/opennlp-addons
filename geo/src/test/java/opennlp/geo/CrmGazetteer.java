@@ -25,6 +25,7 @@ import java.util.Set;
 
 import opennlp.tools.geo.Gazetteer;
 import opennlp.tools.geo.GazetteerEntry;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -53,9 +54,7 @@ final class CrmGazetteer implements Gazetteer {
    * @throws IllegalArgumentException Thrown if {@code entries} is {@code null}.
    */
   CrmGazetteer(List<GazetteerEntry> entries) {
-    if (entries == null) {
-      throw new IllegalArgumentException("entries must not be null");
-    }
+    ParamChecks.requireNonNullArg(entries, "entries");
     final Map<String, GazetteerEntry> names = new HashMap<>();
     final Map<String, GazetteerEntry> ids = new HashMap<>();
     for (final GazetteerEntry entry : entries) {
@@ -69,9 +68,7 @@ final class CrmGazetteer implements Gazetteer {
   /** {@inheritDoc} */
   @Override
   public List<GazetteerEntry> lookup(CharSequence name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     final GazetteerEntry found = byName.get(StringUtil.toLowerCase(name));
     return found == null ? List.of() : List.of(found);
   }
@@ -79,12 +76,8 @@ final class CrmGazetteer implements Gazetteer {
   /** {@inheritDoc} */
   @Override
   public Optional<GazetteerEntry> byId(String source, String recordId) {
-    if (source == null) {
-      throw new IllegalArgumentException("source must not be null");
-    }
-    if (recordId == null) {
-      throw new IllegalArgumentException("recordId must not be null");
-    }
+    ParamChecks.requireNonNullArg(source, "source");
+    ParamChecks.requireNonNullArg(recordId, "recordId");
     return SOURCE.equals(source) ? Optional.ofNullable(byId.get(recordId)) : Optional.empty();
   }
 
@@ -95,8 +88,9 @@ final class CrmGazetteer implements Gazetteer {
    */
   @Override
   public Optional<GazetteerEntry> byRegion(String isoCountryCode) {
-    if (isoCountryCode == null || isoCountryCode.length() != 2
-        || !isAsciiLetter(isoCountryCode.charAt(0)) || !isAsciiLetter(isoCountryCode.charAt(1))) {
+    ParamChecks.requireNonNullArg(isoCountryCode, "isoCountryCode");
+    if (isoCountryCode.length() != 2 || !StringUtil.isAsciiLetter(isoCountryCode.charAt(0))
+        || !StringUtil.isAsciiLetter(isoCountryCode.charAt(1))) {
       throw new IllegalArgumentException(
           "isoCountryCode must be two ASCII letters, got: " + isoCountryCode);
     }
@@ -115,10 +109,5 @@ final class CrmGazetteer implements Gazetteer {
   @Override
   public Set<String> sources() {
     return Set.of(SOURCE);
-  }
-
-  /** {@return {@code true} if {@code c} is an ASCII letter} */
-  private boolean isAsciiLetter(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
   }
 }

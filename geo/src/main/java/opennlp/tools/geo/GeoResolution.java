@@ -17,6 +17,7 @@
 package opennlp.tools.geo;
 
 import opennlp.tools.commons.ThreadSafe;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -42,12 +43,8 @@ public record GeoResolution(Span mention, GazetteerEntry entry, double confidenc
    *     or {@code confidence} is not in {@code [0, 1]} (including {@code NaN}).
    */
   public GeoResolution {
-    if (mention == null) {
-      throw new IllegalArgumentException("mention must not be null");
-    }
-    if (entry == null) {
-      throw new IllegalArgumentException("entry must not be null");
-    }
+    ParamChecks.requireNonNullArg(mention, "mention");
+    ParamChecks.requireNonNullArg(entry, "entry");
     if (!(confidence >= 0.0 && confidence <= 1.0)) {
       throw new IllegalArgumentException("confidence must be in [0, 1], got: " + confidence);
     }
