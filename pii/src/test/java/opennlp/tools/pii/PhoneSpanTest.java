@@ -193,7 +193,7 @@ class PhoneSpanTest {
   /**
    * Checks one shared extractor with different phone forms and offsets in each worker.
    *
-   * @throws Exception If a worker fails or exceeds the time limit.
+   * @throws Exception Thrown if a worker fails or exceeds the time limit.
    */
   @Test
   @Timeout(60)

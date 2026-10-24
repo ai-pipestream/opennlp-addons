@@ -148,7 +148,7 @@ class HmacTokenizerIdentityTest {
    * @param value The valid normalized value.
    * @param prefix The displayed type prefix.
    * @param length The token length.
-   * @throws Exception If the JDK MAC provider cannot initialize.
+   * @throws Exception Thrown if the JDK MAC provider cannot initialize.
    */
   @ParameterizedTest(name = "valid input {index}, length={3}")
   @MethodSource("validInputs")
@@ -191,7 +191,7 @@ class HmacTokenizerIdentityTest {
   /**
    * Checks token, document and audit calls on a shared tokenizer.
    *
-   * @throws Exception If a worker fails or does not finish within the time limit.
+   * @throws Exception Thrown if a worker fails or does not finish within the time limit.
    */
   @Test
   @Timeout(60)

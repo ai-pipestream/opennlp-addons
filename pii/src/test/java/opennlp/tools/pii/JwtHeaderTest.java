@@ -309,7 +309,7 @@ class JwtHeaderTest {
   /**
    * Checks parser state is local to each concurrent request.
    *
-   * @throws Exception If a worker fails or does not finish in time.
+   * @throws Exception Thrown if a worker fails or does not finish in time.
    */
   @Test
   @Timeout(60)

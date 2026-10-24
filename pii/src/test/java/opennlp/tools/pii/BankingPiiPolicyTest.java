@@ -200,7 +200,7 @@ class BankingPiiPolicyTest {
   /**
    * Checks shared extraction using different input text for each concurrent worker.
    *
-   * @throws Exception If a worker fails or does not finish in time.
+   * @throws Exception Thrown if a worker fails or does not finish in time.
    */
   @Test
   @Timeout(60)

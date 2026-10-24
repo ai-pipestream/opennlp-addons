@@ -34,7 +34,7 @@ final class PiiTestSupport {
    * Collects the public type constants and checks for duplicate values.
    *
    * @return The type values.
-   * @throws IllegalAccessException If a public constant cannot be read.
+   * @throws IllegalAccessException Thrown if a public constant cannot be read.
    */
   static Set<String> declaredTypes() throws IllegalAccessException {
     final Set<String> types = new HashSet<>();

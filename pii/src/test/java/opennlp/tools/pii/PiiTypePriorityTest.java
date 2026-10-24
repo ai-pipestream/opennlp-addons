@@ -82,7 +82,7 @@ public class PiiTypePriorityTest {
   /**
    * Checks that all public type constants have an expected rank.
    *
-   * @throws IllegalAccessException If a public constant cannot be read.
+   * @throws IllegalAccessException Thrown if a public constant cannot be read.
    */
   @Test
   void testCoversPublicTypeConstants() throws IllegalAccessException {

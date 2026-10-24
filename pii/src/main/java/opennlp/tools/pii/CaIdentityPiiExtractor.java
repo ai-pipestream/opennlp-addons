@@ -37,7 +37,9 @@ import opennlp.tools.util.StringUtil;
  * or {@code .} may separate the label and value.</p>
  *
  * <p>This detector is opt-in. Format and checksum validation do not establish that a
- * number was issued. Normalization removes numeric separators.</p>
+ * number was issued. The leading digit is not interpreted, since Service Canada documents
+ * only that a {@code 9} marks a temporary resident. Normalization removes numeric
+ * separators.</p>
  *
  * <p>Instances have no per-call state and may be shared between threads.</p>
  *

@@ -113,7 +113,7 @@ class PseudonymizerIdentityTest {
   /**
    * Checks that concurrent rewrites do not share identity counters.
    *
-   * @throws Exception If a worker fails or does not finish within the time limit.
+   * @throws Exception Thrown if a worker fails or does not finish within the time limit.
    */
   @Test
   @Timeout(60)

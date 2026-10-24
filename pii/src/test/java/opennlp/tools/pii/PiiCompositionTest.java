@@ -154,7 +154,7 @@ class PiiCompositionTest {
   /**
    * Checks concurrent nested extraction with shared stateless delegates.
    *
-   * @throws Exception If a worker fails or does not finish within the time limit.
+   * @throws Exception Thrown if a worker fails or does not finish within the time limit.
    */
   @Test
   @Timeout(60)

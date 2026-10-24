@@ -50,7 +50,7 @@ final class ReferenceDataGenerator {
    * Generates a table into a temporary destination prepared by the shell wrapper.
    *
    * @param args Registry kind, input, output and optional phone revision and date.
-   * @throws Exception If input validation, generation or file access fails.
+   * @throws Exception Thrown if input validation, generation or file access fails.
    */
   public static void main(String[] args) throws Exception {
     if (args.length == 2 && args[0].equals("commit-date")) {

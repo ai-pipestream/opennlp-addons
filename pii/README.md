@@ -25,15 +25,15 @@ Build and run the module tests from the repository root:
 mvn -pl pii -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
 ## Reference data
 
 The Bash commands in `dev/` use JDK 21 source launch mode. They need no Python
-interpreter or additional Java libraries. Offline input environment variables and
-`--check` retain the documented behavior. Generated Java tables are unchanged by
-the migration. The generator sources and their tests live under `pii/src/test/java`.
+interpreter or additional Java libraries. The offline input environment variables
+and `--check` are described in the manual chapter. The generator sources and their
+tests live under `pii/src/test/java`.
 
 Run the generator validation and command tests with:
 
@@ -41,9 +41,3 @@ Run the generator validation and command tests with:
 mvn -pl pii -am test -Dopennlp.forkCount=1 \
   '-Dtest=ReferenceDataGenerator*Test' -Dsurefire.failIfNoSpecifiedTests=false
 ```
-
-## Source
-
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-pii](https://github.com/ai-pipestream/opennlp/tree/306c4be8f270bcdceb91feaa0133e76d30ca1c4f).
-All detector, masking, pseudonymization and audit classes and their existing tests
-are preserved. Only the data-generation tooling was rewritten in Java.

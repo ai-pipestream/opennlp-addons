@@ -172,7 +172,7 @@ public class PiiPacksTest {
   /**
    * Checks that the fixture exercises all public type constants.
    *
-   * @throws IllegalAccessException If a public constant cannot be read.
+   * @throws IllegalAccessException Thrown if a public constant cannot be read.
    */
   @Test
   void testAllStructuredPackReportsEveryType() throws IllegalAccessException {
@@ -186,7 +186,7 @@ public class PiiPacksTest {
    *
    * @param name The pack name.
    * @param pack The extractor factory.
-   * @throws Exception If a worker fails or does not finish within the time limit.
+   * @throws Exception Thrown if a worker fails or does not finish within the time limit.
    */
   @ParameterizedTest
   @MethodSource("packs")

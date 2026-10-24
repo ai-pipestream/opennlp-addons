@@ -296,7 +296,7 @@ class NetworkAddressFormsTest {
   /**
    * Checks shared parsing state across concurrent IPv4, IPv6 and MAC requests.
    *
-   * @throws Exception If a worker fails or does not finish in time.
+   * @throws Exception Thrown if a worker fails or does not finish in time.
    */
   @Test
   @Timeout(60)

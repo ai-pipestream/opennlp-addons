@@ -48,6 +48,21 @@ public class CaIdentityPiiExtractorTest {
   }
 
   /**
+   * Checks that the leading digit is not interpreted: only the temporary resident prefix
+   * {@code 9} is documented, so Luhn-valid numbers with any leading digit are reported.
+   *
+   * @param digits The Luhn-valid 9 digits.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"046454286", "130692544", "846454288", "946454287"})
+  void testDoesNotInterpretTheLeadingDigit(String digits) {
+    final List<PiiMention> mentions = extractor.extract("SIN: " + digits);
+
+    Assertions.assertEquals(1, mentions.size(), digits);
+    Assertions.assertEquals(digits, mentions.get(0).normalized());
+  }
+
+  /**
    * Checks missing labels, invalid checksums and invalid number forms.
    *
    * @param text The rejected input.

@@ -115,7 +115,7 @@ public class Keccak256Test {
   /**
    * Checks the known distinction between Keccak-256 and SHA3-256 for this message.
    *
-   * @throws NoSuchAlgorithmException If SHA3-256 is unavailable.
+   * @throws NoSuchAlgorithmException Thrown if SHA3-256 is unavailable.
    */
   @Test
   void testDiffersFromSha3() throws NoSuchAlgorithmException {
