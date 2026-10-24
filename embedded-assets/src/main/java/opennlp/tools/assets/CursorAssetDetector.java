@@ -860,7 +860,7 @@ public final class CursorAssetDetector implements AssetDetector {
    */
   private boolean hasDecimalDigits(byte[] header, int start, int end) {
     for (int i = start; i < end; i++) {
-      if (header[i] < '0' || header[i] > '9') {
+      if (!StringUtil.isAsciiDigit(header[i])) {
         return false;
       }
     }
@@ -1242,25 +1242,26 @@ public final class CursorAssetDetector implements AssetDetector {
   }
 
   /**
-   * Whether the character belongs to the base64 alphabet, padding excluded.
+   * Whether the character belongs to the base64 alphabet of
+   * <a href="https://www.rfc-editor.org/rfc/rfc4648.html#section-4">RFC 4648 section 4</a>,
+   * padding excluded.
    *
    * @param c The character.
    * @return {@code true} for the 64 payload characters.
    */
   private boolean isBase64Char(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
-        || c == '+' || c == '/';
+    return StringUtil.isAsciiLetter(c) || StringUtil.isAsciiDigit(c) || c == '+' || c == '/';
   }
 
   /**
-   * Whether the character belongs to the URL-safe base64 alphabet.
+   * Whether the character belongs to the URL-safe base64 alphabet of
+   * <a href="https://www.rfc-editor.org/rfc/rfc4648.html#section-5">RFC 4648 section 5</a>.
    *
    * @param c The character.
    * @return {@code true} for a URL-safe payload character.
    */
   private boolean isBase64UrlChar(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
-        || c == '-' || c == '_';
+    return StringUtil.isAsciiLetter(c) || StringUtil.isAsciiDigit(c) || c == '-' || c == '_';
   }
 
   /**

@@ -48,6 +48,8 @@ public class JsonObjectParserTest {
         "{\"trailing\":true,}",
         "{\"leading\":01}",
         "{\"fraction\":1.}",
+        "{\"number\":-",
+        "{\"exponent\":1e",
         "{\"escape\":\"\\x\"}",
         "{\"unicode\":\"\\uＦＦＦＦ\"}",
         "{\"unterminated\":\"value}",

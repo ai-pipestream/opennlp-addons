@@ -21,6 +21,7 @@ import java.util.Base64;
 
 import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
+import opennlp.tools.util.StringUtil;
 
 /**
  * An encoded payload with source spans, a format, and metadata from its header.
@@ -182,7 +183,8 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
       } else if (c == '\r' || c == '\n') {
         // MIME base64 (RFC 2045) wraps encoded lines with CRLF only.
         wrapped = true;
-      } else if (!isSharedBase64Char(c) && c != '=') {
+      } else if (!StringUtil.isAsciiLetter(c) && !StringUtil.isAsciiDigit(c) && c != '=') {
+        // RFC 4648: the letters and digits are shared by both alphabets.
         throw new IllegalArgumentException("payload contains a non-base64 character");
       }
     }
@@ -199,15 +201,5 @@ public record EmbeddedAsset(Span span, Span payload, String format, String media
       return Base64.getMimeDecoder().decode(encoded);
     }
     return Base64.getDecoder().decode(encoded);
-  }
-
-  /**
-   * Tests the characters shared by the standard and URL-safe base64 alphabets.
-   *
-   * @param c The character to test.
-   * @return {@code true} for an ASCII letter or digit.
-   */
-  private boolean isSharedBase64Char(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
   }
 }

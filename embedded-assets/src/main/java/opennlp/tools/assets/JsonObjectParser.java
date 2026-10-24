@@ -17,6 +17,10 @@
 
 package opennlp.tools.assets;
 
+import java.util.HexFormat;
+
+import opennlp.tools.util.StringUtil;
+
 /**
  * A bounded JSON syntax cursor used to validate decoded JWT objects without adding a
  * JSON library to the runtime. It recognizes
@@ -211,32 +215,14 @@ final class JsonObjectParser {
     }
     int value = 0;
     for (int i = 0; i < 4; i++) {
-      final int digit = hexDigit(json.charAt(index++));
-      if (digit < 0) {
+      final char c = json.charAt(index++);
+      // RFC 8259 section 7: exactly four ASCII hexadecimal digits.
+      if (!HexFormat.isHexDigit(c)) {
         return -1;
       }
-      value = (value << 4) | digit;
+      value = (value << 4) | HexFormat.fromHexDigit(c);
     }
     return value;
-  }
-
-  /**
-   * Converts one ASCII hexadecimal digit.
-   *
-   * @param c The character to convert.
-   * @return The digit value, or -1 for any other character.
-   */
-  private int hexDigit(char c) {
-    if (c >= '0' && c <= '9') {
-      return c - '0';
-    }
-    if (c >= 'A' && c <= 'F') {
-      return c - 'A' + 10;
-    }
-    if (c >= 'a' && c <= 'f') {
-      return c - 'a' + 10;
-    }
-    return -1;
   }
 
   /** @return {@code true} when one RFC 8259 number was consumed. */
@@ -244,7 +230,7 @@ final class JsonObjectParser {
     final int start = index;
     take('-');
     if (take('0')) {
-      if (index < json.length() && isDigit(json.charAt(index))) {
+      if (index < json.length() && StringUtil.isAsciiDigit(json.charAt(index))) {
         return false;
       }
     } else if (!digits()) {
@@ -269,9 +255,7 @@ final class JsonObjectParser {
   /** @return {@code true} when at least one ASCII digit was consumed. */
   private boolean digits() {
     final int start = index;
-    while (index < json.length() && isDigit(json.charAt(index))) {
-      index++;
-    }
+    index = StringUtil.endOfAsciiDigits(json, index);
     return index > start;
   }
 
@@ -346,16 +330,6 @@ final class JsonObjectParser {
    */
   private boolean peek(char expected) {
     return index < json.length() && json.charAt(index) == expected;
-  }
-
-  /**
-   * Tests for an ASCII digit.
-   *
-   * @param c The character to test.
-   * @return {@code true} for an ASCII digit.
-   */
-  private boolean isDigit(char c) {
-    return c >= '0' && c <= '9';
   }
 
   /**
