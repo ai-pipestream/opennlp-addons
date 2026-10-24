@@ -18,11 +18,16 @@
 package opennlp.tools.noise;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import opennlp.tools.assets.AssetAnnotator;
 import opennlp.tools.assets.EmbeddedAsset;
@@ -146,5 +151,34 @@ public class NoiseAnnotatorTest {
     }, false).annotate(input);
     assertEquals(List.of(), standalone.get(NoiseAnnotator.NOISE));
     assertSame(assetAnnotation, standalone.get(AssetAnnotator.ASSETS).get(0));
+  }
+
+  /**
+   * The results a custom scorer returns are checked before they become a layer: a
+   * missing list, a missing span and a span outside the text are rejected with the
+   * documented messages instead of failing later with another exception.
+   *
+   * @param message The expected message.
+   * @param scorer The misbehaving scorer.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("misbehavingScorers")
+  void testRejectsMisbehavingScorerResults(String message, NoiseScorer scorer) {
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> new NoiseAnnotator(scorer, false).annotate(Document.of("short text")));
+    assertEquals(message, e.getMessage());
+  }
+
+  /** @return Scorer results that violate the {@link NoiseScorer} contract. */
+  private static Stream<Arguments> misbehavingScorers() {
+    final NoiseSpan outside = new NoiseSpan(new Span(4, 20), NoiseSpan.SEVERITY_DAMAGED, 0.5);
+    final List<NoiseSpan> holdsNull = new ArrayList<>();
+    holdsNull.add(null);
+    return Stream.of(
+        Arguments.of("scorer result must not be null", (NoiseScorer) (text, exclude) -> null),
+        Arguments.of("scorer result must not contain null",
+            (NoiseScorer) (text, exclude) -> holdsNull),
+        Arguments.of("scorer noise spans must lie within the text",
+            (NoiseScorer) (text, exclude) -> List.of(outside)));
   }
 }
