@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
@@ -41,7 +38,7 @@ import opennlp.tools.util.ParamChecks;
  *
  * <p>The reference date is fixed at construction or read from
  * {@link DocumentDateAnnotator#DOCUMENT_DATE}. Without a date, the converted layer is
- * empty. Mentions without a rate are omitted and logged at debug level. The source
+ * empty. Mentions without a rate are omitted. The source
  * layer is unchanged. Document-date mode requires at most one date annotation;
  * fixed-date mode does not read that layer.</p>
  *
@@ -52,7 +49,7 @@ import opennlp.tools.util.ParamChecks;
  * @see <a href="https://www.iso.org/iso-4217-currency-codes.html">ISO 4217</a>
  * @since 3.0.0
  */
-public class MoneyConversionAnnotator implements DocumentAnnotator {
+public final class MoneyConversionAnnotator implements DocumentAnnotator {
 
   /**
    * Money mentions restated in the target currency; aligned with the money layer by
@@ -60,9 +57,6 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
    */
   public static final LayerKey<MoneyAmount> CONVERTED_MONEY =
       Layers.key("money.converted", MoneyAmount.class);
-
-  private static final Logger logger =
-      LoggerFactory.getLogger(MoneyConversionAnnotator.class);
 
   private final FxRates rates;
   private final String target;
@@ -144,7 +138,6 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
     }
     final List<Annotation<MoneyAmount>> converted = new ArrayList<>();
     if (date == null) {
-      logger.debug("No document date available for conversion");
       return document.with(CONVERTED_MONEY, converted);
     }
     for (final Annotation<MoneyAmount> mention : amounts) {
@@ -162,8 +155,6 @@ public class MoneyConversionAnnotator implements DocumentAnnotator {
           throw new IllegalArgumentException("rate provider changed the amount span: " + mention.span());
         }
         converted.add(new Annotation<>(mention.span(), amount));
-      } else {
-        logger.debug("No {} rate as of {} for mention {}", target, date, mention.value());
       }
     }
     return document.with(CONVERTED_MONEY, converted);

@@ -225,7 +225,7 @@ class CursorTemporalRangeTest {
   /**
    * A shared extractor formats concurrent documents using their separate reference dates.
    *
-   * @throws Exception If a worker fails or is interrupted.
+   * @throws Exception Thrown if a worker fails or is interrupted.
    */
   @Test
   void testConcurrentReferences() throws Exception {

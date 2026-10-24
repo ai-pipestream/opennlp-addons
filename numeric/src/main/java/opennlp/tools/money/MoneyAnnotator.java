@@ -38,7 +38,7 @@ import opennlp.tools.util.Span;
  *
  * @since 3.0.0
  */
-public class MoneyAnnotator implements DocumentAnnotator {
+public final class MoneyAnnotator implements DocumentAnnotator {
 
   /**
    * Monetary mentions; each annotation covers one mention and carries the normalized

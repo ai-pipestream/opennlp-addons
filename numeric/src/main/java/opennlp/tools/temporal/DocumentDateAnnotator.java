@@ -22,6 +22,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.document.Annotation;
 import opennlp.tools.document.Document;
 import opennlp.tools.document.DocumentAnnotator;
@@ -46,7 +47,8 @@ import opennlp.tools.document.Layers;
  * @see <a href="https://www.iso.org/iso-8601-date-and-time-format.html">ISO 8601</a>
  * @since 3.0.0
  */
-public class DocumentDateAnnotator implements DocumentAnnotator {
+@ThreadSafe
+public final class DocumentDateAnnotator implements DocumentAnnotator {
 
   /**
    * The document's reference date: at most one annotation, on the selected mention's span.

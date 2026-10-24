@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.extraction.NumberNotation;
 import opennlp.tools.extraction.NumberScan;
 import opennlp.tools.util.ParamChecks;
@@ -80,7 +81,8 @@ import opennlp.tools.util.StringUtil;
  * @see <a href="https://www.iso.org/iso-4217-currency-codes.html">ISO 4217</a>
  * @since 3.0.0
  */
-public class CursorMoneyExtractor implements MoneyExtractor {
+@ThreadSafe
+public final class CursorMoneyExtractor implements MoneyExtractor {
 
   private static final String USD = "USD";
   private static final String EUR = "EUR";

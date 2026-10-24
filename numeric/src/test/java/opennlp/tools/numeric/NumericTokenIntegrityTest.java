@@ -229,7 +229,7 @@ class NumericTokenIntegrityTest {
   /**
    * Concurrent calls use independent currency exclusion spans and quantity results.
    *
-   * @throws Exception If a worker fails or is interrupted.
+   * @throws Exception Thrown if a worker fails or is interrupted.
    */
   @Test
   void testConcurrentExtraction() throws Exception {

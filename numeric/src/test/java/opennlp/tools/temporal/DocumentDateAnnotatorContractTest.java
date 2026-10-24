@@ -148,7 +148,7 @@ class DocumentDateAnnotatorContractTest {
   /**
    * Shared instances do not retain one document's reference date for another document.
    *
-   * @throws Exception If a worker fails.
+   * @throws Exception Thrown if a worker fails.
    */
   @Test
   void testConcurrentDocuments() throws Exception {

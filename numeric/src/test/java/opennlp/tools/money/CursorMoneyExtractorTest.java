@@ -410,8 +410,9 @@ public class CursorMoneyExtractorTest {
 
   /**
    * Verifies that a region resolves the notation as well as the symbol: a German document
-   * is read in the European notation, and an Australian one keeps the notation its region
-   * writes while resolving the dollar sign to its own currency.
+   * is read in the European notation, an Australian one keeps the notation its region
+   * writes while resolving the dollar sign to its own currency, and a Swiss one keeps the
+   * default symbol table because its currency has no single-character symbol.
    */
   @Test
   void testForRegionResolvesTheNotationOfTheRegion() {
@@ -428,6 +429,14 @@ public class CursorMoneyExtractorTest {
     final MoneyAmount australianAmount = australian.extract("$1,234.56").get(0);
     assertEquals(0, new BigDecimal("1234.56").compareTo(australianAmount.amount()));
     assertEquals("AUD", australianAmount.currency());
+
+    // the Swiss franc has no one-character symbol, so the default table stays in force
+    final CursorMoneyExtractor swiss = CursorMoneyExtractor.forRegion(Locale.of("de", "CH"));
+    final MoneyAmount swissAmount = swiss.extract("CHF 1,234.50").get(0);
+    assertEquals(0, new BigDecimal("1234.50").compareTo(swissAmount.amount()));
+    assertEquals("CHF", swissAmount.currency());
+    assertEquals("USD", swiss.extract("$5").get(0).currency());
+    assertTrue(swiss.extract("CHF 1'234.50").isEmpty());
   }
 
   @Test

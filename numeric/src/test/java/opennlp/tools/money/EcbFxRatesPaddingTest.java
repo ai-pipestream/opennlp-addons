@@ -90,7 +90,7 @@ class EcbFxRatesPaddingTest {
    * reader of the add-ons.
    *
    * @param codePoint The Unicode {@code White_Space} character.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(ints = {9, 11, 12, 32, 0x85, 0xA0, 0x2003, 0x202F, 0x3000})

@@ -48,7 +48,7 @@ class EcbFxRatesValidationTest {
    * Both lookup methods reject missing or blank currency codes.
    *
    * @param code The invalid code.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @NullAndEmptySource
@@ -64,7 +64,7 @@ class EcbFxRatesValidationTest {
   /**
    * Both lookup methods reject a missing date before searching the table.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testMissingLookupDate() throws IOException {
@@ -152,7 +152,7 @@ class EcbFxRatesValidationTest {
    * Optional trailing commas, missing quotes, whitespace, and historical codes remain valid.
    *
    * @param csv A valid synthetic reference table.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(strings = {"Date,USD,JPY,\n2026-07-14,1.2,N/A,\n",
@@ -169,7 +169,7 @@ class EcbFxRatesValidationTest {
    * Positive scientific notation remains accepted as a decimal quote.
    *
    * @param value The supported BigDecimal value.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(strings = {"1E-30", "1E+30", "+1.25", ".125"})
@@ -199,7 +199,7 @@ class EcbFxRatesValidationTest {
    * Stream ownership remains with the source on both success and invalid content.
    *
    * @param valid Whether to provide valid input.
-   * @throws IOException If reading valid input fails.
+   * @throws IOException Thrown if reading valid input fails.
    */
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
@@ -239,7 +239,7 @@ class EcbFxRatesValidationTest {
    * File loading uses the same validation as stream loading.
    *
    * @param directory The temporary directory.
-   * @throws IOException If fixture creation or reading fails.
+   * @throws IOException Thrown if fixture creation or reading fails.
    */
   @Test
   void testPathLoading(@TempDir Path directory) throws IOException {

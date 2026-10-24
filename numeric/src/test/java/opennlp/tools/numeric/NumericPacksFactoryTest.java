@@ -159,7 +159,7 @@ class NumericPacksFactoryTest {
    * Concurrent requests use independent dates, amounts and UTF-16 offsets.
    *
    * @param pack The factory configuration.
-   * @throws Exception If a request fails or the workers do not finish.
+   * @throws Exception Thrown if a request fails or the workers do not finish.
    */
   @ParameterizedTest
   @MethodSource("packs")

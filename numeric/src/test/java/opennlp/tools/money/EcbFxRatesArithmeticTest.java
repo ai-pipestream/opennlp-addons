@@ -48,7 +48,7 @@ class EcbFxRatesArithmeticTest {
    * Checking the age of a quote does not require a date beyond LocalDate.MAX.
    *
    * @param age The age of a quote queried on the latest supported date.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(ints = {0, 1, 6, 7, 8, 99})
@@ -74,7 +74,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * Earliest-date lookups include the configured age limit but exclude future quotes.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testEarliestDateLookup() throws IOException {
@@ -90,7 +90,7 @@ class EcbFxRatesArithmeticTest {
    * Converting to the source currency preserves the original decimal value and scale.
    *
    * @param amount The exact source amount.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(strings = {"12345678901234567890.123456789", "-12345678901234567890.123456789",
@@ -105,7 +105,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * Identity conversion still requires an available quote on a usable date.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testIdentityRequiresUsableQuote() throws IOException {
@@ -121,7 +121,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * A missing quote on the selected date is not replaced by an older currency quote.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testNewestAvailableDateIsSelected() throws IOException {
@@ -134,7 +134,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * Cross rates and converted amounts agree with a higher-precision decimal calculation.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testGeneratedCrossRates() throws IOException {
@@ -163,7 +163,7 @@ class EcbFxRatesArithmeticTest {
    *
    * @param amount The input amount.
    * @param expected The rounded amount.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @CsvSource({"12345678901234565, 12345678901234560",
@@ -180,7 +180,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * Conversion divides after multiplication to avoid rounding an intermediate cross rate.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testConversionRoundsOnce() throws IOException {
@@ -194,7 +194,7 @@ class EcbFxRatesArithmeticTest {
   /**
    * Shared-table lookups do not retain a date, amount, or missing result from another call.
    *
-   * @throws Exception If loading or a worker fails.
+   * @throws Exception Thrown if loading or a worker fails.
    */
   @Test
   void testConcurrentLookups() throws Exception {

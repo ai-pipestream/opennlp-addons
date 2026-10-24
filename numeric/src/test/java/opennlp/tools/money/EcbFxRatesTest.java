@@ -50,7 +50,7 @@ public class EcbFxRatesTest {
    * Loads the shared table.
    *
    * @return The synthetic reference table used by these tests.
-   * @throws IOException If reading fails.
+   * @throws IOException Thrown if reading fails.
    */
   private EcbFxRates rates() throws IOException {
     return load(FIXTURE);
@@ -59,7 +59,7 @@ public class EcbFxRatesTest {
   /**
    * Euro conversions use the quoted rate or its reciprocal.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testEuroBaseRateOnAReferenceDay() throws IOException {
@@ -71,7 +71,7 @@ public class EcbFxRatesTest {
   /**
    * Cross-currency lookup divides the target quote by the source quote.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testCrossRateGoesThroughTheEuroBase() throws IOException {
@@ -83,7 +83,7 @@ public class EcbFxRatesTest {
   /**
    * Weekend lookups use the most recent reference date.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testWeekendFallsBackToThePreviousReferenceDay() throws IOException {
@@ -93,7 +93,7 @@ public class EcbFxRatesTest {
   /**
    * Dates outside the permitted age interval have no result.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testStaleRatesAreAbsentBeyondTheLimit() throws IOException {
@@ -104,7 +104,7 @@ public class EcbFxRatesTest {
   /**
    * The maximum reference age is inclusive.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testStalenessLimitIsInclusive() throws IOException {
@@ -115,7 +115,7 @@ public class EcbFxRatesTest {
   /**
    * Unquoted currencies have no result.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testNotAvailableCellsAndUnknownCurrenciesAreAbsent() throws IOException {
@@ -124,20 +124,22 @@ public class EcbFxRatesTest {
   }
 
   /**
-   * Available same-currency rates equal one.
+   * Available same-currency rates equal one; an unquoted currency has no identity rate
+   * either, since the table cannot vouch for it.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testIdentityRate() throws IOException {
     assertRate("1", rates().rate("EUR", "EUR", LocalDate.parse("2026-07-10")));
     assertRate("1", rates().rate("USD", "USD", LocalDate.parse("2026-07-10")));
+    assertTrue(rates().rate("CHF", "CHF", LocalDate.parse("2026-07-10")).isEmpty());
   }
 
   /**
    * Conversion preserves the input text span.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testConvertKeepsTheSpan() throws IOException {
@@ -175,7 +177,7 @@ public class EcbFxRatesTest {
   /**
    * Lookup and conversion reject invalid arguments.
    *
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @Test
   void testArgumentValidation() throws IOException {

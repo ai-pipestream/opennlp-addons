@@ -48,7 +48,7 @@ import opennlp.tools.util.Span;
  *
  * @since 3.0.0
  */
-public class TemporalAnnotator implements DocumentAnnotator {
+public final class TemporalAnnotator implements DocumentAnnotator {
 
   /**
    * Temporal mentions; each annotation covers one mention and carries its normalized

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.extraction.NumberNotation;
 import opennlp.tools.extraction.NumberScan;
 import opennlp.tools.money.CursorMoneyExtractor;
@@ -64,7 +65,8 @@ import opennlp.tools.util.Span;
  *
  * @since 3.0.0
  */
-public class CursorQuantityExtractor implements QuantityExtractor {
+@ThreadSafe
+public final class CursorQuantityExtractor implements QuantityExtractor {
 
   private static final Set<String> DEFAULT_UNITS = Set.of(
       "km", "m", "cm", "mm", "nm", "mi", "ft", "yd",

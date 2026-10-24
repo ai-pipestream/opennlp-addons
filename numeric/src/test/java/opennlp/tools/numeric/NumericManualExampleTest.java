@@ -57,7 +57,7 @@ public class NumericManualExampleTest {
   /**
    * Extends a regional factory pipeline with conversion using synthetic rates.
    *
-   * @throws IOException If reading the table fails.
+   * @throws IOException Thrown if reading the table fails.
    */
   @Test
   void testExtendedPackListing() throws IOException {
@@ -225,7 +225,7 @@ public class NumericManualExampleTest {
   /**
    * Synthetic rates convert an extracted amount on a weekend and retain the source span.
    *
-   * @throws IOException If reading the table fails.
+   * @throws IOException Thrown if reading the table fails.
    */
   @Test
   void testFxConversionListing() throws IOException {
@@ -248,7 +248,7 @@ public class NumericManualExampleTest {
   /**
    * Converted mentions match source spans even when an intermediate amount has no rate.
    *
-   * @throws IOException If reading the synthetic rate table fails.
+   * @throws IOException Thrown if reading the synthetic rate table fails.
    */
   @Test
   void testPartialConversionListing() throws IOException {
@@ -287,7 +287,7 @@ public class NumericManualExampleTest {
   /**
    * Direct conversion avoids multiplication by an already rounded cross rate.
    *
-   * @throws IOException If reading the synthetic rate table fails.
+   * @throws IOException Thrown if reading the synthetic rate table fails.
    */
   @Test
   void testConversionPrecisionListing() throws IOException {

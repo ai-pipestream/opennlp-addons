@@ -139,10 +139,29 @@ public class CursorTemporalExtractorTest {
       "2026-07",              // ISO month form is out of scope
       "12026-07-14",          // year is part of a longer digit run
       "2026-07-14Tomorrow",   // a T followed by prose letters is no time of day
+      "2026-07-14T23:59:61Z",  // no sixty-first second
+      "2026-07-14T24:00:01Z",  // hour 24 is midnight only
       "\u0662\u0660\u0662\u0666-\u0660\u0667-\u0661\u0664"  // ISO 8601 is written in ASCII digits
   })
   void testRejectedShapes(String text) {
     assertTrue(extractor.extract(text).isEmpty(), text);
+  }
+
+  /**
+   * Verifies the edges of the clock suffix: a leap second and the end-of-day hour 24
+   * are accepted, and the mention still covers only the date.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "2026-07-14T23:59:60Z",
+      "2026-07-14T23:59:60.5+05:30",
+      "2026-07-14T24:00:00Z",
+      "2026-07-14t24:00z"
+  })
+  void testClockSuffixEdgesYieldTheDate(String text) {
+    final TemporalExpression mention = single(text);
+    assertEquals(new Span(0, 10), mention.span(), text);
+    assertEquals("2026-07-14", mention.value(), text);
   }
 
   /**

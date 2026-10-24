@@ -37,7 +37,7 @@ final class EcbFxRatesTestSupport {
    *
    * @param csv The input content.
    * @return The parsed table.
-   * @throws IOException If reading fails.
+   * @throws IOException Thrown if reading fails.
    */
   static EcbFxRates load(String csv) throws IOException {
     return EcbFxRates.load(new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)));

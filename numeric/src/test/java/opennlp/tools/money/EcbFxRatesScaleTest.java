@@ -89,7 +89,7 @@ class EcbFxRatesScaleTest {
    * @param scale The amount's scale.
    * @param expectedCoefficient The rounded result's unscaled value.
    * @param expectedScale The rounded result's scale.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @MethodSource("conversions")
@@ -113,7 +113,7 @@ class EcbFxRatesScaleTest {
    * @param from The source quote.
    * @param to The target quote.
    * @param expected The expected cross rate.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @CsvSource({"1E-2147483647, 2E-2147483647, 2", "1E+2147483647, 2E+2147483647, 2",
@@ -127,7 +127,7 @@ class EcbFxRatesScaleTest {
    * Zero remains convertible when the quotes and amount have extreme scales.
    *
    * @param scale The zero amount's scale.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @ValueSource(ints = {Integer.MIN_VALUE, 0, Integer.MAX_VALUE})
@@ -145,7 +145,7 @@ class EcbFxRatesScaleTest {
    *
    * @param from The source quote.
    * @param to The target quote.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @CsvSource({"1E+2147483647, 1E-2147483647", "1E-2147483647, 1E+2147483647"})
@@ -161,7 +161,7 @@ class EcbFxRatesScaleTest {
    *
    * @param scale The input amount scale.
    * @param quote The target quote.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @CsvSource({"-2147483648, 1E+16", "2147483647, 0.1"})
@@ -187,7 +187,7 @@ class EcbFxRatesScaleTest {
    *
    * @param amountScale The source amount scale.
    * @param quoteScale The common scale shift for both quotes.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   @ParameterizedTest
   @MethodSource("scaleShifts")
@@ -221,7 +221,7 @@ class EcbFxRatesScaleTest {
    * @param from The source quote.
    * @param to The target quote.
    * @return The loaded table.
-   * @throws IOException If loading fails.
+   * @throws IOException Thrown if loading fails.
    */
   private EcbFxRates table(String from, String to) throws IOException {
     return load("Date,USD,JPY\n2026-07-14," + from + "," + to + "\n");

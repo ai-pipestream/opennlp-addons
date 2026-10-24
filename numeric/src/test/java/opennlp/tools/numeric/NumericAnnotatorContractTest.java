@@ -227,7 +227,7 @@ class NumericAnnotatorContractTest {
    * @param failure The optional failure.
    * @param <T> The mention type.
    * @return The configured list.
-   * @throws RuntimeException If a provider failure was configured.
+   * @throws RuntimeException Thrown if a provider failure was configured.
    */
   private <T> List<T> returned(List<T> values, AtomicInteger calls, RuntimeException failure) {
     calls.incrementAndGet();

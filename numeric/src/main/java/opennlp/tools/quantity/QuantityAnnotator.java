@@ -38,7 +38,7 @@ import opennlp.tools.util.Span;
  *
  * @since 3.0.0
  */
-public class QuantityAnnotator implements DocumentAnnotator {
+public final class QuantityAnnotator implements DocumentAnnotator {
 
   /**
    * Quantity mentions; each annotation covers one mention and carries its

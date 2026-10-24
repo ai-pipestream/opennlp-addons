@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.extraction.NumberNotation;
 import opennlp.tools.extraction.NumberScan;
 import opennlp.tools.temporal.TemporalExpression.Granularity;
@@ -84,7 +85,8 @@ import opennlp.tools.util.StringUtil;
  * @see <a href="https://www.rfc-editor.org/rfc/rfc3339.html#appendix-A">ISO 8601 time syntax</a>
  * @since 3.0.0
  */
-public class CursorTemporalExtractor implements TemporalExtractor {
+@ThreadSafe
+public final class CursorTemporalExtractor implements TemporalExtractor {
 
   private static final Map<String, Integer> MONTHS = months();
 

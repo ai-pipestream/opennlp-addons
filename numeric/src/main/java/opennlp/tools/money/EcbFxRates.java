@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
@@ -74,7 +75,8 @@ import opennlp.tools.util.StringUtil;
  * @see <a href="https://www.iso.org/iso-4217-currency-codes.html">ISO 4217</a>
  * @since 3.0.0
  */
-public class EcbFxRates implements FxRates {
+@ThreadSafe
+public final class EcbFxRates implements FxRates {
 
   /**
    * Maximum reference-rate age in calendar days, inclusive.
