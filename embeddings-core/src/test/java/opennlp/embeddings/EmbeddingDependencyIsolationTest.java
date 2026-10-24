@@ -22,7 +22,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import opennlp.embeddings.spi.TeacherEncoderProviders;
+import opennlp.embeddings.spi.TeacherEncoderProvider;
 import opennlp.tools.embeddings.TextEmbedder;
 import opennlp.tools.embeddings.TextEmbedderProvider;
 import opennlp.tools.util.ext.ProviderSpec;
@@ -50,9 +50,10 @@ class EmbeddingDependencyIsolationTest {
     assertTrue(registry.byName("onnx").isEmpty());
     assertThrows(UnsatisfiedProviderException.class,
         () -> registry.select(ProviderSpec.of(dir.resolve("model.onnx"), Map.of())));
-    assertTrue(TeacherEncoderProviders.installed().isEmpty());
-    assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.select(dir.resolve("model.onnx")));
+    var teachers = Providers.of(TeacherEncoderProvider.class);
+    assertTrue(teachers.installed().isEmpty());
+    assertThrows(UnsatisfiedProviderException.class,
+        () -> teachers.select(ProviderSpec.of(dir.resolve("model.onnx"))));
   }
 
   @Test

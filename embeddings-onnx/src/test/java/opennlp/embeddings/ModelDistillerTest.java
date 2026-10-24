@@ -27,6 +27,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import opennlp.tools.embeddings.EmbeddingException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,10 +83,11 @@ class ModelDistillerTest {
     EmbeddingTestFixtures.writeVariableDimensionOnnxModel(teacher.resolve("onnx"));
     final Path output = directory.resolve("output");
 
-    final IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+    final EmbeddingException error = assertThrows(EmbeddingException.class,
         () -> ModelDistiller.distill(teacher, output, 1, null));
 
-    assertTrue(error.getMessage().contains("hidden dimension"), error.getMessage());
+    assertEquals("ONNX output 'last_hidden_state' has hidden dimension 3, expected 1 from the "
+        + "initial batch", error.getMessage());
     assertTrue(Files.notExists(output));
   }
 

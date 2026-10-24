@@ -17,7 +17,6 @@
 package opennlp.embeddings.onnx;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,6 +38,9 @@ import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
 
 import opennlp.embeddings.spi.TeacherEncoder;
+import opennlp.tools.embeddings.EmbeddingException;
+import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Runs a teacher transformer over id sequences through its ONNX graph and mean-pools the last
@@ -71,6 +73,7 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
   /** The conventional name of a transformer encoder's last hidden state. */
   private static final String LAST_HIDDEN_STATE = "last_hidden_state";
 
+  private final Path onnxFile;
   private final OrtEnvironment environment;
   private final OrtSession session;
   private final OnnxJavaType inputIdsType;
@@ -82,17 +85,53 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
   /** Expected vector length after a successful inference. */
   private int hiddenDimension = -1;
 
-  /** Holds the open session; created by {@link #load(Path)}. */
-  private OnnxTeacherEncoder(OrtEnvironment environment, OrtSession session,
-                             OnnxJavaType inputIdsType, OnnxJavaType attentionMaskType,
-                             OnnxJavaType tokenTypeIdsType,
-                             String hiddenStateOutput) {
-    this.environment = environment;
-    this.session = session;
-    this.inputIdsType = inputIdsType;
-    this.attentionMaskType = attentionMaskType;
-    this.tokenTypeIdsType = tokenTypeIdsType;
-    this.hiddenStateOutput = hiddenStateOutput;
+  /**
+   * Opens a session over a teacher's ONNX graph and checks its inputs and outputs. The session is
+   * closed again when a check fails.
+   *
+   * @param onnxFile The ONNX file, an existing regular file.
+   * @throws InvalidFormatException Thrown if the graph has unsupported inputs, a sequence input
+   *     has the wrong rank or element type, or the hidden-state output is missing or ambiguous.
+   * @throws IOException Thrown if the ONNX Runtime cannot be initialized or rejects the graph.
+   */
+  private OnnxTeacherEncoder(Path onnxFile) throws IOException {
+    this.onnxFile = onnxFile;
+    try {
+      environment = OrtEnvironment.getEnvironment();
+      try (OrtSession.SessionOptions options = new OrtSession.SessionOptions()) {
+        session = environment.createSession(onnxFile.toString(), options);
+      }
+    } catch (OrtException e) {
+      throw new IOException("Cannot load the ONNX model " + onnxFile, e);
+    } catch (LinkageError e) {
+      throw new IOException("Cannot initialize the ONNX Runtime", e);
+    }
+    try {
+      final Set<String> inputNames = session.getInputNames();
+      if (!inputNames.contains(INPUT_IDS)) {
+        throw new InvalidFormatException("ONNX graph " + onnxFile + " has no '" + INPUT_IDS
+            + "' input; it does not look like a transformer encoder (inputs: " + inputNames + ")");
+      }
+      final Set<String> unsupportedInputs = new TreeSet<>(inputNames);
+      unsupportedInputs.removeAll(Set.of(INPUT_IDS, ATTENTION_MASK, TOKEN_TYPE_IDS));
+      if (!unsupportedInputs.isEmpty()) {
+        throw new InvalidFormatException("ONNX graph " + onnxFile
+            + " declares unsupported inputs: " + unsupportedInputs);
+      }
+      final Map<String, NodeInfo> inputInfo = session.getInputInfo();
+      inputIdsType = integerInputType(inputInfo, INPUT_IDS);
+      attentionMaskType = inputInfo.containsKey(ATTENTION_MASK)
+          ? integerInputType(inputInfo, ATTENTION_MASK) : null;
+      tokenTypeIdsType = inputInfo.containsKey(TOKEN_TYPE_IDS)
+          ? integerInputType(inputInfo, TOKEN_TYPE_IDS) : null;
+      hiddenStateOutput = hiddenStateOutput(session.getOutputInfo());
+    } catch (OrtException e) {
+      throw closeSession(new IOException("Cannot inspect the ONNX model " + onnxFile, e));
+    } catch (IOException e) {
+      throw closeSession(e);
+    } catch (RuntimeException e) {
+      throw closeSession(e);
+    }
   }
 
   /**
@@ -102,84 +141,19 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    *                 {@code input_ids} input, and must produce a named {@code last_hidden_state}
    *                 or one unambiguous rank-3 float tensor output.
    * @return The encoder.
-   * @throws IllegalArgumentException Thrown if the file is missing, the graph has unsupported
-   *     inputs, a sequence input has the wrong rank or element type, the hidden-state output is
-   *     missing or ambiguous, or the runtime rejects the graph.
+   * @throws IllegalArgumentException Thrown if {@code onnxFile} is {@code null} or not a regular
+   *     file.
+   * @throws InvalidFormatException Thrown if the graph has unsupported inputs, a sequence input
+   *     has the wrong rank or element type, or the hidden-state output is missing or ambiguous.
+   * @throws IOException Thrown if the ONNX Runtime cannot be initialized or rejects the graph.
    */
-  static OnnxTeacherEncoder load(Path onnxFile) {
-    if (onnxFile == null) {
-      throw new IllegalArgumentException("onnxFile must not be null");
-    }
+  static OnnxTeacherEncoder load(Path onnxFile) throws IOException {
+    ParamChecks.requireNonNullArg(onnxFile, "onnxFile");
     if (!Files.isRegularFile(onnxFile)) {
       throw new IllegalArgumentException("File does not exist or is not a regular file: "
           + onnxFile);
     }
-    final OrtEnvironment environment = OrtEnvironment.getEnvironment();
-    final OrtSession session;
-    try (OrtSession.SessionOptions options = new OrtSession.SessionOptions()) {
-      session = environment.createSession(onnxFile.toString(), options);
-    } catch (OrtException e) {
-      throw new IllegalArgumentException("Failed to load ONNX graph " + onnxFile + ": "
-          + e.getMessage(), e);
-    }
-    // Close the session if graph validation fails.
-    try {
-      if (!session.getInputNames().contains(INPUT_IDS)) {
-        throw new IllegalArgumentException("ONNX graph " + onnxFile + " has no '" + INPUT_IDS
-            + "' input; it does not look like a transformer encoder (inputs: "
-            + session.getInputNames() + ")");
-      }
-      final Set<String> unsupportedInputs = new TreeSet<>(session.getInputNames());
-      unsupportedInputs.removeAll(Set.of(INPUT_IDS, ATTENTION_MASK, TOKEN_TYPE_IDS));
-      if (!unsupportedInputs.isEmpty()) {
-        throw new IllegalArgumentException("ONNX graph " + onnxFile
-            + " declares unsupported inputs: " + unsupportedInputs);
-      }
-      final Map<String, NodeInfo> inputInfo = session.getInputInfo();
-      final OnnxJavaType inputIdsType = integerInputType(inputInfo, INPUT_IDS, onnxFile);
-      final OnnxJavaType attentionMaskType = inputInfo.containsKey(ATTENTION_MASK)
-          ? integerInputType(inputInfo, ATTENTION_MASK, onnxFile) : null;
-      final OnnxJavaType tokenTypeIdsType = inputInfo.containsKey(TOKEN_TYPE_IDS)
-          ? integerInputType(inputInfo, TOKEN_TYPE_IDS, onnxFile) : null;
-
-      final Map<String, NodeInfo> outputInfo = session.getOutputInfo();
-      final String hiddenStateOutput;
-      if (outputInfo.containsKey(LAST_HIDDEN_STATE)) {
-        if (!isHiddenState(outputInfo.get(LAST_HIDDEN_STATE))) {
-          throw new IllegalArgumentException("ONNX graph " + onnxFile + " declares '"
-              + LAST_HIDDEN_STATE + "', but it is not a rank-3 FLOAT tensor");
-        }
-        hiddenStateOutput = LAST_HIDDEN_STATE;
-      } else {
-        final List<String> candidates = new ArrayList<>();
-        for (final Map.Entry<String, NodeInfo> output : outputInfo.entrySet()) {
-          if (isHiddenState(output.getValue())) {
-            candidates.add(output.getKey());
-          }
-        }
-        if (candidates.isEmpty()) {
-          throw new IllegalArgumentException("ONNX graph " + onnxFile + " has no rank-3 float "
-              + "tensor output (a last hidden state) to pool (outputs: "
-              + outputInfo.keySet() + ")");
-        }
-        if (candidates.size() > 1) {
-          throw new IllegalArgumentException("ONNX graph " + onnxFile
-              + " has multiple rank-3 FLOAT outputs and none is named '" + LAST_HIDDEN_STATE
-              + "': " + candidates);
-        }
-        hiddenStateOutput = candidates.get(0);
-      }
-      return new OnnxTeacherEncoder(environment, session, inputIdsType, attentionMaskType,
-          tokenTypeIdsType, hiddenStateOutput);
-    } catch (OrtException e) {
-      final IllegalArgumentException failure = new IllegalArgumentException(
-          "Failed to inspect ONNX graph " + onnxFile + ": " + e.getMessage(), e);
-      closeAfterFailure(session, failure);
-      throw failure;
-    } catch (RuntimeException e) {
-      closeAfterFailure(session, e);
-      throw e;
-    }
+    return new OnnxTeacherEncoder(onnxFile);
   }
 
   /**
@@ -187,25 +161,60 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    *
    * @param inputInfo The graph's input metadata.
    * @param name      The input name.
-   * @param onnxFile  The graph file, for error messages.
    * @return The input's INT32 or INT64 element type.
+   * @throws InvalidFormatException Thrown if the input is not a rank-2 INT32 or INT64 tensor.
    */
-  private static OnnxJavaType integerInputType(Map<String, NodeInfo> inputInfo, String name,
-                                                Path onnxFile) {
+  private OnnxJavaType integerInputType(Map<String, NodeInfo> inputInfo, String name)
+      throws InvalidFormatException {
     final NodeInfo node = inputInfo.get(name);
     if (node == null || !(node.getInfo() instanceof TensorInfo tensorInfo)) {
-      throw new IllegalArgumentException("ONNX graph " + onnxFile + " input '" + name
+      throw new InvalidFormatException("ONNX graph " + onnxFile + " input '" + name
           + "' must be a tensor");
     }
     if (tensorInfo.getShape().length != 2) {
-      throw new IllegalArgumentException("ONNX graph " + onnxFile + " input '" + name
+      throw new InvalidFormatException("ONNX graph " + onnxFile + " input '" + name
           + "' must have rank 2, but has rank " + tensorInfo.getShape().length);
     }
     if (tensorInfo.type != OnnxJavaType.INT32 && tensorInfo.type != OnnxJavaType.INT64) {
-      throw new IllegalArgumentException("ONNX graph " + onnxFile + " input '" + name
+      throw new InvalidFormatException("ONNX graph " + onnxFile + " input '" + name
           + "' must be INT32 or INT64, but is " + tensorInfo.type);
     }
     return tensorInfo.type;
+  }
+
+  /**
+   * Chooses the output to pool: {@code last_hidden_state}, or else the only rank-3 float output.
+   *
+   * @param outputInfo The graph's output metadata.
+   * @return The output name.
+   * @throws InvalidFormatException Thrown if {@code last_hidden_state} is not a rank-3 float
+   *     tensor, or if no or several other outputs are.
+   */
+  private String hiddenStateOutput(Map<String, NodeInfo> outputInfo)
+      throws InvalidFormatException {
+    if (outputInfo.containsKey(LAST_HIDDEN_STATE)) {
+      if (!isHiddenState(outputInfo.get(LAST_HIDDEN_STATE))) {
+        throw new InvalidFormatException("ONNX graph " + onnxFile + " declares '"
+            + LAST_HIDDEN_STATE + "', but it is not a rank-3 FLOAT tensor");
+      }
+      return LAST_HIDDEN_STATE;
+    }
+    final List<String> candidates = new ArrayList<>();
+    for (final Map.Entry<String, NodeInfo> output : outputInfo.entrySet()) {
+      if (isHiddenState(output.getValue())) {
+        candidates.add(output.getKey());
+      }
+    }
+    if (candidates.isEmpty()) {
+      throw new InvalidFormatException("ONNX graph " + onnxFile + " has no rank-3 float "
+          + "tensor output (a last hidden state) to pool (outputs: " + outputInfo.keySet() + ")");
+    }
+    if (candidates.size() > 1) {
+      throw new InvalidFormatException("ONNX graph " + onnxFile
+          + " has multiple rank-3 FLOAT outputs and none is named '" + LAST_HIDDEN_STATE + "': "
+          + candidates);
+    }
+    return candidates.get(0);
   }
 
   /**
@@ -214,25 +223,27 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    * @param node The output metadata.
    * @return {@code true} for a rank-three FLOAT tensor.
    */
-  private static boolean isHiddenState(NodeInfo node) {
+  private boolean isHiddenState(NodeInfo node) {
     return node.getInfo() instanceof TensorInfo tensorInfo
         && tensorInfo.type == OnnxJavaType.FLOAT
         && tensorInfo.getShape().length == HIDDEN_STATE_RANK;
   }
 
   /**
-   * Closes a session on a failing load path, reporting a close failure as a suppressed exception
-   * of the failure being thrown rather than in place of it.
+   * Closes the session on a failing load path, reporting a close failure as a suppressed
+   * exception of the failure being thrown rather than in place of it.
    *
-   * @param session The session to close.
-   * @param failure The exception the caller is about to throw.
+   * @param failure The exception the constructor is about to throw.
+   * @param <T>     The type of the exception.
+   * @return {@code failure}, for the caller to throw.
    */
-  private static void closeAfterFailure(OrtSession session, RuntimeException failure) {
+  private <T extends Exception> T closeSession(T failure) {
     try {
       session.close();
     } catch (OrtException e) {
       failure.addSuppressed(e);
     }
+    return failure;
   }
 
   /**
@@ -244,8 +255,9 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    *              {@code null} or empty and must not contain a null or empty sequence.
    * @return The pooled vectors, {@code [batchSize][hiddenDimension]}.
    * @throws IllegalArgumentException Thrown if the batch is empty, contains a null or empty
-   *     sequence, is ragged, the vector length changes between batches, or the runtime rejects
-   *     the input.
+   *     sequence, is ragged, or holds an id outside the range of an INT32 input.
+   * @throws EmbeddingException Thrown if the forward pass fails, its output does not match the
+   *     batch, or the vector length changes between batches.
    */
   @Override
   public float[][] encodeBatch(long[][] batch) {
@@ -253,9 +265,7 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
       throw new IllegalArgumentException("batch must not be null or empty");
     }
     for (int i = 0; i < batch.length; i++) {
-      if (batch[i] == null) {
-        throw new IllegalArgumentException("batch[" + i + "] must not be null");
-      }
+      ParamChecks.requireNonNullArg(batch[i], "batch[" + i + "]");
       if (batch[i].length == 0) {
         throw new IllegalArgumentException("batch[" + i + "] must not be empty");
       }
@@ -287,8 +297,8 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
         }
         try (OrtSession.Result result = session.run(inputs)) {
           final OnnxValue value = result.get(hiddenStateOutput)
-              .orElseThrow(() -> new IllegalStateException("Output '" + hiddenStateOutput
-                  + "' missing from the graph's results"));
+              .orElseThrow(() -> new EmbeddingException("Output '" + hiddenStateOutput
+                  + "' missing from the graph's results", null));
           final float[][][] hidden = (float[][][]) value.getValue();
           validateOutputShape(hidden, batch.length, sequenceLength);
           final float[][] pooled = new float[batch.length][];
@@ -318,7 +328,7 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
         }
       }
     } catch (OrtException e) {
-      throw new IllegalArgumentException("ONNX forward pass failed: " + e.getMessage(), e);
+      throw new EmbeddingException("The ONNX forward pass failed: " + e.getMessage(), e);
     }
   }
 
@@ -358,39 +368,39 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    * @param hidden         The last hidden state.
    * @param batchSize      The input batch size.
    * @param sequenceLength The input sequence length.
-   * @throws IllegalArgumentException Thrown if output dimensions are inconsistent.
+   * @throws EmbeddingException Thrown if output dimensions are inconsistent.
    */
   private void validateOutputShape(float[][][] hidden, int batchSize, int sequenceLength) {
     if (hidden.length != batchSize) {
-      throw new IllegalArgumentException("ONNX output '" + hiddenStateOutput
+      throw new EmbeddingException("ONNX output '" + hiddenStateOutput
           + "' batch dimension " + hidden.length + " does not match input batch dimension "
-          + batchSize);
+          + batchSize, null);
     }
     int dimension = -1;
     for (int row = 0; row < hidden.length; row++) {
       final float[][] states = hidden[row];
       if (states.length != sequenceLength) {
-        throw new IllegalArgumentException("ONNX output '" + hiddenStateOutput + "' row " + row
-            + " has sequence dimension " + states.length + ", expected " + sequenceLength);
+        throw new EmbeddingException("ONNX output '" + hiddenStateOutput + "' row " + row
+            + " has sequence dimension " + states.length + ", expected " + sequenceLength, null);
       }
       for (int position = 0; position < states.length; position++) {
         if (dimension < 0) {
           dimension = states[position].length;
           if (dimension == 0) {
-            throw new IllegalArgumentException("ONNX output '" + hiddenStateOutput
-                + "' has an empty hidden dimension");
+            throw new EmbeddingException("ONNX output '" + hiddenStateOutput
+                + "' has an empty hidden dimension", null);
           }
         } else if (states[position].length != dimension) {
-          throw new IllegalArgumentException("ONNX output '" + hiddenStateOutput + "' row "
+          throw new EmbeddingException("ONNX output '" + hiddenStateOutput + "' row "
               + row + " position " + position + " has hidden dimension "
-              + states[position].length + ", expected " + dimension);
+              + states[position].length + ", expected " + dimension, null);
         }
       }
     }
     if (hiddenDimension >= 0 && dimension != hiddenDimension) {
-      throw new IllegalArgumentException("ONNX output '" + hiddenStateOutput
+      throw new EmbeddingException("ONNX output '" + hiddenStateOutput
           + "' has hidden dimension " + dimension + ", expected " + hiddenDimension
-          + " from the initial batch");
+          + " from the initial batch", null);
     }
     hiddenDimension = dimension;
   }
@@ -402,15 +412,15 @@ final class OnnxTeacherEncoder implements TeacherEncoder {
    * OrtEnvironment#getEnvironment()} returns a process-wide singleton. The atomic guard prevents
    * a second {@link OrtSession#close()} call.</p>
    *
-   * @throws UncheckedIOException Thrown if the ONNX runtime fails to release the session.
+   * @throws IOException Thrown if the ONNX Runtime fails to release the session.
    */
   @Override
-  public void close() {
+  public void close() throws IOException {
     if (closed.compareAndSet(false, true)) {
       try {
         session.close();
       } catch (OrtException e) {
-        throw new UncheckedIOException(new IOException("Cannot close the ONNX session.", e));
+        throw new IOException("Cannot close the ONNX session.", e);
       }
     }
   }

@@ -17,16 +17,20 @@
 package opennlp.embeddings.onnx;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import opennlp.embeddings.spi.TeacherEncoderProviders;
+import opennlp.embeddings.spi.TeacherEncoderProvider;
+import opennlp.tools.util.ext.ProviderSpec;
+import opennlp.tools.util.ext.Providers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The capability, availability and registration of the ONNX teacher provider. */
@@ -44,25 +48,38 @@ class OnnxTeacherEncoderProviderTest {
   @ParameterizedTest
   @ValueSource(strings = {"model.onnx", "MODEL.ONNX", "onnx/model.Onnx"})
   void testSupportsOnnxFiles(String model) {
-    assertTrue(provider.supports(Path.of(model)));
+    assertTrue(provider.supports(ProviderSpec.of(Path.of(model))));
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"model.bin", "model.onnx_data", "onnx", "model.safetensors"})
   void testDoesNotSupportOtherFiles(String model) {
-    assertFalse(provider.supports(Path.of(model)));
+    assertFalse(provider.supports(ProviderSpec.of(Path.of(model))));
   }
 
   @Test
-  void testDoesNotSupportNullOrRoot() {
-    assertFalse(provider.supports(null));
-    assertFalse(provider.supports(Path.of("/")));
+  void testDoesNotSupportOptionsOrASpecWithoutLocation() {
+    assertFalse(provider.supports(ProviderSpec.of(Path.of("model.onnx"), Map.of("a", "b"))));
+    assertFalse(provider.supports(ProviderSpec.empty()));
+  }
+
+  @Test
+  void testRejectsANullOrUnsupportedSpec() {
+    assertEquals("spec must not be null", assertThrows(IllegalArgumentException.class,
+        () -> provider.supports(null)).getMessage());
+    assertEquals("spec is not supported: null", assertThrows(IllegalArgumentException.class,
+        () -> provider.create(null)).getMessage());
+    final ProviderSpec spec = ProviderSpec.of(Path.of("model.bin"));
+    assertEquals("spec is not supported: " + spec, assertThrows(IllegalArgumentException.class,
+        () -> provider.create(spec)).getMessage());
   }
 
   @Test
   void testRegisteredAndSelectedForOnnxModels() {
-    assertInstanceOf(OnnxTeacherEncoderProvider.class, TeacherEncoderProviders.get("onnx"));
+    final Providers<TeacherEncoderProvider> providers =
+        Providers.of(TeacherEncoderProvider.class);
+    assertInstanceOf(OnnxTeacherEncoderProvider.class, providers.byName("onnx").orElseThrow());
     assertInstanceOf(OnnxTeacherEncoderProvider.class,
-        TeacherEncoderProviders.select(Path.of("onnx", "model.onnx")));
+        providers.select(ProviderSpec.of(Path.of("onnx", "model.onnx"))));
   }
 }

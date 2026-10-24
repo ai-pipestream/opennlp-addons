@@ -31,8 +31,10 @@ import java.util.Set;
 
 import opennlp.embeddings.spi.TeacherEncoder;
 import opennlp.embeddings.spi.TeacherEncoderProvider;
-import opennlp.embeddings.spi.TeacherEncoderProviders;
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ext.ProviderSpec;
+import opennlp.tools.util.ext.Providers;
+import opennlp.tools.util.ext.UnsatisfiedProviderException;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -62,7 +64,8 @@ import opennlp.tools.util.java.Experimental;
  * {@code tokenizer_config.json} supplies the pad token when present.</p>
  *
  * <p>The teacher must produce a consistent vector length across batches. A change in length
- * causes an {@link IllegalArgumentException} before output files are written.</p>
+ * causes an {@link opennlp.tools.embeddings.EmbeddingException} before output files are
+ * written.</p>
  *
  * <p>Warning: Experimental new feature; the API might change in a later release.</p>
  */
@@ -224,7 +227,7 @@ public final class ModelDistiller {
 
   /**
    * Distills a local teacher using a named encoder provider instead of the one
-   * {@link TeacherEncoderProviders#select(Path)} picks for the teacher's ONNX file.
+   * {@link Providers#select(ProviderSpec)} picks for the teacher's ONNX file.
    * Tokenization, mean pooling requirements, and output layout are the same as the other
    * overloads.
    *
@@ -236,11 +239,13 @@ public final class ModelDistiller {
    * @param provider The name of the installed teacher encoder provider to use, or {@code null}
    *                 to select one by capability and priority.
    * @return The verified distillation result.
-   * @throws IllegalArgumentException Thrown if an argument, model, or provider is invalid, or
-   *     if no installed provider supports the teacher's ONNX file.
-   * @throws IllegalStateException Thrown if two providers share the highest priority, or if the
-   *     named provider is installed but not available.
-   * @throws IOException Thrown if reading or writing a file fails.
+   * @throws IllegalArgumentException Thrown if an argument or the teacher directory is invalid.
+   * @throws opennlp.tools.util.ext.ProviderResolutionException Thrown if no available provider
+   *     of that name, or none at all, supports the teacher's ONNX file, or if several share the
+   *     highest priority.
+   * @throws opennlp.tools.embeddings.EmbeddingException Thrown if the teacher fails to encode.
+   * @throws IOException Thrown if reading or writing a file fails, including the teacher's ONNX
+   *     file.
    */
   public static Result distill(Path teacherDirectory, Path outputDirectory, int pcaDims,
                                List<String> terms, ProgressListener listener, String provider)
@@ -291,9 +296,14 @@ public final class ModelDistiller {
         + " through its ONNX graph");
     final float[] embeddings;
     final int teacherDimension;
-    final TeacherEncoderProvider encoderProvider = provider == null
-        ? TeacherEncoderProviders.select(onnxFile) : TeacherEncoderProviders.get(provider);
-    try (TeacherEncoder encoder = encoderProvider.load(onnxFile)) {
+    final ProviderSpec spec = ProviderSpec.of(onnxFile);
+    final Providers<TeacherEncoderProvider> encoders = Providers.of(TeacherEncoderProvider.class);
+    final TeacherEncoderProvider encoderProvider = provider == null ? encoders.select(spec)
+        : encoders.byName(provider).filter(named -> named.supports(spec))
+            .orElseThrow(() -> new UnsatisfiedProviderException("No available "
+                + TeacherEncoderProvider.class.getName() + " provider named '" + provider
+                + "' supports " + spec));
+    try (TeacherEncoder encoder = encoderProvider.create(spec)) {
       float[][] first = encoder.encodeBatch(new long[][] {tokenizer.inputSequence(0)});
       teacherDimension = first[0].length;
       embeddings = new float[totalRows * teacherDimension];

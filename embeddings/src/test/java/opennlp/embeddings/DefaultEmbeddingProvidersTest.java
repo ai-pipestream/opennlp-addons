@@ -23,7 +23,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import opennlp.embeddings.spi.TeacherEncoderProviders;
+import opennlp.embeddings.spi.TeacherEncoderProvider;
 import opennlp.tools.embeddings.TextEmbedderProvider;
 import opennlp.tools.util.ext.ProviderSpec;
 import opennlp.tools.util.ext.Providers;
@@ -39,9 +39,10 @@ class DefaultEmbeddingProvidersTest {
     var registry = Providers.of(TextEmbedderProvider.class);
     assertEquals("onnx", registry.byName("onnx").orElseThrow().name());
     assertEquals("static", registry.byName("static").orElseThrow().name());
-    assertEquals("onnx", TeacherEncoderProviders.get("onnx").name());
+    var teachers = Providers.of(TeacherEncoderProvider.class);
+    assertEquals("onnx", teachers.byName("onnx").orElseThrow().name());
     assertEquals(2, registry.installed().size());
-    assertEquals(1, TeacherEncoderProviders.installed().size());
+    assertEquals(1, teachers.installed().size());
     // Routing uses the spec alone, before model files exist.
     assertEquals("onnx", registry.select(ProviderSpec.of(dir.resolve("model.onnx"),
         Map.of("vocabulary", "vocab.txt"))).name());
@@ -49,7 +50,7 @@ class DefaultEmbeddingProvidersTest {
     Files.createFile(dir.resolve("model.safetensors"));
     Files.createFile(dir.resolve("config.json"));
     assertEquals("static", registry.select(ProviderSpec.of(dir, Map.of())).name());
-    assertEquals("onnx", TeacherEncoderProviders.select(dir.resolve("model.onnx")).name());
+    assertEquals("onnx", teachers.select(ProviderSpec.of(dir.resolve("model.onnx"))).name());
     assertThrows(ClassNotFoundException.class,
         () -> Class.forName("opennlp.tools.cmdline.CmdLineTool", false, getClass().getClassLoader()));
   }

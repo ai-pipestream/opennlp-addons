@@ -67,10 +67,12 @@ The direct `StaticEmbeddingModel.load` method also accepts directories whose
 names end with `.onnx`, which registry routing reserves for ONNX models.
 
 Distillation preserves its prepared-token and mean-pooling contract through the
-separate `TeacherEncoderProvider` SPI, selected the same way for the teacher's ONNX file
-(`TeacherEncoderProviders.select(model)`, pinned by `opennlp.embeddings.teacher.provider`).
-The local-directory `ModelDistiller.distill` overload with a final provider name selects
-one by name. Register a factory in
+separate `TeacherEncoderProvider` SPI, a `Provider<TeacherEncoder>` that
+`Providers.of(TeacherEncoderProvider.class)` selects the same way for a spec naming the
+teacher's ONNX file. The property
+`opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider` pins it by name, and the
+local-directory `ModelDistiller.distill` overload with a final provider name selects one
+by name. Register a factory in
 `META-INF/services/opennlp.embeddings.spi.TeacherEncoderProvider`.
 
 ## Quickstart

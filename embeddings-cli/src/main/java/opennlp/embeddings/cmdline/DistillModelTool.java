@@ -27,8 +27,10 @@ import java.util.List;
 import opennlp.embeddings.ModelDistiller;
 import opennlp.tools.cmdline.BasicCmdLineTool;
 import opennlp.tools.cmdline.TerminateToolException;
+import opennlp.tools.embeddings.EmbeddingException;
 import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ext.ProviderResolutionException;
 
 /**
  * Distills a local or Hugging Face sentence-transformer into a static embedding model. The
@@ -65,8 +67,11 @@ public class DistillModelTool extends BasicCmdLineTool {
           ? List.of() : readTerms(Path.of(params.getTerms()));
       result = ModelDistiller.distill(params.getTeacher(), Path.of(params.getOut()),
           params.getPcaDims(), terms, listener);
-    } catch (IllegalArgumentException | InvalidFormatException e) {
+    } catch (IllegalArgumentException | InvalidFormatException | ProviderResolutionException e) {
       throw new TerminateToolException(1, e.getMessage(), e);
+    } catch (EmbeddingException e) {
+      throw new TerminateToolException(-1,
+          "The teacher failed while distilling: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new TerminateToolException(-1,
           "IO error while distilling: " + e.getMessage(), e);

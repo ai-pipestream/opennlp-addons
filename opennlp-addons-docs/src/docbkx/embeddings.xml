@@ -83,9 +83,9 @@
 		<para>
 			Distillation uses <code>TeacherEncoderProvider</code>, whose encoders accept prepared
 			token ids and return mean-pooled vectors without L2 normalization.
-			<code>TeacherEncoderProviders.select(model)</code> picks the provider for the teacher's
-			ONNX file the same way, pinned by the system property
-			<code>opennlp.embeddings.teacher.provider</code>. The local-directory
+			<code>Providers.of(TeacherEncoderProvider.class)</code> picks the provider for a spec
+			naming the teacher's ONNX file the same way, pinned by the system property
+			<code>opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider</code>. The local-directory
 			<code>ModelDistiller.distill</code> overload with a final provider name selects
 			another implementation registered through
 			<code>META-INF/services/opennlp.embeddings.spi.TeacherEncoderProvider</code>.
@@ -213,7 +213,7 @@ results.sort(Comparator.comparingDouble(Scored::score).reversed());]]>
 			<para>
 				The teacher must return the same vector length for all batches, including
 				phrase batches with different sequence lengths. An inconsistent length causes
-				an <code>IllegalArgumentException</code> before output files are written.
+				an <code>EmbeddingException</code> before output files are written.
 			</para>
 			<para>
 				Java applications can distill a local teacher and load the saved table directly:

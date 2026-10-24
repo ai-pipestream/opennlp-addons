@@ -16,13 +16,18 @@
  */
 package opennlp.embeddings.spi;
 
+import java.io.Closeable;
+import java.io.IOException;
+
+import opennlp.tools.embeddings.EmbeddingException;
+
 /**
  * Encodes prepared token sequences for static-model distillation.
  * Thread safety is implementation specific.
  *
  * @since 3.0.0
  */
-public interface TeacherEncoder extends AutoCloseable {
+public interface TeacherEncoder extends Closeable {
 
   /**
    * Mean-pools the token hidden states for each sequence, without L2 normalization.
@@ -31,11 +36,16 @@ public interface TeacherEncoder extends AutoCloseable {
    *              or empty, and must contain non-null, nonempty sequences of equal length.
    * @return One vector per input, in input order. The dimension must remain constant across
    *         calls. Neither the result nor any vector may be null.
-   * @throws IllegalArgumentException Thrown if input is invalid or cannot be encoded.
+   * @throws IllegalArgumentException Thrown if {@code batch} is invalid.
+   * @throws EmbeddingException Thrown if the teacher fails to encode a valid batch.
    */
   float[][] encodeBatch(long[][] batch);
 
-  /** Releases this encoder's resources. Repeated calls have no effect. */
+  /**
+   * Releases this encoder's resources. Repeated calls have no effect.
+   *
+   * @throws IOException Thrown if the resources cannot be released.
+   */
   @Override
-  void close();
+  void close() throws IOException;
 }

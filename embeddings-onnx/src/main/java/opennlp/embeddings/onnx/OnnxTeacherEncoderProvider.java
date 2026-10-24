@@ -16,27 +16,30 @@
  */
 package opennlp.embeddings.onnx;
 
-import java.nio.file.Path;
+import java.io.IOException;
+
+import ai.onnxruntime.OrtEnvironment;
 
 import opennlp.embeddings.spi.TeacherEncoder;
 import opennlp.embeddings.spi.TeacherEncoderProvider;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.ext.ProviderSpec;
 
 /**
- * Opens ONNX teacher sessions on demand. The provider name is {@code onnx}. It supports a
- * model file whose name ends with {@code .onnx} and is available when the ONNX Runtime classes
- * can be loaded; the runtime itself is initialized by {@link #load(Path)}, not by construction
- * or by the checks.
+ * Provides ONNX teacher encoders under the name {@value #NAME}. It supports a spec whose location
+ * is a local file named {@code *.onnx}, in any letter case, and that has no options. The ONNX
+ * Runtime is initialized by {@link #create(ProviderSpec)}, not by construction or by the checks.
  *
  * @since 3.0.0
  */
 public final class OnnxTeacherEncoderProvider implements TeacherEncoderProvider {
 
-  private static final String NAME = "onnx";
-  private static final String MODEL_SUFFIX = ".onnx";
-  private static final String RUNTIME_CLASS = "ai.onnxruntime.OrtEnvironment";
+  /** The name of this provider. */
+  public static final String NAME = "onnx";
 
-  /** Creates a factory without opening a model. */
+  private static final String MODEL_SUFFIX = ".onnx";
+
+  /** Creates a provider without opening a model. */
   public OnnxTeacherEncoderProvider() {
   }
 
@@ -53,27 +56,25 @@ public final class OnnxTeacherEncoderProvider implements TeacherEncoderProvider 
   @Override
   public boolean isAvailable() {
     try {
-      Class.forName(RUNTIME_CLASS, false, OnnxTeacherEncoderProvider.class.getClassLoader());
-      return true;
-    } catch (ClassNotFoundException | LinkageError e) {
+      return OrtEnvironment.class.getName() != null;
+    } catch (LinkageError e) {
       return false;
     }
   }
 
-  /**
-   * {@inheritDoc}
-   * A model file named {@code *.onnx}, in any letter case, is supported; the file itself is
-   * checked by {@link #load(Path)}.
-   */
+  /** {@inheritDoc} */
   @Override
-  public boolean supports(Path model) {
-    return model != null && model.getFileName() != null
-        && StringUtil.toLowerCase(model.getFileName().toString()).endsWith(MODEL_SUFFIX);
+  public boolean supports(ProviderSpec spec) {
+    ParamChecks.requireNonNullArg(spec, "spec");
+    return spec.path().isPresent() && spec.locationEndsWith(MODEL_SUFFIX) && spec.hasOnlyOptions();
   }
 
   /** {@inheritDoc} */
   @Override
-  public TeacherEncoder load(Path model) {
-    return OnnxTeacherEncoder.load(model);
+  public TeacherEncoder create(ProviderSpec spec) throws IOException {
+    if (spec == null || !supports(spec)) {
+      throw new IllegalArgumentException("spec is not supported: " + spec);
+    }
+    return OnnxTeacherEncoder.load(spec.path().orElseThrow());
   }
 }

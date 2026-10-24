@@ -16,6 +16,8 @@
  */
 package opennlp.embeddings;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
@@ -24,12 +26,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import opennlp.embeddings.spi.TeacherEncoder;
-import opennlp.embeddings.spi.TeacherEncoderProviders;
+import opennlp.embeddings.spi.TeacherEncoderProvider;
+import opennlp.tools.embeddings.EmbeddingException;
+import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ext.ProviderSpec;
+import opennlp.tools.util.ext.Providers;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Validates graph inputs and pooled output using small ONNX models.
@@ -49,43 +54,38 @@ class OnnxTeacherEncoderTest {
   void testRejectsChangingHiddenDimension(int initialSize, int changedSize,
                                          @TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeVariableDimensionOnnxModel(directory);
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertEquals(initialSize, encoder.encodeBatch(new long[initialSize][1])[0].length);
 
-      final IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+      final EmbeddingException error = assertThrows(EmbeddingException.class,
           () -> encoder.encodeBatch(new long[changedSize][1]));
-      assertTrue(error.getMessage().contains("hidden dimension"), error.getMessage());
+      assertEquals("ONNX output 'last_hidden_state' has hidden dimension " + changedSize
+          + ", expected " + initialSize + " from the initial batch", error.getMessage());
       assertEquals(initialSize, encoder.encodeBatch(new long[initialSize][1])[0].length);
     }
-  }
-
-  @Test
-  void testRejectsNullFile() {
-    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.get("onnx").load(null));
-    assertTrue(e.getMessage().contains("must not be null"), e.getMessage());
   }
 
   @Test
   void testRejectsMissingFile(@TempDir Path directory) {
     final Path missing = directory.resolve("model.onnx");
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.get("onnx").load(missing));
-    assertTrue(e.getMessage().contains(missing.toString()), e.getMessage());
+        () -> open(missing));
+    assertEquals("File does not exist or is not a regular file: " + missing, e.getMessage());
   }
 
   @Test
-  void testDirectoryIsNotARegularFile(@TempDir Path directory) {
+  void testDirectoryIsNotARegularFile(@TempDir Path directory) throws IOException {
+    final Path model = Files.createDirectory(directory.resolve("model.onnx"));
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.get("onnx").load(directory));
-    assertTrue(e.getMessage().contains("regular file"), e.getMessage());
+        () -> open(model));
+    assertEquals("File does not exist or is not a regular file: " + model, e.getMessage());
   }
 
   @Test
   void testRejectsNullAndEmptySequences(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeTinyOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertEquals("batch[0] must not be null", assertThrows(IllegalArgumentException.class,
           () -> encoder.encodeBatch(new long[][] {null})).getMessage());
       assertEquals("batch[1] must not be null", assertThrows(IllegalArgumentException.class,
@@ -99,7 +99,7 @@ class OnnxTeacherEncoderTest {
   void testSupportsGraphWithoutAttentionMask(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeInputIdsOnlyOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertArrayEquals(new float[] {1f, -2f, 4f}, encoder.encodeBatch(new long[][] {{2}})[0]);
     }
   }
@@ -108,21 +108,22 @@ class OnnxTeacherEncoderTest {
   void testRejectsUnsupportedInput(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeUnsupportedInputOnnxModel(directory);
 
-    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.select(model).load(model));
-    assertTrue(exception.getMessage().contains("position_ids"), exception.getMessage());
+    final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
+        () -> open(model));
+    assertEquals("ONNX graph " + model + " declares unsupported inputs: [position_ids]",
+        exception.getMessage());
   }
 
   @Test
   void testSupportsInt32InputIds(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeInt32InputOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertArrayEquals(new float[] {3f}, encoder.encodeBatch(new long[][] {{2, 4}})[0]);
       final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
           () -> encoder.encodeBatch(new long[][] {{(long) Integer.MAX_VALUE + 1}}));
-      assertTrue(exception.getMessage().contains("input_ids[0][0]"), exception.getMessage());
-      assertTrue(exception.getMessage().contains("INT32"), exception.getMessage());
+      assertEquals("input_ids[0][0] value 2147483648 does not fit an INT32 tensor",
+          exception.getMessage());
     }
   }
 
@@ -130,17 +131,17 @@ class OnnxTeacherEncoderTest {
   void testRejectsRankOneInputIdsAtLoadTime(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeRankOneInputOnnxModel(directory);
 
-    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.select(model).load(model));
-    assertTrue(exception.getMessage().contains("input_ids"), exception.getMessage());
-    assertTrue(exception.getMessage().contains("rank 2"), exception.getMessage());
+    final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
+        () -> open(model));
+    assertEquals("ONNX graph " + model + " input 'input_ids' must have rank 2, but has rank 1",
+        exception.getMessage());
   }
 
   @Test
   void testSupportsInt32AttentionMask(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeInt32AttentionMaskOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertArrayEquals(new float[] {3f}, encoder.encodeBatch(new long[][] {{2, 4}})[0]);
     }
   }
@@ -149,17 +150,17 @@ class OnnxTeacherEncoderTest {
   void testRejectsFloatInputIdsAtLoadTime(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeFloatInputOnnxModel(directory);
 
-    final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-        () -> TeacherEncoderProviders.select(model).load(model));
-    assertTrue(exception.getMessage().contains("input_ids"), exception.getMessage());
-    assertTrue(exception.getMessage().contains("INT32 or INT64"), exception.getMessage());
+    final InvalidFormatException exception = assertThrows(InvalidFormatException.class,
+        () -> open(model));
+    assertEquals("ONNX graph " + model + " input 'input_ids' must be INT32 or INT64, but is "
+        + "FLOAT", exception.getMessage());
   }
 
   @Test
   void testPrefersTheNamedLastHiddenStateOutput(@TempDir Path directory) throws Exception {
     final Path model = EmbeddingTestFixtures.writeMultipleOutputsOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertArrayEquals(new float[] {3f}, encoder.encodeBatch(new long[][] {{2, 4}})[0]);
     }
   }
@@ -169,15 +170,16 @@ class OnnxTeacherEncoderTest {
       throws Exception {
     final Path model = EmbeddingTestFixtures.writeFixedOutputOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
-      final IllegalArgumentException sequenceError = assertThrows(IllegalArgumentException.class,
+    try (TeacherEncoder encoder = open(model)) {
+      final EmbeddingException sequenceError = assertThrows(EmbeddingException.class,
           () -> encoder.encodeBatch(new long[][] {{2, 4}}));
-      assertTrue(sequenceError.getMessage().contains("sequence dimension"),
+      assertEquals("ONNX output 'last_hidden_state' row 0 has sequence dimension 1, expected 2",
           sequenceError.getMessage());
 
-      final IllegalArgumentException batchError = assertThrows(IllegalArgumentException.class,
+      final EmbeddingException batchError = assertThrows(EmbeddingException.class,
           () -> encoder.encodeBatch(new long[][] {{2}, {4}}));
-      assertTrue(batchError.getMessage().contains("batch dimension"), batchError.getMessage());
+      assertEquals("ONNX output 'last_hidden_state' batch dimension 1 does not match input "
+          + "batch dimension 2", batchError.getMessage());
     }
   }
 
@@ -186,9 +188,21 @@ class OnnxTeacherEncoderTest {
       throws Exception {
     final Path model = EmbeddingTestFixtures.writeMaxFloatOnnxModel(directory);
 
-    try (TeacherEncoder encoder = TeacherEncoderProviders.select(model).load(model)) {
+    try (TeacherEncoder encoder = open(model)) {
       assertArrayEquals(new float[] {Float.MAX_VALUE},
           encoder.encodeBatch(new long[][] {{1, 1}})[0]);
     }
+  }
+
+  /**
+   * Opens a teacher through the provider the core lookup selects for it.
+   *
+   * @param model The ONNX file.
+   * @return The open encoder.
+   * @throws IOException Thrown if the graph cannot be loaded.
+   */
+  private TeacherEncoder open(Path model) throws IOException {
+    final ProviderSpec spec = ProviderSpec.of(model);
+    return Providers.of(TeacherEncoderProvider.class).select(spec).create(spec);
   }
 }
