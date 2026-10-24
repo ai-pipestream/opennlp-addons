@@ -33,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.Span;
 
 import static opennlp.tools.money.EcbFxRatesTestSupport.assertRate;
@@ -91,7 +92,7 @@ class EcbFxRatesValidationTest {
     for (int i = 0; i < columns; i++) {
       csv.append(",1.2");
     }
-    Assertions.assertThrows(IllegalArgumentException.class,
+    Assertions.assertThrows(InvalidFormatException.class,
         () -> load(csv.append('\n').toString()));
   }
 
@@ -104,7 +105,7 @@ class EcbFxRatesValidationTest {
   @ValueSource(strings = {"2026-07-14", "2026-07-14,1.2", "2026-07-14,1.2,150,extra",
       "2026-07-14,1.2,150,,", "2026-07-14,1.2,150, , "})
   void testInvalidColumnCount(String row) {
-    Assertions.assertThrows(IllegalArgumentException.class,
+    Assertions.assertThrows(InvalidFormatException.class,
         () -> load("Date,USD,JPY,\n" + row + "\n"));
   }
 
@@ -116,7 +117,7 @@ class EcbFxRatesValidationTest {
   @ParameterizedTest
   @ValueSource(strings = {"1.2", "1.3", "N/A"})
   void testDuplicateDate(String secondValue) {
-    Assertions.assertThrows(IllegalArgumentException.class,
+    Assertions.assertThrows(InvalidFormatException.class,
         () -> load("Date,USD\n2026-07-14,1.2\n2026-07-14," + secondValue + "\n"));
   }
 
@@ -129,7 +130,7 @@ class EcbFxRatesValidationTest {
   @ValueSource(strings = {"0", "0.0000", "-0", "-0.0000", "0E+20", "-1", "-0.001",
       "NaN", "Infinity", "1.2x"})
   void testInvalidRate(String value) {
-    final IllegalArgumentException error = Assertions.assertThrows(IllegalArgumentException.class,
+    final InvalidFormatException error = Assertions.assertThrows(InvalidFormatException.class,
         () -> load("Date,USD\n2026-07-14," + value + "\n"));
     Assertions.assertTrue(error.getMessage().contains("USD"));
     Assertions.assertTrue(error.getMessage().contains("2026-07-14"));
@@ -143,7 +144,7 @@ class EcbFxRatesValidationTest {
   @ParameterizedTest
   @ValueSource(strings = {"0.9", "1.1", "2"})
   void testInvalidBaseRate(String value) {
-    Assertions.assertThrows(IllegalArgumentException.class,
+    Assertions.assertThrows(InvalidFormatException.class,
         () -> load("Date,EUR,USD\n2026-07-14," + value + ",1.2\n"));
   }
 
@@ -209,7 +210,7 @@ class EcbFxRatesValidationTest {
     if (valid) {
       EcbFxRates.load(in);
     } else {
-      Assertions.assertThrows(IllegalArgumentException.class, () -> EcbFxRates.load(in));
+      Assertions.assertThrows(InvalidFormatException.class, () -> EcbFxRates.load(in));
     }
     Assertions.assertFalse(in.closed);
   }

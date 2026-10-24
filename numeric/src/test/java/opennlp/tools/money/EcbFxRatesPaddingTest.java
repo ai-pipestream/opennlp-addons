@@ -27,10 +27,12 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import opennlp.tools.util.InvalidFormatException;
+
 import static opennlp.tools.money.EcbFxRatesTestSupport.assertRate;
 import static opennlp.tools.money.EcbFxRatesTestSupport.load;
 
-/** Tests CSV field padding without accepting malformed values after trimming. */
+/** Tests CSV field padding by Unicode whitespace without accepting malformed values after trimming. */
 class EcbFxRatesPaddingTest {
 
   private static final String HEADER = "Date,USD,JPY\n";
@@ -66,30 +68,32 @@ class EcbFxRatesPaddingTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("corruptedFields")
   void testCorruptedField(String description, String csv) {
-    Assertions.assertThrows(IllegalArgumentException.class, () -> load(csv), description);
+    Assertions.assertThrows(InvalidFormatException.class, () -> load(csv), description);
   }
 
   /**
-   * Non-whitespace controls and format characters are not currency-code padding.
+   * Controls that are not Unicode whitespace, the information separators among them, and
+   * format characters are not currency-code padding.
    *
    * @param codePoint The padding character.
    */
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 7, 8, 14, 27, 127, 133, 0x200B, 0xFEFF})
+  @ValueSource(ints = {0, 1, 7, 8, 14, 27, 28, 29, 30, 31, 127, 0x200B, 0xFEFF})
   void testNonWhitespacePadding(int codePoint) {
     final String padding = Character.toString(codePoint);
-    Assertions.assertThrows(IllegalArgumentException.class,
+    Assertions.assertThrows(InvalidFormatException.class,
         () -> load("Date," + padding + "USD" + padding + ",JPY\n" + RECORD));
   }
 
   /**
-   * Existing ASCII whitespace padding remains accepted around all field kinds.
+   * Unicode whitespace padding is accepted around all field kinds, as in every other table
+   * reader of the add-ons.
    *
-   * @param codePoint The Java whitespace character in the ASCII range.
+   * @param codePoint The Unicode {@code White_Space} character.
    * @throws IOException If loading fails.
    */
   @ParameterizedTest
-  @ValueSource(ints = {9, 11, 12, 28, 29, 30, 31, 32})
+  @ValueSource(ints = {9, 11, 12, 32, 0x85, 0xA0, 0x2003, 0x202F, 0x3000})
   void testWhitespacePadding(int codePoint) throws IOException {
     final String pad = Character.toString(codePoint);
     final EcbFxRates rates = load("Date," + pad + "USD" + pad + "," + pad + "JPY" + pad + ","
@@ -97,18 +101,5 @@ class EcbFxRatesPaddingTest {
         + pad + "N/A" + pad + "," + pad + "\r\n" + pad + "\r\n");
     assertRate("1.25", rates.rate("EUR", "USD", DATE));
     Assertions.assertTrue(rates.rate("EUR", "JPY", DATE).isEmpty());
-  }
-
-  /**
-   * Unicode spaces are not added to the supported CSV field-padding syntax.
-   *
-   * @param codePoint The unsupported whitespace character.
-   */
-  @ParameterizedTest
-  @ValueSource(ints = {0xA0, 0x2003, 0x202F})
-  void testUnsupportedWhitespacePadding(int codePoint) {
-    final String padding = Character.toString(codePoint);
-    Assertions.assertThrows(IllegalArgumentException.class,
-        () -> load("Date," + padding + "USD,JPY\n" + RECORD));
   }
 }

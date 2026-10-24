@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
+import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.Span;
 
 import static opennlp.tools.money.EcbFxRatesTestSupport.assertRate;
@@ -153,9 +154,9 @@ public class EcbFxRatesTest {
   /** Missing input, headers, dates, and records are rejected. */
   @Test
   void testMalformedContentFailsLoud() {
-    assertThrows(IllegalArgumentException.class, () -> load("no header here"));
-    assertThrows(IllegalArgumentException.class, () -> load("Date,USD,\nyesterday,1.1,\n"));
-    assertThrows(IllegalArgumentException.class, () -> load("Date,USD,\n"));
+    assertThrows(InvalidFormatException.class, () -> load("no header here"));
+    assertThrows(InvalidFormatException.class, () -> load("Date,USD,\nyesterday,1.1,\n"));
+    assertThrows(InvalidFormatException.class, () -> load("Date,USD,\n"));
     assertThrows(IllegalArgumentException.class, () -> EcbFxRates.load((InputStream) null));
   }
 
@@ -165,8 +166,8 @@ public class EcbFxRatesTest {
   @Test
   void testMalformedRateCellFailsLoudWithRowContext() {
     final String csv = "Date,USD,JPY,\n2026-07-10,1.08x,160.00,\n";
-    final IllegalArgumentException e =
-        assertThrows(IllegalArgumentException.class, () -> load(csv));
+    final InvalidFormatException e =
+        assertThrows(InvalidFormatException.class, () -> load(csv));
     assertEquals("not a reference history rate for USD: 1.08x in row: "
         + "2026-07-10,1.08x,160.00,", e.getMessage());
   }
