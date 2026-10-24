@@ -124,4 +124,48 @@ public class ArtifactUnicodeContextTest {
     assertEquals(1, artifacts.size());
     assertEquals(TextArtifact.TYPE_ZERO_WIDTH, artifacts.get(0).type());
   }
+
+  /**
+   * Supplies invisible format characters outside a letter context, with the covered text.
+   *
+   * @return Source text and the reported span.
+   */
+  private static Stream<Arguments> invisibleFormatCharacters() {
+    return Stream.of(
+        Arguments.of(cp(0x00AD) + "word", new Span(0, 1)),
+        Arguments.of("word" + cp(0x00AD), new Span(4, 5)),
+        Arguments.of("litiga" + cp(0x00AD) + "\ntion", new Span(6, 7)),
+        Arguments.of(cp('a', 0x00AD, 0x00AD, 'b'), new Span(1, 3)),
+        Arguments.of(cp('x', 0x2062), new Span(1, 2)),
+        Arguments.of(cp('f', 0x2061, '('), new Span(1, 2)),
+        Arguments.of(cp('1', 0x2063, '2'), new Span(1, 2)),
+        Arguments.of(cp('1', 0x2064, '2'), new Span(1, 2)),
+        Arguments.of(cp('1', 0x180E, '2'), new Span(1, 2)),
+        Arguments.of(cp('a', 0x2063, 0x200B, 'b'), new Span(1, 3)));
+  }
+
+  /**
+   * Reports the soft hyphen, the invisible operators and the Mongolian vowel separator
+   * like the zero-width characters.
+   *
+   * @param text The source text.
+   * @param span The expected span.
+   */
+  @ParameterizedTest
+  @MethodSource("invisibleFormatCharacters")
+  void testInvisibleFormatCharactersAreReported(String text, Span span) {
+    assertEquals(List.of(new TextArtifact(span, TextArtifact.TYPE_ZERO_WIDTH)),
+        new CursorArtifactDetector().detect(text));
+  }
+
+  /**
+   * A single invisible format character between letters is left unreported.
+   *
+   * @param text The source text.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"Silben\u00ADtrennung", "x\u2062y", "\u1828\u180E\u1820"})
+  void testInvisibleFormatCharacterBetweenLettersIsKept(String text) {
+    assertEquals(List.of(), new CursorArtifactDetector().detect(text));
+  }
 }
