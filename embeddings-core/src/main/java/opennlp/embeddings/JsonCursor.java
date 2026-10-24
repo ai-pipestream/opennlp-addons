@@ -17,6 +17,7 @@
 package opennlp.embeddings;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Cursor shared by the small JSON readers in this package. It parses scalar values and can skip
@@ -30,6 +31,8 @@ final class JsonCursor {
   private final String text;
   private final String inputName;
   private int position;
+  private int keyStart;
+  private int keyEnd;
 
   /**
    * Creates a cursor positioned at the start of the given JSON text.
@@ -214,10 +217,10 @@ final class JsonCursor {
     skipIntegerPart();
     if (position < text.length() && text.charAt(position) == '.') {
       position++;
-      if (position >= text.length() || !isAsciiDigit(text.charAt(position))) {
+      if (position >= text.length() || !StringUtil.isAsciiDigit(text.charAt(position))) {
         throw malformed("Malformed number: digit expected after the decimal point");
       }
-      while (position < text.length() && isAsciiDigit(text.charAt(position))) {
+      while (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
         position++;
       }
     }
@@ -228,10 +231,10 @@ final class JsonCursor {
           && (text.charAt(position) == '+' || text.charAt(position) == '-')) {
         position++;
       }
-      if (position >= text.length() || !isAsciiDigit(text.charAt(position))) {
+      if (position >= text.length() || !StringUtil.isAsciiDigit(text.charAt(position))) {
         throw malformed("Malformed number: digit expected in the exponent");
       }
-      while (position < text.length() && isAsciiDigit(text.charAt(position))) {
+      while (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
         position++;
       }
     }
@@ -246,24 +249,19 @@ final class JsonCursor {
     if (peek() == '-') {
       position++;
     }
-    if (position >= text.length() || !isAsciiDigit(text.charAt(position))) {
+    if (position >= text.length() || !StringUtil.isAsciiDigit(text.charAt(position))) {
       throw malformed("Malformed number");
     }
     if (text.charAt(position) == '0') {
       position++;
-      if (position < text.length() && isAsciiDigit(text.charAt(position))) {
+      if (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
         throw malformed("Malformed number: leading zeros are not allowed");
       }
       return;
     }
-    while (position < text.length() && isAsciiDigit(text.charAt(position))) {
+    while (position < text.length() && StringUtil.isAsciiDigit(text.charAt(position))) {
       position++;
     }
-  }
-
-  /** {@return whether {@code c} is an ASCII decimal digit} */
-  private boolean isAsciiDigit(char c) {
-    return c >= '0' && c <= '9';
   }
 
   /**
@@ -319,6 +317,116 @@ final class JsonCursor {
   }
 
   /**
+   * Opens the object at the cursor and reads its first key, leaving the cursor at the first value.
+   * A reader walks an object with {@code for (String key = firstKey(); key != null;
+   * key = nextKey(...))}, reading or skipping one value per key.
+   *
+   * @return The first key, or {@code null} when the object is empty; its closing brace is then
+   *     consumed.
+   * @throws InvalidFormatException Thrown if no object starts at the cursor or its first key is
+   *     malformed.
+   */
+  String firstKey() throws InvalidFormatException {
+    expect('{');
+    skipWhitespace();
+    if (peek() == '}') {
+      position++;
+      return null;
+    }
+    return key();
+  }
+
+  /**
+   * Reads the separator after an object value and the key that follows it, leaving the cursor at
+   * the next value.
+   *
+   * @param where Where the separator is expected, for the message, for example
+   *              {@code "after a model field"}.
+   * @return The next key, or {@code null} when the object ends; its closing brace is then
+   *     consumed.
+   * @throws InvalidFormatException Thrown if neither {@code ,} nor <code>}</code> follows the
+   *     value, if a comma is followed by the closing brace, or if the next key is malformed.
+   */
+  String nextKey(String where) throws InvalidFormatException {
+    skipWhitespace();
+    final char next = consume();
+    if (next == ',') {
+      skipWhitespace();
+      if (peek() == '}') {
+        throw malformed("Trailing comma " + where);
+      }
+      return key();
+    }
+    if (next == '}') {
+      return null;
+    }
+    throw malformed("Expected ',' or '}' " + where + ", got '" + next + "'");
+  }
+
+  /** {@return the object key at the cursor, leaving the cursor at its value} */
+  private String key() throws InvalidFormatException {
+    skipWhitespace();
+    keyStart = position;
+    final String key = parseString();
+    keyEnd = position;
+    skipWhitespace();
+    expect(':');
+    skipWhitespace();
+    return key;
+  }
+
+  /**
+   * {@return the last key read by {@link #firstKey()} or {@link #nextKey(String)} as it is
+   * written in the text, quotes and escapes included, for a reader that copies it unchanged}
+   */
+  String rawKey() {
+    return text.substring(keyStart, keyEnd);
+  }
+
+  /**
+   * Opens the array at the cursor, leaving the cursor at its first element. A reader walks an
+   * array with {@code for (boolean more = firstElement(); more; more = nextElement(...))}.
+   *
+   * @return Whether the array has an element; for an empty array its closing bracket is consumed.
+   * @throws InvalidFormatException Thrown if no array starts at the cursor.
+   */
+  boolean firstElement() throws InvalidFormatException {
+    expect('[');
+    skipWhitespace();
+    if (peek() == ']') {
+      position++;
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Reads the separator after an array element, leaving the cursor at the next element.
+   *
+   * @param where Where the separator is expected, for the message, for example
+   *              {@code "in a number array"}.
+   * @return Whether another element follows; at the end of the array its closing bracket is
+   *     consumed.
+   * @throws InvalidFormatException Thrown if neither {@code ,} nor {@code ]} follows the element,
+   *     or if a comma is followed by the closing bracket.
+   */
+  boolean nextElement(String where) throws InvalidFormatException {
+    skipWhitespace();
+    final char next = consume();
+    if (next == ',') {
+      skipWhitespace();
+      if (peek() == ']') {
+        throw malformed("Trailing comma " + where);
+      }
+      return true;
+    }
+    if (next == ']') {
+      return false;
+    }
+    throw malformed("Expected ',' or ']' " + where + ", got '" + next + "'");
+  }
+
+  /**
    * Skips one JSON value of any type (string, number, array, object, true/false/null), allowing a
    * reader to ignore unknown fields.
    */
@@ -339,48 +447,15 @@ final class JsonCursor {
       parseString();
     } else if (c == '[') {
       requireContainerDepth(depth);
-      position++;
-      skipWhitespace();
-      if (peek() != ']') {
-        while (true) {
-          skipValue(depth + 1);
-          skipWhitespace();
-          final char next = consume();
-          if (next == ',') {
-            skipWhitespace();
-            continue;
-          }
-          if (next == ']') {
-            return;
-          }
-          throw malformed("Expected ',' or ']' while skipping an array, got '" + next + "'");
-        }
+      for (boolean more = firstElement(); more; more = nextElement("while skipping an array")) {
+        skipValue(depth + 1);
       }
-      position++;
     } else if (c == '{') {
       requireContainerDepth(depth);
-      position++;
-      skipWhitespace();
-      if (peek() != '}') {
-        while (true) {
-          skipWhitespace();
-          parseString();
-          skipWhitespace();
-          expect(':');
-          skipValue(depth + 1);
-          skipWhitespace();
-          final char next = consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            return;
-          }
-          throw malformed("Expected ',' or '}' while skipping an object, got '" + next + "'");
-        }
+      for (String key = firstKey(); key != null; key = nextKey("while skipping an object")) {
+        skipValue(depth + 1);
       }
-      position++;
-    } else if (c == '-' || Character.isDigit(c)) {
+    } else if (c == '-' || StringUtil.isAsciiDigit(c)) {
       skipNumber();
     } else if (consumeLiteral("true") || consumeLiteral("false") || consumeLiteral("null")) {
       // consumed, nothing to record

@@ -90,8 +90,6 @@ final class TokenizerJsonVocab {
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
 
     List<String> vocab = null;
     String modelType = null;
@@ -99,43 +97,25 @@ final class TokenizerJsonVocab {
     boolean modelSeen = false;
     boolean addedTokensSeen = false;
 
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      while (true) {
-        cursor.skipWhitespace();
-        final String key = cursor.parseString();
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
-          case "model" -> {
-            if (modelSeen) {
-              throw cursor.malformed("Field 'model' appears more than once");
-            }
-            modelSeen = true;
-            final ParsedModel model = parseModel(cursor);
-            vocab = model.vocab;
-            modelType = model.type;
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a field")) {
+      switch (key) {
+        case "model" -> {
+          if (modelSeen) {
+            throw cursor.malformed("Field 'model' appears more than once");
           }
-          case "added_tokens" -> {
-            if (addedTokensSeen) {
-              throw cursor.malformed("Field 'added_tokens' appears more than once");
-            }
-            addedTokensSeen = true;
-            addedTokens = parseAddedTokens(cursor);
+          modelSeen = true;
+          final ParsedModel model = parseModel(cursor);
+          vocab = model.vocab;
+          modelType = model.type;
+        }
+        case "added_tokens" -> {
+          if (addedTokensSeen) {
+            throw cursor.malformed("Field 'added_tokens' appears more than once");
           }
-          default -> cursor.skipValue();
+          addedTokensSeen = true;
+          addedTokens = parseAddedTokens(cursor);
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
-        }
-        if (next == '}') {
-          break;
-        }
-        throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
+        default -> cursor.skipValue();
       }
     }
     cursor.requireEnd("Trailing content after the top-level object");
@@ -168,20 +148,9 @@ final class TokenizerJsonVocab {
    * @return The parsed type and vocabulary; either may be absent ({@code null}).
    */
   private static ParsedModel parseModel(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     List<String> vocab = null;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return new ParsedModel(null, null);
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
       switch (key) {
         case "type" -> {
           if (type != null) {
@@ -201,16 +170,8 @@ final class TokenizerJsonVocab {
         }
         default -> cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return new ParsedModel(type, vocab);
-      }
-      throw cursor.malformed("Expected ',' or '}' after a model field, got '" + next + "'");
     }
+    return new ParsedModel(type, vocab);
   }
 
   /**
@@ -221,15 +182,9 @@ final class TokenizerJsonVocab {
    */
   private static List<String> parseVocabList(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<String> pieces = new ArrayList<>();
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      return pieces;
-    }
-    while (true) {
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after a vocab entry")) {
       cursor.expect('[');
       cursor.skipWhitespace();
       pieces.add(cursor.parseString());
@@ -239,16 +194,8 @@ final class TokenizerJsonVocab {
       cursor.skipValue();
       cursor.skipWhitespace();
       cursor.expect(']');
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        return pieces;
-      }
-      throw cursor.malformed("Expected ',' or ']' after a vocab entry, got '" + next + "'");
     }
+    return pieces;
   }
 
   /**
@@ -260,31 +207,17 @@ final class TokenizerJsonVocab {
    */
   private static List<AddedToken> parseAddedTokens(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<AddedToken> tokens = new ArrayList<>();
     final Set<Long> tokenIds = new HashSet<>();
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      return tokens;
-    }
-    while (true) {
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after an added token")) {
       final AddedToken token = parseAddedToken(cursor);
       if (!tokenIds.add(token.id())) {
         throw cursor.malformed("added token id " + token.id() + " occurs more than once");
       }
       tokens.add(token);
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        return tokens;
-      }
-      throw cursor.malformed("Expected ',' or ']' after an added token, got '" + next + "'");
     }
+    return tokens;
   }
 
   /**
@@ -295,20 +228,14 @@ final class TokenizerJsonVocab {
    */
   private static AddedToken parseAddedToken(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     Long id = null;
     String content = null;
     Boolean special = null;
-    if (cursor.peek() == '}') {
+    String key = cursor.firstKey();
+    if (key == null) {
       throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
     }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (; key != null; key = cursor.nextKey("after an added token field")) {
       switch (key) {
         case "id" -> {
           if (id != null) {
@@ -330,16 +257,6 @@ final class TokenizerJsonVocab {
         }
         default -> cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or '}' after an added token field, got '"
-          + next + "'");
     }
     if (id == null || content == null) {
       throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);

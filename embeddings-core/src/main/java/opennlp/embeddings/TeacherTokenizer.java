@@ -56,7 +56,6 @@ final class TeacherTokenizer {
 
   private static final String TRAILING_CONTENT = "Trailing content after the top-level object";
 
-  private static final String HEX_DIGITS = "0123456789abcdef";
 
   /** The prefix of the BERT-style placeholder tokens Model2Vec's cleaning drops. */
   private static final String UNUSED_TOKEN_PREFIX = "[unused";
@@ -136,8 +135,6 @@ final class TeacherTokenizer {
     final String inputName = tokenizerJsonFile.getFileName().toString();
     final JsonCursor cursor = new JsonCursor(json, inputName);
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String modelType = null;
     List<String> tokensById = null;
     String unkToken = null;
@@ -149,59 +146,41 @@ final class TeacherTokenizer {
     boolean seenAddedTokens = false;
     boolean seenPostProcessor = false;
     boolean seenNormalizer = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      while (true) {
-        cursor.skipWhitespace();
-        final String key = cursor.parseString();
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
-          case "model" -> {
-            if (seenModel) {
-              throw cursor.malformed("Field 'model' appears more than once");
-            }
-            seenModel = true;
-            final ModelSection model = parseModel(cursor);
-            modelType = model.type();
-            tokensById = model.tokensById();
-            unkToken = model.unkToken();
-            unkId = model.unkId();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a field")) {
+      switch (key) {
+        case "model" -> {
+          if (seenModel) {
+            throw cursor.malformed("Field 'model' appears more than once");
           }
-          case "added_tokens" -> {
-            if (seenAddedTokens) {
-              throw cursor.malformed("Field 'added_tokens' appears more than once");
-            }
-            seenAddedTokens = true;
-            addedContents = parseAddedTokenContents(cursor);
-          }
-          case "post_processor" -> {
-            if (seenPostProcessor) {
-              throw cursor.malformed("Field 'post_processor' appears more than once");
-            }
-            seenPostProcessor = true;
-            postProcessor = parsePostProcessor(cursor);
-          }
-          case "normalizer" -> {
-            if (seenNormalizer) {
-              throw cursor.malformed("Field 'normalizer' appears more than once");
-            }
-            seenNormalizer = true;
-            lowerCase = parseNormalizerLowercase(cursor);
-          }
-          default -> cursor.skipValue();
+          seenModel = true;
+          final ModelSection model = parseModel(cursor);
+          modelType = model.type();
+          tokensById = model.tokensById();
+          unkToken = model.unkToken();
+          unkId = model.unkId();
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
+        case "added_tokens" -> {
+          if (seenAddedTokens) {
+            throw cursor.malformed("Field 'added_tokens' appears more than once");
+          }
+          seenAddedTokens = true;
+          addedContents = parseAddedTokenContents(cursor);
         }
-        if (next == '}') {
-          break;
+        case "post_processor" -> {
+          if (seenPostProcessor) {
+            throw cursor.malformed("Field 'post_processor' appears more than once");
+          }
+          seenPostProcessor = true;
+          postProcessor = parsePostProcessor(cursor);
         }
-        throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
+        case "normalizer" -> {
+          if (seenNormalizer) {
+            throw cursor.malformed("Field 'normalizer' appears more than once");
+          }
+          seenNormalizer = true;
+          lowerCase = parseNormalizerLowercase(cursor);
+        }
+        default -> cursor.skipValue();
       }
     }
     cursor.requireEnd(TRAILING_CONTENT);
@@ -284,20 +263,10 @@ final class TeacherTokenizer {
       cursor.skipValue();
       return null;
     }
-    cursor.expect('{');
-    cursor.skipWhitespace();
     Boolean lowerCase = null;
     boolean seenLowerCase = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return null;
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a normalizer field")) {
       if ("lowercase".equals(key)) {
         if (seenLowerCase) {
           throw cursor.malformed("Field 'normalizer.lowercase' appears more than once");
@@ -313,16 +282,8 @@ final class TeacherTokenizer {
       } else {
         cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return lowerCase;
-      }
-      throw cursor.malformed("Expected ',' or '}' after a normalizer field, got '" + next + "'");
     }
+    return lowerCase;
   }
 
   /**
@@ -520,47 +481,25 @@ final class TeacherTokenizer {
     final JsonCursor cursor = new JsonCursor(json, inputName);
     final StringBuilder out = new StringBuilder(json.length());
     cursor.skipWhitespace();
-    cursor.expect('{');
     out.append('{');
-    cursor.skipWhitespace();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      boolean first = true;
-      while (true) {
-        cursor.skipWhitespace();
-        final int keyStart = cursor.position();
-        final String key = cursor.parseString();
-        final String rawKey = json.substring(keyStart, cursor.position());
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        if (!first) {
-          out.append(',');
+    boolean first = true;
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a field")) {
+      if (!first) {
+        out.append(',');
+      }
+      first = false;
+      out.append(cursor.rawKey()).append(':');
+      switch (key) {
+        case "model" -> rewriteModel(cursor, out, newIdByOriginal);
+        case "added_tokens" -> {
+          cursor.skipValue();
+          out.append(rewrittenAddedTokens(newIdByOriginal));
         }
-        first = false;
-        out.append(rawKey).append(':');
-        switch (key) {
-          case "model" -> rewriteModel(cursor, out, newIdByOriginal);
-          case "added_tokens" -> {
-            cursor.skipValue();
-            out.append(rewrittenAddedTokens(newIdByOriginal));
-          }
-          case "post_processor" -> {
-            cursor.skipValue();
-            out.append("null");
-          }
-          default -> out.append(copyRawValue(cursor));
+        case "post_processor" -> {
+          cursor.skipValue();
+          out.append("null");
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
-        }
-        if (next == '}') {
-          break;
-        }
-        throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
+        default -> out.append(copyRawValue(cursor));
       }
     }
     cursor.requireEnd(TRAILING_CONTENT);
@@ -579,28 +518,14 @@ final class TeacherTokenizer {
   private void rewriteModel(JsonCursor cursor, StringBuilder out,
                             Map<Integer, Integer> newIdByOriginal)
       throws InvalidFormatException {
-    cursor.expect('{');
     out.append('{');
-    cursor.skipWhitespace();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      out.append('}');
-      return;
-    }
     boolean first = true;
-    while (true) {
-      cursor.skipWhitespace();
-      final int keyStart = cursor.position();
-      final String key = cursor.parseString();
-      final String rawKey = json.substring(keyStart, cursor.position());
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
       if (!first) {
         out.append(',');
       }
       first = false;
-      out.append(rawKey).append(':');
+      out.append(cursor.rawKey()).append(':');
       switch (key) {
         case "vocab" -> out.append(rewrittenVocab(cursor, newIdByOriginal));
         case "unk_id" -> {
@@ -609,15 +534,6 @@ final class TeacherTokenizer {
         }
         default -> out.append(copyRawValue(cursor));
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or '}' after a model field, got '" + next + "'");
     }
     out.append('}');
   }
@@ -633,80 +549,43 @@ final class TeacherTokenizer {
   private String rewrittenVocab(JsonCursor cursor, Map<Integer, Integer> newIdByOriginal)
       throws InvalidFormatException {
     final StringBuilder out = new StringBuilder();
+    boolean first = true;
     if (cursor.peek() == '{') {
-      cursor.consume();
       out.append('{');
-      cursor.skipWhitespace();
-      if (cursor.peek() == '}') {
-        cursor.consume();
-      } else {
-        boolean first = true;
-        while (true) {
-          cursor.skipWhitespace();
-          final int keyStart = cursor.position();
-          cursor.parseString();
-          final String rawKey = json.substring(keyStart, cursor.position());
-          cursor.skipWhitespace();
-          cursor.expect(':');
-          cursor.skipWhitespace();
-          final long originalId = cursor.parseLong();
-          final Integer row = newIdByOriginal.get((int) originalId);
-          if (row != null) {
-            if (!first) {
-              out.append(',');
-            }
-            first = false;
-            out.append(rawKey).append(':').append(row);
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a vocab entry")) {
+        final long originalId = cursor.parseLong();
+        final Integer row = newIdByOriginal.get((int) originalId);
+        if (row != null) {
+          if (!first) {
+            out.append(',');
           }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or '}' after a vocab entry, got '" + next + "'");
+          first = false;
+          out.append(cursor.rawKey()).append(':').append(row);
         }
       }
       out.append('}');
     } else {
-      cursor.expect('[');
       out.append('[');
-      cursor.skipWhitespace();
-      if (cursor.peek() == ']') {
-        cursor.consume();
-      } else {
-        boolean first = true;
-        int originalId = 0;
-        while (true) {
-          cursor.skipWhitespace();
-          final int entryStart = cursor.position();
-          cursor.expect('[');
-          cursor.skipWhitespace();
-          cursor.parseString();
-          cursor.skipWhitespace();
-          cursor.expect(',');
-          cursor.skipWhitespace();
-          cursor.skipValue();
-          cursor.skipWhitespace();
-          cursor.expect(']');
-          if (newIdByOriginal.containsKey(originalId++)) {
-            if (!first) {
-              out.append(',');
-            }
-            first = false;
-            out.append(json, entryStart, cursor.position());
+      int originalId = 0;
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a vocab entry")) {
+        final int entryStart = cursor.position();
+        cursor.expect('[');
+        cursor.skipWhitespace();
+        cursor.parseString();
+        cursor.skipWhitespace();
+        cursor.expect(',');
+        cursor.skipWhitespace();
+        cursor.skipValue();
+        cursor.skipWhitespace();
+        cursor.expect(']');
+        if (newIdByOriginal.containsKey(originalId++)) {
+          if (!first) {
+            out.append(',');
           }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == ']') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or ']' after a vocab entry, got '" + next + "'");
+          first = false;
+          out.append(json, entryStart, cursor.position());
         }
       }
       out.append(']');
@@ -746,7 +625,7 @@ final class TeacherTokenizer {
       }
       first = false;
       out.append("{\"id\":").append(added.id())
-          .append(",\"content\":").append(quoted(added.content()))
+          .append(",\"content\":").append(JsonStrings.quote(added.content()))
           .append(",\"single_word\":").append(added.pad())
           .append(",\"lstrip\":").append(added.pad())
           .append(",\"rstrip\":").append(added.pad())
@@ -754,33 +633,6 @@ final class TeacherTokenizer {
           .append(",\"special\":true}");
     }
     return out.append(']').toString();
-  }
-
-  /**
-   * {@return the JSON string literal for the given content, escaping the quote, the backslash,
-   * and control characters}
-   *
-   * @param content The string to quote.
-   */
-  private String quoted(String content) {
-    final StringBuilder out = new StringBuilder(content.length() + 2).append('"');
-    for (int i = 0; i < content.length(); i++) {
-      final char c = content.charAt(i);
-      switch (c) {
-        case '"' -> out.append("\\\"");
-        case '\\' -> out.append("\\\\");
-        default -> {
-          if (c < 0x20) {
-            out.append("\\u00")
-                .append(HEX_DIGITS.charAt(c >>> 4))
-                .append(HEX_DIGITS.charAt(c & 0x0f));
-          } else {
-            out.append(c);
-          }
-        }
-      }
-    }
-    return out.append('"').toString();
   }
 
   /**
@@ -806,8 +658,6 @@ final class TeacherTokenizer {
    * @return The parsed section.
    */
   private static ModelSection parseModel(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     List<String> tokensById = null;
     String unkToken = null;
@@ -816,16 +666,7 @@ final class TeacherTokenizer {
     boolean seenUnkToken = false;
     boolean seenUnkId = false;
     boolean seenVocabulary = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return new ModelSection(null, null, null, null);
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
       switch (key) {
         case "type" -> {
           if (seenType) {
@@ -859,16 +700,8 @@ final class TeacherTokenizer {
         }
         default -> cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return new ModelSection(type, tokensById, unkToken, unkId);
-      }
-      throw cursor.malformed("Expected ',' or '}' after a model field, got '" + next + "'");
     }
+    return new ModelSection(type, tokensById, unkToken, unkId);
   }
 
   /**
@@ -879,31 +712,12 @@ final class TeacherTokenizer {
    */
   private static List<String> parseVocab(JsonCursor cursor) throws InvalidFormatException {
     if (cursor.peek() == '{') {
-      cursor.consume();
-      cursor.skipWhitespace();
       final Map<Long, String> tokenById = new HashMap<>();
-      if (cursor.peek() == '}') {
-        cursor.consume();
-      } else {
-        while (true) {
-          cursor.skipWhitespace();
-          final String token = cursor.parseString();
-          cursor.skipWhitespace();
-          cursor.expect(':');
-          cursor.skipWhitespace();
-          final long id = cursor.parseLong();
-          if (tokenById.putIfAbsent(id, token) != null) {
-            throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
-          }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or '}' after a vocab entry, got '" + next + "'");
+      for (String token = cursor.firstKey(); token != null;
+           token = cursor.nextKey("after a vocab entry")) {
+        final long id = cursor.parseLong();
+        if (tokenById.putIfAbsent(id, token) != null) {
+          throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
         }
       }
       final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
@@ -918,15 +732,9 @@ final class TeacherTokenizer {
       }
       return ordered;
     }
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<String> pieces = new ArrayList<>();
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      return pieces;
-    }
-    while (true) {
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after a vocab entry")) {
       cursor.expect('[');
       cursor.skipWhitespace();
       pieces.add(cursor.parseString());
@@ -936,16 +744,8 @@ final class TeacherTokenizer {
       cursor.skipValue();
       cursor.skipWhitespace();
       cursor.expect(']');
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        return pieces;
-      }
-      throw cursor.malformed("Expected ',' or ']' after a vocab entry, got '" + next + "'");
     }
+    return pieces;
   }
 
   /**
@@ -955,62 +755,28 @@ final class TeacherTokenizer {
    */
   private static Set<String> parseAddedTokenContents(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final Set<String> contents = new HashSet<>();
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      return contents;
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      cursor.expect('{');
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after an added token")) {
       String content = null;
       boolean seenContent = false;
-      if (cursor.peek() == '}') {
-        cursor.consume();
-      } else {
-        while (true) {
-          cursor.skipWhitespace();
-          final String key = cursor.parseString();
-          cursor.skipWhitespace();
-          cursor.expect(':');
-          cursor.skipWhitespace();
-          if ("content".equals(key)) {
-            if (seenContent) {
-              throw cursor.malformed("Field 'added_tokens[].content' appears more than once");
-            }
-            seenContent = true;
-            content = cursor.parseString();
-          } else {
-            cursor.skipValue();
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after an added token field")) {
+        if ("content".equals(key)) {
+          if (seenContent) {
+            throw cursor.malformed("Field 'added_tokens[].content' appears more than once");
           }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or '}' after an added token field, got '" + next
-              + "'");
+          seenContent = true;
+          content = cursor.parseString();
+        } else {
+          cursor.skipValue();
         }
       }
       if (content != null) {
         contents.add(content);
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        return contents;
-      }
-      throw cursor.malformed("Expected ',' or ']' after an added token, got '" + next + "'");
     }
+    return contents;
   }
 
   /** The wrapper names or ids of a post-processor, plus its special-token id table. */
@@ -1033,8 +799,6 @@ final class TeacherTokenizer {
     if (cursor.consumeLiteral("null")) {
       return new PostProcessor(List.of(), List.of(), null, null, Map.of());
     }
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     List<String> bosNames = List.of();
     List<String> eosNames = List.of();
@@ -1046,66 +810,48 @@ final class TeacherTokenizer {
     boolean seenSpecialTokens = false;
     boolean seenCls = false;
     boolean seenSep = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      while (true) {
-        cursor.skipWhitespace();
-        final String key = cursor.parseString();
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
-          case "type" -> {
-            if (seenType) {
-              throw cursor.malformed("Field 'post_processor.type' appears more than once");
-            }
-            seenType = true;
-            type = cursor.parseString();
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a post-processor field")) {
+      switch (key) {
+        case "type" -> {
+          if (seenType) {
+            throw cursor.malformed("Field 'post_processor.type' appears more than once");
           }
-          case "single" -> {
-            if (seenSingle) {
-              throw cursor.malformed("Field 'post_processor.single' appears more than once");
-            }
-            seenSingle = true;
-            final List<List<String>> wrapper = parseTemplate(cursor);
-            bosNames = wrapper.get(0);
-            eosNames = wrapper.get(1);
-          }
-          case "special_tokens" -> {
-            if (seenSpecialTokens) {
-              throw cursor.malformed(
-                  "Field 'post_processor.special_tokens' appears more than once");
-            }
-            seenSpecialTokens = true;
-            specialTokenIds = parseSpecialTokenIds(cursor);
-          }
-          case "cls" -> {
-            if (seenCls) {
-              throw cursor.malformed("Field 'post_processor.cls' appears more than once");
-            }
-            seenCls = true;
-            clsId = parseTokenIdPair(cursor);
-          }
-          case "sep" -> {
-            if (seenSep) {
-              throw cursor.malformed("Field 'post_processor.sep' appears more than once");
-            }
-            seenSep = true;
-            sepId = parseTokenIdPair(cursor);
-          }
-          default -> cursor.skipValue();
+          seenType = true;
+          type = cursor.parseString();
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
+        case "single" -> {
+          if (seenSingle) {
+            throw cursor.malformed("Field 'post_processor.single' appears more than once");
+          }
+          seenSingle = true;
+          final List<List<String>> wrapper = parseTemplate(cursor);
+          bosNames = wrapper.get(0);
+          eosNames = wrapper.get(1);
         }
-        if (next == '}') {
-          break;
+        case "special_tokens" -> {
+          if (seenSpecialTokens) {
+            throw cursor.malformed(
+                "Field 'post_processor.special_tokens' appears more than once");
+          }
+          seenSpecialTokens = true;
+          specialTokenIds = parseSpecialTokenIds(cursor);
         }
-        throw cursor.malformed("Expected ',' or '}' after a post-processor field, got '" + next
-            + "'");
+        case "cls" -> {
+          if (seenCls) {
+            throw cursor.malformed("Field 'post_processor.cls' appears more than once");
+          }
+          seenCls = true;
+          clsId = parseTokenIdPair(cursor);
+        }
+        case "sep" -> {
+          if (seenSep) {
+            throw cursor.malformed("Field 'post_processor.sep' appears more than once");
+          }
+          seenSep = true;
+          sepId = parseTokenIdPair(cursor);
+        }
+        default -> cursor.skipValue();
       }
     }
     if (type == null) {
@@ -1173,53 +919,27 @@ final class TeacherTokenizer {
       requireSingleSequence(sequenceCount, cursor);
       return List.of(bos, eos);
     }
-    cursor.expect('[');
-    cursor.skipWhitespace();
     List<String> current = bos;
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      throw cursor.malformed("A single template needs exactly one sequence placeholder; found 0");
-    }
-    while (true) {
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after a template item")) {
       cursor.expect('{');
       cursor.skipWhitespace();
       final String itemType = cursor.parseString();
       cursor.skipWhitespace();
       cursor.expect(':');
       cursor.skipWhitespace();
-      cursor.expect('{');
-      cursor.skipWhitespace();
       String id = null;
       boolean seenId = false;
-      if (cursor.peek() == '}') {
-        cursor.consume();
-      } else {
-        while (true) {
-          cursor.skipWhitespace();
-          final String key = cursor.parseString();
-          cursor.skipWhitespace();
-          cursor.expect(':');
-          cursor.skipWhitespace();
-          if ("id".equals(key)) {
-            if (seenId) {
-              throw cursor.malformed("Field 'post_processor.single[].id' appears more than once");
-            }
-            seenId = true;
-            id = cursor.parseString();
-          } else {
-            cursor.skipValue();
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a template item field")) {
+        if ("id".equals(key)) {
+          if (seenId) {
+            throw cursor.malformed("Field 'post_processor.single[].id' appears more than once");
           }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or '}' after a template item field, got '" + next
-              + "'");
+          seenId = true;
+          id = cursor.parseString();
+        } else {
+          cursor.skipValue();
         }
       }
       cursor.skipWhitespace();
@@ -1238,15 +958,6 @@ final class TeacherTokenizer {
       } else {
         throw cursor.malformed("Unknown template item type: '" + itemType + "'");
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or ']' after a template item, got '" + next + "'");
     }
     requireSingleSequence(sequenceCount, cursor);
     return List.of(bos, eos);
@@ -1274,79 +985,41 @@ final class TeacherTokenizer {
    */
   private static Map<String, Long> parseSpecialTokenIds(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     final Map<String, Long> ids = new HashMap<>();
     final Set<String> names = new HashSet<>();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return ids;
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String name = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String name = cursor.firstKey(); name != null;
+         name = cursor.nextKey("after a special token")) {
       if (!names.add(name)) {
         throw cursor.malformed("Special token '" + name + "' appears more than once");
       }
-      cursor.expect('{');
-      cursor.skipWhitespace();
       Long id = null;
       boolean seenIds = false;
-      if (cursor.peek() == '}') {
-        cursor.consume();
-      } else {
-        while (true) {
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a special token field")) {
+        if ("ids".equals(key)) {
+          if (seenIds) {
+            throw cursor.malformed("Field 'post_processor.special_tokens."
+                + name + ".ids' appears more than once");
+          }
+          seenIds = true;
+          cursor.expect('[');
           cursor.skipWhitespace();
-          final String key = cursor.parseString();
+          id = cursor.parseLong();
           cursor.skipWhitespace();
-          cursor.expect(':');
-          cursor.skipWhitespace();
-          if ("ids".equals(key)) {
-            if (seenIds) {
-              throw cursor.malformed("Field 'post_processor.special_tokens."
-                  + name + ".ids' appears more than once");
-            }
-            seenIds = true;
-            cursor.expect('[');
+          while (cursor.consume() == ',') {
             cursor.skipWhitespace();
-            id = cursor.parseLong();
-            cursor.skipWhitespace();
-            while (cursor.consume() == ',') {
-              cursor.skipWhitespace();
-              cursor.skipValue();
-              cursor.skipWhitespace();
-            }
-          } else {
             cursor.skipValue();
+            cursor.skipWhitespace();
           }
-          cursor.skipWhitespace();
-          final char next = cursor.consume();
-          if (next == ',') {
-            continue;
-          }
-          if (next == '}') {
-            break;
-          }
-          throw cursor.malformed("Expected ',' or '}' after a special token field, got '" + next
-              + "'");
+        } else {
+          cursor.skipValue();
         }
       }
       if (id != null) {
         ids.put(name, id);
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return ids;
-      }
-      throw cursor.malformed("Expected ',' or '}' after a special token, got '" + next + "'");
     }
+    return ids;
   }
 
   /**

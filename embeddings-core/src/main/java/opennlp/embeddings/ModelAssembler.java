@@ -221,50 +221,30 @@ public final class ModelAssembler {
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String modelType = null;
     List<String> orderedVocabulary = null;
     Boolean lowerCase = null;
     boolean seenModel = false;
     boolean seenNormalizer = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      while (true) {
-        cursor.skipWhitespace();
-        final String key = cursor.parseString();
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
-          case "model" -> {
-            if (seenModel) {
-              throw cursor.malformed("Field 'model' appears more than once");
-            }
-            seenModel = true;
-            final ModelSection model = parseModel(cursor);
-            modelType = model.type();
-            orderedVocabulary = model.orderedVocabulary();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a field")) {
+      switch (key) {
+        case "model" -> {
+          if (seenModel) {
+            throw cursor.malformed("Field 'model' appears more than once");
           }
-          case "normalizer" -> {
-            if (seenNormalizer) {
-              throw cursor.malformed("Field 'normalizer' appears more than once");
-            }
-            seenNormalizer = true;
-            lowerCase = TeacherTokenizer.parseNormalizerLowercase(cursor);
+          seenModel = true;
+          final ModelSection model = parseModel(cursor);
+          modelType = model.type();
+          orderedVocabulary = model.orderedVocabulary();
+        }
+        case "normalizer" -> {
+          if (seenNormalizer) {
+            throw cursor.malformed("Field 'normalizer' appears more than once");
           }
-          default -> cursor.skipValue();
+          seenNormalizer = true;
+          lowerCase = TeacherTokenizer.parseNormalizerLowercase(cursor);
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
-        }
-        if (next == '}') {
-          break;
-        }
-        throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
+        default -> cursor.skipValue();
       }
     }
     cursor.requireEnd("Trailing content after the top-level object");
@@ -286,22 +266,11 @@ public final class ModelAssembler {
    * @return The parsed type and, for a dictionary vocabulary, the ordered rows.
    */
   private static ModelSection parseModel(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     List<String> orderedVocabulary = null;
     boolean seenType = false;
     boolean seenVocabulary = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return new ModelSection(null, null);
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
       if ("type".equals(key)) {
         if (seenType) {
           throw cursor.malformed("Field 'model.type' appears more than once");
@@ -321,16 +290,8 @@ public final class ModelAssembler {
       } else {
         cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return new ModelSection(type, orderedVocabulary);
-      }
-      throw cursor.malformed("Expected ',' or '}' after a model field, got '" + next + "'");
     }
+    return new ModelSection(type, orderedVocabulary);
   }
 
   /**
@@ -343,20 +304,10 @@ public final class ModelAssembler {
    */
   private static List<String> parseVocabularyDictionary(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     final Map<Long, String> tokenById = new LinkedHashMap<>();
     final Map<String, Long> idByToken = new LinkedHashMap<>();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return List.of();
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String token = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String token = cursor.firstKey(); token != null;
+         token = cursor.nextKey("after a vocab entry")) {
       final long id = cursor.parseLong();
       final Long previousId = idByToken.putIfAbsent(token, id);
       if (previousId != null) {
@@ -366,15 +317,6 @@ public final class ModelAssembler {
       if (tokenById.putIfAbsent(id, token) != null) {
         throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or '}' after a vocab entry, got '" + next + "'");
     }
     final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
     entries.sort(Comparator.comparingLong(Map.Entry::getKey));

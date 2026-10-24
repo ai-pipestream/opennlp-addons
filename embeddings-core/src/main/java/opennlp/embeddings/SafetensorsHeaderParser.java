@@ -63,19 +63,8 @@ final class SafetensorsHeaderParser {
     Map<String, String> metadata = Map.of();
     boolean metadataSeen = false;
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      requireEnd();
-      return new Result(tensors, metadata);
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a header entry")) {
       if (METADATA_KEY.equals(key)) {
         if (metadataSeen) {
           throw cursor.malformed("Field '__metadata__' appears more than once");
@@ -85,15 +74,6 @@ final class SafetensorsHeaderParser {
       } else {
         tensors.add(parseTensorInfo(key));
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or '}' after a header entry, got '" + next + "'");
     }
     requireEnd();
     return new Result(tensors, metadata);
@@ -113,7 +93,6 @@ final class SafetensorsHeaderParser {
    * @param name The tensor's name, the key it was declared under.
    */
   private TensorInfo parseTensorInfo(String name) throws InvalidFormatException {
-    cursor.expect('{');
     String dtype = null;
     int[] shape = null;
     long dataOffsetBegin = -1;
@@ -121,13 +100,12 @@ final class SafetensorsHeaderParser {
     boolean dtypeSeen = false;
     boolean shapeSeen = false;
     boolean dataOffsetsSeen = false;
-    cursor.skipWhitespace();
-    while (cursor.peek() != '}') {
-      cursor.skipWhitespace();
-      final String field = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
+    String field = cursor.firstKey();
+    if (field == null) {
+      throw cursor.malformed("Tensor '" + name + "' has an empty object; missing dtype, shape, "
+          + "and data_offsets");
+    }
+    for (; field != null; field = cursor.nextKey("in tensor '" + name + "'")) {
       switch (field) {
         case "dtype" -> {
           if (dtypeSeen) {
@@ -159,58 +137,26 @@ final class SafetensorsHeaderParser {
         }
         default -> cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-        continue;
-      }
-      if (next == '}') {
-        if (dtype == null || shape == null || dataOffsetBegin < 0 || dataOffsetEnd < 0) {
-          throw cursor.malformed("Tensor '" + name
-              + "' is missing dtype, shape, or data_offsets");
-        }
-        if (dataOffsetEnd < dataOffsetBegin) {
-          throw cursor.malformed("Tensor '" + name
-              + "' has data_offsets whose end precedes their beginning");
-        }
-        return new TensorInfo(name, dtype, shape, dataOffsetBegin, dataOffsetEnd);
-      }
-      throw cursor.malformed("Expected ',' or '}' in tensor '" + name + "', got '" + next + "'");
     }
-    throw cursor.malformed("Tensor '" + name + "' has an empty object; missing dtype, shape, "
-        + "and data_offsets");
+    if (dtype == null || shape == null || dataOffsetBegin < 0 || dataOffsetEnd < 0) {
+      throw cursor.malformed("Tensor '" + name + "' is missing dtype, shape, or data_offsets");
+    }
+    if (dataOffsetEnd < dataOffsetBegin) {
+      throw cursor.malformed("Tensor '" + name
+          + "' has data_offsets whose end precedes their beginning");
+    }
+    return new TensorInfo(name, dtype, shape, dataOffsetBegin, dataOffsetEnd);
   }
 
   /** {@return a JSON object of string values, used for the {@code __metadata__} map} */
   private Map<String, String> parseStringMap() throws InvalidFormatException {
     final Map<String, String> map = new LinkedHashMap<>();
-    cursor.expect('{');
-    cursor.skipWhitespace();
-    if (cursor.peek() == '}') {
-      cursor.consume();
-      return map;
-    }
-    while (true) {
-      cursor.skipWhitespace();
-      final String key = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
-      final String value = cursor.parseString();
-      if (map.putIfAbsent(key, value) != null) {
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("in __metadata__")) {
+      if (map.putIfAbsent(key, cursor.parseString()) != null) {
         throw cursor.malformed("Metadata field '" + key + "' appears more than once");
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == '}') {
-        return map;
-      }
-      throw cursor.malformed("Expected ',' or '}' in __metadata__, got '" + next + "'");
     }
+    return map;
   }
 
   /**
@@ -232,25 +178,10 @@ final class SafetensorsHeaderParser {
 
   /** {@return a JSON array of integers as a {@code long[]}} */
   private long[] parseLongArray() throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<Long> values = new ArrayList<>();
-    if (cursor.peek() == ']') {
-      cursor.consume();
-      return new long[0];
-    }
-    while (true) {
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("in a number array")) {
       values.add(cursor.parseLong());
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        continue;
-      }
-      if (next == ']') {
-        break;
-      }
-      throw cursor.malformed("Expected ',' or ']' in a number array, got '" + next + "'");
     }
     final long[] array = new long[values.size()];
     for (int i = 0; i < array.length; i++) {

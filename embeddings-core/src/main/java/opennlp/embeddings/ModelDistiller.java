@@ -529,7 +529,7 @@ public final class ModelDistiller {
         + "  \"model_type\": \"model2vec\",\n"
         + "  \"architectures\": [\"StaticModel\"],\n"
         + "  \"tokenizer_name\": "
-        + jsonString(String.valueOf(name == null ? teacherDirectory : name)) + ",\n"
+        + JsonStrings.quote(String.valueOf(name == null ? teacherDirectory : name)) + ",\n"
         + teacherRevisionField(teacherDirectory)
         + "  \"apply_pca\": " + pcaDims + ",\n"
         + "  \"sif_coefficient\": " + SIF_COEFFICIENT + ",\n"
@@ -553,42 +553,7 @@ public final class ModelDistiller {
    */
   private String teacherRevisionField(Path teacherDirectory) throws IOException {
     final String revision = HuggingFaceModelCache.pinnedRevision(teacherDirectory);
-    return revision == null ? "" : "  \"teacher_revision\": " + jsonString(revision) + ",\n";
-  }
-
-  /**
-   * {@return {@code value} as a JSON string literal}
-   *
-   * <p>Package-private for tests: the characters that need escaping are illegal in file names
-   * on Windows, so a teacher directory cannot carry them there and the escaper is exercised
-   * directly instead.</p>
-   *
-   * @param value The value to quote and escape.
-   */
-  String jsonString(String value) {
-    final StringBuilder json = new StringBuilder(value.length() + 2).append('"');
-    for (int i = 0; i < value.length(); i++) {
-      final char c = value.charAt(i);
-      switch (c) {
-        case '"' -> json.append("\\\"");
-        case '\\' -> json.append("\\\\");
-        case '\b' -> json.append("\\b");
-        case '\f' -> json.append("\\f");
-        case '\n' -> json.append("\\n");
-        case '\r' -> json.append("\\r");
-        case '\t' -> json.append("\\t");
-        default -> {
-          if (c < 0x20) {
-            json.append("\\u00")
-                .append(Character.forDigit(c >>> 4, 16))
-                .append(Character.forDigit(c & 0x0f, 16));
-          } else {
-            json.append(c);
-          }
-        }
-      }
-    }
-    return json.append('"').toString();
+    return revision == null ? "" : "  \"teacher_revision\": " + JsonStrings.quote(revision) + ",\n";
   }
 
   /**

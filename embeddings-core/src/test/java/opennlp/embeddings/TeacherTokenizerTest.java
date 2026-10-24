@@ -585,7 +585,7 @@ class TeacherTokenizerTest {
     assertEquals(2, tokenizer.vocabularySize());
     final String json = Files.readString(cleaned);
     assertTrue(json.contains("[" + rawToken + ",0.0]"), json);
-    assertTrue(json.contains("\"content\":\"<unk\\\\" + "\\" + "u0009>\""), json);
+    assertTrue(json.contains("\"content\":\"<unk\\\\\\t>\""), json);
   }
 
   /** The rewrite emits only fields the teacher had, so an absent overlay stays absent. */

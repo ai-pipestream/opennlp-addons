@@ -116,37 +116,17 @@ final class FlatJsonFields {
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
     T value = null;
     boolean seen = false;
-    if (cursor.peek() == '}') {
-      cursor.consume();
-    } else {
-      while (true) {
-        cursor.skipWhitespace();
-        final String key = cursor.parseString();
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        if (field.equals(key)) {
-          if (seen) {
-            throw cursor.malformed("Field '" + field + "' appears more than once");
-          }
-          seen = true;
-          value = valueReader.read(cursor);
-        } else {
-          cursor.skipValue();
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a field")) {
+      if (field.equals(key)) {
+        if (seen) {
+          throw cursor.malformed("Field '" + field + "' appears more than once");
         }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          continue;
-        }
-        if (next == '}') {
-          break;
-        }
-        throw cursor.malformed("Expected ',' or '}' after a field, got '" + next + "'");
+        seen = true;
+        value = valueReader.read(cursor);
+      } else {
+        cursor.skipValue();
       }
     }
     cursor.requireEnd("Trailing content after the top-level object");

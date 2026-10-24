@@ -241,21 +241,6 @@ class ModelDistillerTest {
   }
 
   /**
-   * The JSON escape behind {@code tokenizer_name} is exercised directly, because every
-   * character that needs escaping (quote, backslash, control characters) is illegal in file
-   * names on Windows, so a real teacher directory cannot carry such a name there.
-   */
-  @Test
-  void testJsonStringEscapesQuotesBackslashesAndControlCharacters() {
-    final ModelDistiller distiller = new ModelDistiller(1, null);
-    assertEquals("\"teacher\\\"quoted\"", distiller.jsonString("teacher\"quoted"));
-    assertEquals("\"back\\\\slash\"", distiller.jsonString("back\\slash"));
-    assertEquals("\"line\\nbreak\"", distiller.jsonString("line\nbreak"));
-    assertEquals("\"\\u0001\"", distiller.jsonString("\u0001"));
-    assertEquals("\"plain\"", distiller.jsonString("plain"));
-  }
-
-  /**
    * A bad output argument must be rejected before the teacher reference is resolved, so that a
    * mistyped command against a hub id does not download gigabytes first. The teacher here is a
    * well-formed hub id that would otherwise be fetched.

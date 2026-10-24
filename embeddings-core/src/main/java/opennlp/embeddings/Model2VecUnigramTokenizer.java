@@ -146,39 +146,20 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   private static Parsed parse(Path file) throws IOException {
     final JsonCursor cursor = new JsonCursor(Files.readString(file), file.getFileName().toString());
     cursor.skipWhitespace();
-    cursor.expect('{');
-    cursor.skipWhitespace();
     ParsedModel model = null;
     ParsedNormalizer normalizer = null;
     boolean metaspace = false;
     List<AddedToken> addedTokens = List.of();
     final Set<String> fields = new HashSet<>();
-    if (cursor.peek() != '}') {
-      while (true) {
-        final String key = uniqueKey(cursor, fields, "top-level");
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
-          case "model" -> model = parseModel(cursor);
-          case "normalizer" -> normalizer = parseNormalizer(cursor);
-          case "pre_tokenizer" -> metaspace = parsePreTokenizer(cursor);
-          case "added_tokens" -> addedTokens = parseAddedTokens(cursor);
-          default -> cursor.skipValue();
-        }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          cursor.skipWhitespace();
-          continue;
-        }
-        if (next == '}') {
-          break;
-        }
-        throw cursor.malformed("Expected ',' or '}' after a top-level field");
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a top-level field")) {
+      switch (uniqueKey(cursor, fields, "top-level", key)) {
+        case "model" -> model = parseModel(cursor);
+        case "normalizer" -> normalizer = parseNormalizer(cursor);
+        case "pre_tokenizer" -> metaspace = parsePreTokenizer(cursor);
+        case "added_tokens" -> addedTokens = parseAddedTokens(cursor);
+        default -> cursor.skipValue();
       }
-    } else {
-      cursor.consume();
     }
     cursor.requireEnd("Trailing content after the top-level object");
     if (model == null || !UNIGRAM.equals(model.type())) {
@@ -226,48 +207,28 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
 
   /** Reads the Unigram model object. */
   private static ParsedModel parseModel(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     int unknownId = -1;
     boolean byteFallback = false;
     List<Piece> pieces = null;
     final Set<String> fields = new HashSet<>();
-    while (cursor.peek() != '}') {
-      final String key = uniqueKey(cursor, fields, "model");
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
-      switch (key) {
+    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
+      switch (uniqueKey(cursor, fields, "model", key)) {
         case "type" -> type = cursor.parseString();
         case "unk_id" -> unknownId = checkedInt(cursor.parseLong(), cursor, "model.unk_id");
         case "byte_fallback" -> byteFallback = cursor.parseBoolean();
         case "vocab" -> pieces = parseVocabulary(cursor);
         default -> cursor.skipValue();
       }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-        if (cursor.peek() == '}') {
-          throw cursor.malformed("Trailing comma in model object");
-        }
-      } else if (next != '}') {
-        throw cursor.malformed("Expected ',' or '}' after a model field");
-      } else {
-        return new ParsedModel(type, unknownId, byteFallback, pieces);
-      }
     }
-    cursor.consume();
     return new ParsedModel(type, unknownId, byteFallback, pieces);
   }
 
   /** Reads the ordered Unigram vocabulary. */
   private static List<Piece> parseVocabulary(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<Piece> pieces = new ArrayList<>();
-    while (cursor.peek() != ']') {
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after a vocabulary entry")) {
       cursor.expect('[');
       cursor.skipWhitespace();
       final String text = cursor.parseString();
@@ -281,20 +242,7 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
       cursor.skipWhitespace();
       cursor.expect(']');
       pieces.add(new Piece(text, (float) score, TYPE_NORMAL));
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-        if (cursor.peek() == ']') {
-          throw cursor.malformed("Trailing comma in model vocabulary");
-        }
-      } else if (next != ']') {
-        throw cursor.malformed("Expected ',' or ']' after a vocabulary entry");
-      } else {
-        return pieces;
-      }
     }
-    cursor.consume();
     return pieces;
   }
 
@@ -309,8 +257,6 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   /** Adds one normalizer object to {@code builder}. */
   private static void parseNormalizerObject(JsonCursor cursor, NormalizerBuilder builder)
       throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     String precompiled = null;
     List<ParsedNormalizer> children = null;
@@ -319,12 +265,9 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
     boolean stripLeft = false;
     boolean stripRight = false;
     final Set<String> fields = new HashSet<>();
-    while (cursor.peek() != '}') {
-      final String key = uniqueKey(cursor, fields, "normalizer");
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
-      switch (key) {
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a normalizer field")) {
+      switch (uniqueKey(cursor, fields, "normalizer", key)) {
         case "type" -> type = cursor.parseString();
         case "precompiled_charsmap" -> precompiled = cursor.parseString();
         case "normalizers" -> children = parseNormalizerChildren(cursor);
@@ -333,15 +276,6 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
         case "strip_left" -> stripLeft = cursor.parseBoolean();
         case "strip_right" -> stripRight = cursor.parseBoolean();
         default -> cursor.skipValue();
-      }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-      } else if (next != '}') {
-        throw cursor.malformed("Expected ',' or '}' after a normalizer field");
-      } else {
-        break;
       }
     }
     if (type == null) {
@@ -385,27 +319,13 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   /** Reads the children of a Sequence normalizer. */
   private static List<ParsedNormalizer> parseNormalizerChildren(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<ParsedNormalizer> children = new ArrayList<>();
-    while (cursor.peek() != ']') {
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after a normalizer")) {
       final NormalizerBuilder child = new NormalizerBuilder();
       parseNormalizerObject(cursor, child);
       children.add(new ParsedNormalizer(child.precompiledCharsMap, child.operations));
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-        if (cursor.peek() == ']') {
-          throw cursor.malformed("Trailing comma in normalizer array");
-        }
-      } else if (next != ']') {
-        throw cursor.malformed("Expected ',' or ']' after a normalizer");
-      } else {
-        return children;
-      }
     }
-    cursor.consume();
     return children;
   }
 
@@ -448,33 +368,19 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
 
   /** Reads the pre-tokenizer and reports whether it is the supported Metaspace form. */
   private static boolean parsePreTokenizer(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
     String type = null;
     String replacement = null;
     String prependScheme = null;
     boolean split = true;
     final Set<String> fields = new HashSet<>();
-    while (cursor.peek() != '}') {
-      final String key = uniqueKey(cursor, fields, "pre-tokenizer");
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
-      switch (key) {
+    for (String key = cursor.firstKey(); key != null;
+         key = cursor.nextKey("after a pre-tokenizer field")) {
+      switch (uniqueKey(cursor, fields, "pre-tokenizer", key)) {
         case "type" -> type = cursor.parseString();
         case "replacement" -> replacement = cursor.parseString();
         case "prepend_scheme" -> prependScheme = cursor.parseString();
         case "split" -> split = cursor.parseBoolean();
         default -> cursor.skipValue();
-      }
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-      } else if (next != '}') {
-        throw cursor.malformed("Expected ',' or '}' after a pre-tokenizer field");
-      } else {
-        break;
       }
     }
     return METASPACE.equals(type) && MARKER.equals(replacement)
@@ -484,36 +390,21 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   /** Reads tokenizer rows that carry added-token metadata. */
   private static List<AddedToken> parseAddedTokens(JsonCursor cursor)
       throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
     final List<AddedToken> tokens = new ArrayList<>();
     final Set<Integer> tokenIds = new HashSet<>();
-    while (cursor.peek() != ']') {
-      cursor.expect('{');
-      cursor.skipWhitespace();
+    for (boolean more = cursor.firstElement(); more;
+         more = cursor.nextElement("after an added token")) {
       int id = -1;
       String content = null;
       boolean special = false;
       final Set<String> fields = new HashSet<>();
-      while (cursor.peek() != '}') {
-        final String key = uniqueKey(cursor, fields, "added token");
-        cursor.skipWhitespace();
-        cursor.expect(':');
-        cursor.skipWhitespace();
-        switch (key) {
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after an added-token field")) {
+        switch (uniqueKey(cursor, fields, "added token", key)) {
           case "id" -> id = checkedInt(cursor.parseLong(), cursor, "added token id");
           case "content" -> content = cursor.parseString();
           case "special" -> special = cursor.parseBoolean();
           default -> cursor.skipValue();
-        }
-        cursor.skipWhitespace();
-        final char next = cursor.consume();
-        if (next == ',') {
-          cursor.skipWhitespace();
-        } else if (next != '}') {
-          throw cursor.malformed("Expected ',' or '}' after an added-token field");
-        } else {
-          break;
         }
       }
       if (id < 0 || content == null) {
@@ -523,35 +414,22 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
         throw cursor.malformed("added token id " + id + " occurs more than once");
       }
       tokens.add(new AddedToken(id, content, special));
-      cursor.skipWhitespace();
-      final char next = cursor.consume();
-      if (next == ',') {
-        cursor.skipWhitespace();
-        if (cursor.peek() == ']') {
-          throw cursor.malformed("Trailing comma in added-token array");
-        }
-      } else if (next != ']') {
-        throw cursor.malformed("Expected ',' or ']' after an added token");
-      } else {
-        return tokens;
-      }
     }
-    cursor.consume();
     return tokens;
   }
 
   /**
-   * Reads an object field name and rejects a name already seen in that object.
+   * Rejects an object field name already seen in that object.
    *
-   * @param cursor The JSON cursor positioned at the field name.
-   * @param fields The names already read from the current object.
+   * @param cursor The JSON cursor, for the error location.
+   * @param fields The names already read from the current object; {@code key} is added.
    * @param object A short object name for error messages.
+   * @param key    The field name just read.
    * @return The field name.
    * @throws InvalidFormatException Thrown if the field name occurs more than once.
    */
-  private static String uniqueKey(JsonCursor cursor, Set<String> fields, String object)
-      throws InvalidFormatException {
-    final String key = cursor.parseString();
+  private static String uniqueKey(JsonCursor cursor, Set<String> fields, String object,
+                                  String key) throws InvalidFormatException {
     if (!fields.add(key)) {
       throw cursor.malformed(object + " field '" + key + "' occurs more than once");
     }

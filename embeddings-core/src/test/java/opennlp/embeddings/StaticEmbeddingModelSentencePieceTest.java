@@ -132,7 +132,7 @@ class StaticEmbeddingModelSentencePieceTest {
       if (i > 0) {
         json.append(',');
       }
-      json.append('[').append(EmbeddingTestFixtures.jsonString(pieces.get(i)))
+      json.append('[').append(JsonStrings.quote(pieces.get(i)))
           .append(",-").append(i % 7).append(".5]");
     }
     return json.append("]}}").toString();

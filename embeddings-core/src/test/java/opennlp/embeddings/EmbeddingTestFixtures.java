@@ -442,7 +442,7 @@ final class EmbeddingTestFixtures {
       if (i > 0) {
         json.append(',');
       }
-      json.append('[').append(jsonString(rows.get(i))).append(",-1.5]");
+      json.append('[').append(JsonStrings.quote(rows.get(i))).append(",-1.5]");
     }
     Files.writeString(dir.resolve("tokenizer.json"), json.append("]}}").toString());
     if (!terms.isEmpty()) {
@@ -456,29 +456,5 @@ final class EmbeddingTestFixtures {
     }
     SafetensorsTestFiles.write(dir.resolve("model.safetensors"),
         SafetensorsTestFiles.matrix("embeddings", matrix));
-  }
-
-  /**
-   * {@return {@code value} as a JSON string literal, quoted and escaped}
-   *
-   * @param value The string to quote.
-   */
-  static String jsonString(String value) {
-    final StringBuilder quoted = new StringBuilder("\"");
-    for (int i = 0; i < value.length(); i++) {
-      final char c = value.charAt(i);
-      switch (c) {
-        case '"' -> quoted.append("\\\"");
-        case '\\' -> quoted.append("\\\\");
-        default -> {
-          if (c < 0x20) {
-            quoted.append(String.format("\\u%04x", (int) c));
-          } else {
-            quoted.append(c);
-          }
-        }
-      }
-    }
-    return quoted.append('"').toString();
   }
 }

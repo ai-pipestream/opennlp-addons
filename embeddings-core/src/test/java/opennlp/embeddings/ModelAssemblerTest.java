@@ -246,7 +246,7 @@ class ModelAssemblerTest {
       if (rows > 0) {
         vocab.append(',');
       }
-      vocab.append('[').append(EmbeddingTestFixtures.jsonString(tokenizer.idToPiece(id)))
+      vocab.append('[').append(JsonStrings.quote(tokenizer.idToPiece(id)))
           .append(",-1.0]");
       rows++;
     }
