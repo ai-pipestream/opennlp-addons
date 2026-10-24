@@ -40,16 +40,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
+import opennlp.tools.util.InvalidFormatException;
 import opennlp.tools.util.ParamChecks;
+import opennlp.tools.util.StringUtil;
 
 /**
  * Loads euro foreign exchange reference rates from an uncompressed, UTF-8 ECB history
  * CSV file. OpenNLP does not download or bundle the data.
  *
  * <p>The header begins with {@code Date,} followed by unique currency codes of 3
- * uppercase ASCII letters. Fields are unquoted. ASCII whitespace padding is accepted;
- * other ASCII control characters are rejected. Dates must be unique, and records must
- * include all columns. A header or record may end with one additional empty field.
+ * uppercase ASCII letters. Fields are unquoted. Unicode whitespace padding around a field
+ * is accepted; other control characters are rejected. Dates must be unique, and records
+ * must include all columns. A header or record may end with one additional empty field.
  * Blank quotes and {@code N/A} indicate unavailable currencies; numeric quotes must be
  * positive. An explicit {@code EUR} quote must equal 1.</p>
  *
@@ -82,6 +84,9 @@ public class EcbFxRates implements FxRates {
   private static final String BASE_CURRENCY = "EUR";
   private static final String NOT_AVAILABLE = "N/A";
   private static final char FIELD_SEPARATOR = ',';
+
+  /** The split limit that keeps every empty field, including a trailing one. */
+  private static final int KEEP_EMPTY_FIELDS = -1;
   private static final String HEADER_PREFIX = "Date,";
 
   private final TreeMap<LocalDate, Map<String, BigDecimal>> table;
@@ -101,8 +106,8 @@ public class EcbFxRates implements FxRates {
    * @param csv The history CSV file. Must not be {@code null}.
    * @return A loaded {@link EcbFxRates}. Never {@code null}.
    * @throws IOException Thrown if reading or UTF-8 decoding fails.
-   * @throws IllegalArgumentException Thrown if {@code csv} is {@code null} or the
-   *         content is not in the expected format.
+   * @throws InvalidFormatException Thrown if the content is not in the expected format.
+   * @throws IllegalArgumentException Thrown if {@code csv} is {@code null}.
    */
   public static EcbFxRates load(Path csv) throws IOException {
     ParamChecks.requireNonNullArg(csv, "csv");
@@ -118,8 +123,8 @@ public class EcbFxRates implements FxRates {
    *           fully but not closed.
    * @return A loaded {@link EcbFxRates}. Never {@code null}.
    * @throws IOException Thrown if reading or UTF-8 decoding fails.
-   * @throws IllegalArgumentException Thrown if {@code in} is {@code null} or the
-   *         content is not in the expected format.
+   * @throws InvalidFormatException Thrown if the content is not in the expected format.
+   * @throws IllegalArgumentException Thrown if {@code in} is {@code null}.
    */
   public static EcbFxRates load(InputStream in) throws IOException {
     ParamChecks.requireNonNullArg(in, "in");
@@ -129,29 +134,27 @@ public class EcbFxRates implements FxRates {
             .onUnmappableCharacter(CodingErrorAction.REPORT)));
     final String header = reader.readLine();
     if (header == null || !header.startsWith(HEADER_PREFIX)) {
-      throw new IllegalArgumentException("not a reference history CSV: header is " + header);
+      throw new InvalidFormatException("not a reference history CSV: header is " + header);
     }
     final List<String> currencies = currencyColumns(header);
     final TreeMap<LocalDate, Map<String, BigDecimal>> table = new TreeMap<>();
     String line;
     while ((line = reader.readLine()) != null) {
-      // ASCII CSV decision, see fields(): the JDK blank test keeps a line of information
-      // separators (0x1C to 0x1F) blank, which the padding tests pin.
-      if (line.isBlank()) {
+      if (StringUtil.isUnicodeBlank(line)) {
         continue;
       }
       final List<String> fields = fields(line);
       final int columns = currencies.size();
       if (fields.size() != columns
           && !(fields.size() == columns + 1 && fields.getLast().isEmpty())) {
-        throw new IllegalArgumentException("expected " + columns
+        throw new InvalidFormatException("expected " + columns
             + " reference history columns in row: " + line);
       }
       final LocalDate date;
       try {
         date = LocalDate.parse(fields.getFirst());
       } catch (DateTimeParseException e) {
-        throw new IllegalArgumentException("not a reference history row: " + line, e);
+        throw new InvalidFormatException("not a reference history row: " + line, e);
       }
       final Map<String, BigDecimal> rates = new HashMap<>();
       for (int i = 1; i < columns; i++) {
@@ -162,25 +165,25 @@ public class EcbFxRates implements FxRates {
           try {
             rate = new BigDecimal(value);
           } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("not a reference history rate for "
+            throw new InvalidFormatException("not a reference history rate for "
                 + currency + ": " + value + " in row: " + line, e);
           }
           if (rate.signum() <= 0) {
-            throw new IllegalArgumentException("reference history rate must be positive for "
+            throw new InvalidFormatException("reference history rate must be positive for "
                 + currency + " in row: " + line);
           }
           if (BASE_CURRENCY.equals(currency) && rate.compareTo(BigDecimal.ONE) != 0) {
-            throw new IllegalArgumentException("reference history EUR rate must equal 1 in row: " + line);
+            throw new InvalidFormatException("reference history EUR rate must equal 1 in row: " + line);
           }
           rates.put(currency, rate);
         }
       }
       if (table.putIfAbsent(date, rates) != null) {
-        throw new IllegalArgumentException("duplicate reference history date: " + date);
+        throw new InvalidFormatException("duplicate reference history date: " + date);
       }
     }
     if (table.isEmpty()) {
-      throw new IllegalArgumentException("the reference history contains no rows");
+      throw new InvalidFormatException("the reference history contains no rows");
     }
     return new EcbFxRates(table);
   }
@@ -190,25 +193,25 @@ public class EcbFxRates implements FxRates {
    *
    * @param header The CSV header beginning with {@link #HEADER_PREFIX}.
    * @return The date column followed by the currency codes.
-   * @throws IllegalArgumentException Thrown if no currency is present, a code is malformed,
+   * @throws InvalidFormatException Thrown if no currency is present, a code is malformed,
    *         or a currency is repeated.
    */
-  private static List<String> currencyColumns(String header) {
+  private static List<String> currencyColumns(String header) throws InvalidFormatException {
     final List<String> columns = fields(header);
     if (columns.getLast().isEmpty()) {
       columns.removeLast();
     }
     if (columns.size() < 2) {
-      throw new IllegalArgumentException("reference history header must name a currency");
+      throw new InvalidFormatException("reference history header must name a currency");
     }
     final Set<String> seen = new HashSet<>();
     for (int i = 1; i < columns.size(); i++) {
       final String code = columns.get(i);
       if (!currencyCode(code)) {
-        throw new IllegalArgumentException("invalid reference history currency code: " + code);
+        throw new InvalidFormatException("invalid reference history currency code: " + code);
       }
       if (!seen.add(code)) {
-        throw new IllegalArgumentException("duplicate reference history currency code: " + code);
+        throw new InvalidFormatException("duplicate reference history currency code: " + code);
       }
     }
     return columns;
@@ -233,29 +236,23 @@ public class EcbFxRates implements FxRates {
   }
 
   /**
-   * Separates unquoted CSV fields, preserving empty fields and trimming ASCII whitespace.
+   * Separates unquoted CSV fields, preserving empty fields and trimming Unicode whitespace.
    *
    * @param line The input line.
    * @return The fields in input order.
-   * @throws IllegalArgumentException Thrown if an ASCII control character is not Java whitespace.
+   * @throws InvalidFormatException Thrown if the line holds a control character that is not
+   *         Unicode whitespace.
    */
-  private static List<String> fields(String line) {
-    final List<String> fields = new ArrayList<>();
-    int start = 0;
-    for (int i = 0; i <= line.length(); i++) {
-      if (i == line.length() || line.charAt(i) == FIELD_SEPARATOR) {
-        // The ECB file is machine-written ASCII CSV that pads fields with ASCII spaces, so
-        // String.trim() covers its padding; the cells are codes, dates, and numbers, not prose.
-        fields.add(line.substring(start, i).trim());
-        start = i + 1;
-      } else {
-        final char value = line.charAt(i);
-        // Same ASCII CSV decision: only bytes below 0x20 are inspected, and the JDK definition
-        // keeps the information separators 0x1C to 0x1F as padding, which the padding tests pin.
-        if (value < ' ' && !Character.isWhitespace(value)) {
-          throw new IllegalArgumentException("invalid control character at CSV offset " + i);
-        }
+  private static List<String> fields(String line) throws InvalidFormatException {
+    for (int i = 0; i < line.length(); i++) {
+      final char value = line.charAt(i);
+      if (Character.isISOControl(value) && !StringUtil.isUnicodeWhitespace(value)) {
+        throw new InvalidFormatException("invalid control character at CSV offset " + i);
       }
+    }
+    final List<String> fields = new ArrayList<>();
+    for (final String field : StringUtil.split(line, FIELD_SEPARATOR, KEEP_EMPTY_FIELDS)) {
+      fields.add(StringUtil.trimUnicodeWhitespace(field));
     }
     return fields;
   }

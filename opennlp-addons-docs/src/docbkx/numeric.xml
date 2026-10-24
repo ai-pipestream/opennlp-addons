@@ -107,13 +107,14 @@ Document document = DocumentAnalyzer.builder()
 		<para>
 			The UTF-8 CSV starts with <code>Date,</code> followed by unique currency codes
 			of 3 uppercase ASCII letters. Fields are unquoted and dates must be unique.
-			Spaces and tabs around fields are accepted. NUL and other non-whitespace
-			control characters are rejected, including in empty fields and missing-quote markers.
+			Unicode whitespace around fields is accepted. NUL and other control
+			characters are rejected, including in empty fields and missing-quote markers.
 			Include all columns, using a blank field or <code>N/A</code> for an unavailable
 			quote. One additional empty field at the end of a header or record is accepted.
 			Quotes must be positive; an explicit <code>EUR</code> quote must equal 1.
-			Malformed tables raise <code>IllegalArgumentException</code>; reading and UTF-8
-			decoding failures raise <code>IOException</code>.
+			Malformed tables raise <code>InvalidFormatException</code>, as every table
+			loader of the add-ons does; reading and UTF-8 decoding failures raise
+			<code>IOException</code>.
 		</para>
 		<para>
 			The most recent reference date on or before the requested date is used, up to
