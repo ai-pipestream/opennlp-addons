@@ -64,7 +64,7 @@ public class AssetFolderTest {
   @Test
   void testCaptionFoldKeepsSurroundingTextAndMapsOffsets() {
     final Document document = annotated();
-    final AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
+    final AlignedText folded = new AssetFolder().fold(document);
     final String result = folded.normalizedString();
     assertEquals("Before the image. [png 5x7, 45 bytes] After the image.", result);
 
@@ -89,9 +89,9 @@ public class AssetFolderTest {
       assertEquals("image/png", mediaType);
       return "a " + content.length + " byte " + mediaType + " asset";
     };
-    final AlignedText folded = AssetFolder.fold(document, annotation ->
+    final AlignedText folded = new AssetFolder(annotation ->
         describer.describe(annotation.value().decode(document.text()),
-            annotation.value().mediaType()));
+            annotation.value().mediaType())).fold(document);
     assertEquals("Before the image. a 45 byte image/png asset After the image.",
         folded.normalizedString());
   }
@@ -99,13 +99,13 @@ public class AssetFolderTest {
   @Test
   void testDocumentWithoutTheLayerFailsLoud() {
     assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(Document.of("no layer here"), AssetFolder.caption()));
+        () -> new AssetFolder().fold(Document.of("no layer here")));
   }
 
   @Test
   void testEmptyLayerFoldsToTheIdenticalText() {
     final Document document = new AssetAnnotator().annotate(Document.of("clean text"));
-    final AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
+    final AlignedText folded = new AssetFolder().fold(document);
     assertEquals("clean text", folded.normalizedString());
     assertEquals(List.of(), document.get(AssetAnnotator.ASSETS));
   }
@@ -114,7 +114,7 @@ public class AssetFolderTest {
   void testTwoAssetFoldKeepsInterveningTextAndMapsBothSpans() {
     final String text = twoAssetText();
     final Document document = new AssetAnnotator().annotate(Document.of(text));
-    final AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
+    final AlignedText folded = new AssetFolder().fold(document);
     final String result = folded.normalizedString();
     assertEquals("One [png 5x7, 45 bytes] two [png 2x3, 45 bytes] three.", result);
 
@@ -147,7 +147,7 @@ public class AssetFolderTest {
         List.of(new Annotation<>(detected.get(1).span(), detected.get(1)),
             new Annotation<>(detected.get(0).span(), detected.get(0))));
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(document, AssetFolder.caption()));
+        () -> new AssetFolder().fold(document));
     assertEquals("asset spans must be in order and free of overlap", e.getMessage());
   }
 
@@ -155,11 +155,11 @@ public class AssetFolderTest {
   void testRejectsContractViolations() {
     final Document document = annotated();
     assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(null, AssetFolder.caption())).getMessage());
+        () -> new AssetFolder().fold(null)).getMessage());
     assertEquals("replacement must not be null", assertThrows(IllegalArgumentException.class,
-        () -> AssetFolder.fold(document, null)).getMessage());
+        () -> new AssetFolder(null)).getMessage());
     assertEquals("replacement must not return null",
         assertThrows(IllegalArgumentException.class,
-            () -> AssetFolder.fold(document, annotation -> null)).getMessage());
+            () -> new AssetFolder(annotation -> null).fold(document)).getMessage());
   }
 }

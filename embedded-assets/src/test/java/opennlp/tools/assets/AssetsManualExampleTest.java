@@ -111,7 +111,7 @@ public class AssetsManualExampleTest {
   @Test
   void testFoldExampleProducesTheStatedTextAndMapsBack() {
     final Document document = new AssetAnnotator().annotate(Document.of(TEXT));
-    final AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
+    final AlignedText folded = new AssetFolder().fold(document);
     assertEquals("An image [png 5x7, 45 bytes] follows.", folded.normalizedString());
 
     final Span original = folded.toOriginalSpan(9, 28);
@@ -126,9 +126,9 @@ public class AssetsManualExampleTest {
     final Document document = new AssetAnnotator().annotate(Document.of(TEXT));
     final BinaryContentDescriber describer =
         (content, mediaType) -> "described " + mediaType;
-    final AlignedText described = AssetFolder.fold(document, annotation ->
+    final AlignedText described = new AssetFolder(annotation ->
         describer.describe(annotation.value().decode(TEXT),
-            annotation.value().mediaType()));
+            annotation.value().mediaType())).fold(document);
     assertEquals("An image described image/png follows.", described.normalizedString());
   }
 }

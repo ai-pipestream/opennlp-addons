@@ -44,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  */
 public class AssetFullSignatureTest {
 
+  private final KnownMagics magics = new KnownMagics();
+
   private static final FileSignature JNG =
       new FileSignature("8b4a4e470d0a1a0a", "jng", "image/x-jng");
   private static final List<FileSignature> SIGNATURES = List.of(
@@ -98,7 +100,7 @@ public class AssetFullSignatureTest {
   void testCompleteSignatures(FileSignature signature, String transport) {
     final byte[] bytes = header(signature, 64);
     assertEquals(new KnownMagics.Format(signature.format(), signature.mediaType()),
-        KnownMagics.formatOf(bytes));
+        magics.formatOf(bytes));
     AssetTestSupport.assertIdentified(detector, bytes, signature.format(), signature.mediaType(), transport);
   }
 
@@ -201,7 +203,7 @@ public class AssetFullSignatureTest {
    * @param bytes The input bytes.
    */
   private void assertUnrecognized(byte[] bytes) {
-    assertNull(KnownMagics.formatOf(bytes));
+    assertNull(magics.formatOf(bytes));
     AssetTestSupport.assertUnrecognized(detector, bytes);
   }
 }

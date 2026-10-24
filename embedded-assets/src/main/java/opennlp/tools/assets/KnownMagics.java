@@ -65,7 +65,8 @@ import java.util.Set;
  * NOTICE. Matching a signature identifies a possible format; it does not validate
  * the file. Encoded text formats such as XML and PHP are included.</p>
  *
- * <p>Lookups prefer the longest matching signature. RIFF form types at offset eight
+ * <p>Lookups prefer the longest matching signature; a lookup instance holds no state
+ * and is safe for concurrent use. RIFF form types at offset eight
  * are handled by {@link CursorAssetDetector}; fixed RIFF prefixes, such as CDA,
  * can also appear here. The detector also checks AIFF form types after matching a
  * FORM prefix, Excel document types after matching a BOF prefix, EMF signatures
@@ -379,8 +380,8 @@ final class KnownMagics {
     PREFIXES = List.copyOf(prefixes);
   }
 
-  /** Prevents construction of the signature table utility. */
-  private KnownMagics() {
+  /** Creates a lookup over the signature table. */
+  KnownMagics() {
   }
 
   /**
@@ -390,7 +391,7 @@ final class KnownMagics {
    * @return Both identifiers from the longest matching signature, or {@code null}
    *         when the bytes match no known signature.
    */
-  static Format formatOf(byte[] header) {
+  Format formatOf(byte[] header) {
     for (final Entry entry : ENTRIES) {
       if (startsWith(header, entry.magic())) {
         return entry.format();
@@ -406,7 +407,7 @@ final class KnownMagics {
    * @param prefix The expected leading bytes.
    * @return {@code true} on a full match within bounds.
    */
-  private static boolean startsWith(byte[] bytes, byte[] prefix) {
+  private boolean startsWith(byte[] bytes, byte[] prefix) {
     if (bytes.length < prefix.length) {
       return false;
     }

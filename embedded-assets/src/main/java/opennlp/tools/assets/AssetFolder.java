@@ -29,15 +29,31 @@ import opennlp.tools.util.normalizer.Alignment;
  * Replaces embedded assets with text and returns an {@link AlignedText} mapping
  * the result's spans to the original document.
  *
- * <p>The replacement function can use {@link #caption()}, omit the asset, or
- * decode its payload for a {@link BinaryContentDescriber}.</p>
+ * <p>The replacement function is fixed at construction. It can use
+ * {@link #caption()}, omit the asset, or decode its payload for a
+ * {@link BinaryContentDescriber}. A folder holds no other state and is safe for
+ * concurrent use when its replacement function is.</p>
  *
  * @since 3.0.0
  */
 public final class AssetFolder {
 
-  /** Prevents construction of the folding utility. */
-  private AssetFolder() {
+  private final Function<Annotation<EmbeddedAsset>, String> replacement;
+
+  /** Initializes a folder that replaces every asset with its {@link #caption()}. */
+  public AssetFolder() {
+    this(caption());
+  }
+
+  /**
+   * Initializes a folder.
+   *
+   * @param replacement Produces the text that stands in for an asset. Must not be
+   *                    {@code null} and must not return {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code replacement} is {@code null}.
+   */
+  public AssetFolder(Function<Annotation<EmbeddedAsset>, String> replacement) {
+    this.replacement = ParamChecks.requireNonNullArg(replacement, "replacement");
   }
 
   /**
@@ -45,17 +61,13 @@ public final class AssetFolder {
    *
    * @param document The document; its assets layer must be present. Must not be
    *                 {@code null}.
-   * @param replacement Produces the text that stands in for an asset. Must not be
-   *                    {@code null} and must not return {@code null}.
    * @return The folded text with its alignment to the original. Never {@code null}.
-   * @throws IllegalArgumentException Thrown if an argument is {@code null}, the assets
-   *         layer is missing, the layer's spans overlap or are out of order, or
-   *         {@code replacement} returns {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code document} is {@code null}, the
+   *         assets layer is missing, the layer's spans overlap or are out of order, or
+   *         the replacement function returns {@code null}.
    */
-  public static AlignedText fold(Document document,
-      Function<Annotation<EmbeddedAsset>, String> replacement) {
+  public AlignedText fold(Document document) {
     ParamChecks.requireNonNullArg(document, "document");
-    ParamChecks.requireNonNullArg(replacement, "replacement");
     if (!document.layers().contains(AssetAnnotator.ASSETS)) {
       throw new IllegalArgumentException("the document has no "
           + AssetAnnotator.ASSETS.id() + " layer; run an AssetAnnotator first");

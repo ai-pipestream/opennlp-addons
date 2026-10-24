@@ -69,12 +69,13 @@ final class Base64PayloadInputStream extends InputStream {
   }
 
   /**
-   * Decodes a digit from either base64 alphabet for reading or prefix selection.
+   * Decodes a digit from either base64 alphabet of
+   * <a href="https://www.rfc-editor.org/rfc/rfc4648.html">RFC 4648</a>.
    *
    * @param value The encoded character.
    * @return Its six-bit value, or -1 for padding and other characters.
    */
-  static int digit(char value) {
+  private int digit(char value) {
     if (value >= 'A' && value <= 'Z') {
       return value - 'A';
     }

@@ -397,11 +397,11 @@ EmbeddedAsset token = new CursorAssetDetector().detect(jwt).get(0);
 			<code>AssetFolder</code> replaces every asset with text. The result is an
 			<code>AlignedText</code>: spans over the folded text map back to exact original
 			offsets, so downstream findings over the cleaned text still locate in the raw
-			input. The default replacement renders a caption from the asset's own
-			metadata:
+			input. A folder is constructed with its replacement function; the default
+			folder renders a caption from the asset's own metadata:
 			<programlisting language="java"><![CDATA[
 Document document = new AssetAnnotator().annotate(Document.of(text));
-AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
+AlignedText folded = new AssetFolder().fold(document);
 // folded.normalizedString() = "An image [png 5x7, 45 bytes] follows."]]>
 			</programlisting>
 			Mapping the caption back recovers the asset's exact span in the original:
@@ -410,14 +410,14 @@ AlignedText folded = AssetFolder.fold(document, AssetFolder.caption());
 		</para>
 		<para>
 			What replaces an asset is the caller's choice through the replacement
-			function. A <code>BinaryContentDescriber</code> can extract document text or
-			generate an image description:
+			function passed to the constructor. A <code>BinaryContentDescriber</code> can
+			extract document text or generate an image description:
 			<programlisting language="java"><![CDATA[
 BinaryContentDescriber describer = ...;  // supplied by the caller
 
-AlignedText described = AssetFolder.fold(document, annotation ->
+AlignedText described = new AssetFolder(annotation ->
     describer.describe(annotation.value().decode(text),
-        annotation.value().mediaType()));]]>
+        annotation.value().mediaType())).fold(document);]]>
 			</programlisting>
 			The interface takes bytes and a media type and returns text. OpenNLP ships no
 			implementation. Applications provide the extraction or captioning service.

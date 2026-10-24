@@ -89,6 +89,7 @@ public final class CursorAssetDetector implements AssetDetector {
       new KnownMagics.Format(CALENDAR_FORMAT_NAME, "text/calendar");
 
   private final SvgHeader svgHeader = new SvgHeader();
+  private final KnownMagics knownMagics = new KnownMagics();
 
   private static final int BER_SEQUENCE_TAG = 0x30;
   private static final int BER_OBJECT_IDENTIFIER_TAG = 0x06;
@@ -641,7 +642,7 @@ public final class CursorAssetDetector implements AssetDetector {
    * @return The format and media type, or {@code null} for an unknown header.
    */
   private KnownMagics.Format formatOf(byte[] header, CharSequence text, Payload payload) {
-    final KnownMagics.Format known = KnownMagics.formatOf(header);
+    final KnownMagics.Format known = knownMagics.formatOf(header);
     if (known != null) {
       return switch (known.name()) {
         case "aiff" -> hasAiffFormType(header) ? known : null;
@@ -1079,7 +1080,8 @@ public final class CursorAssetDetector implements AssetDetector {
   }
 
   /**
-   * Selects possible XML prefixes before decoding an untyped bare payload.
+   * Selects possible XML prefixes before decoding an untyped bare payload. The first
+   * two encoded characters determine the first decoded byte.
    *
    * @param text The encoded text.
    * @param at The payload start.
@@ -1089,12 +1091,7 @@ public final class CursorAssetDetector implements AssetDetector {
     if (at + 1 >= text.length()) {
       return false;
     }
-    final int first = Base64PayloadInputStream.digit(text.charAt(at));
-    final int second = Base64PayloadInputStream.digit(text.charAt(at + 1));
-    if (first < 0 || second < 0) {
-      return false;
-    }
-    return switch ((first << 2) | (second >>> 4)) {
+    return switch (new Base64PayloadInputStream(text, at, at + 2, 1).read()) {
       // A decoded byte: XML 1.0 whitespace is exactly these 4 ASCII bytes.
       case '<', ' ', '\t', '\r', '\n', 0, 0xef, 0xfe, 0xff -> true;
       default -> false;

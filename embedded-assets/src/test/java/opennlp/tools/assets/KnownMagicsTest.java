@@ -44,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class KnownMagicsTest {
 
+  private final KnownMagics magics = new KnownMagics();
+
   /** DXB's 19-byte header, including CR, LF, SUB, and NUL. */
   private static final String DXB_HEADER = "AutoCAD DXB 1.0\r\n\u001a\u0000";
 
@@ -84,9 +86,9 @@ public class KnownMagicsTest {
   @Test
   void testLookupFavorsTheLongestMagic() {
     final byte[] deb = "!<arch>\ndebian-binary junk".getBytes(StandardCharsets.US_ASCII);
-    assertEquals("deb", KnownMagics.formatOf(deb).name());
+    assertEquals("deb", magics.formatOf(deb).name());
     final byte[] ar = "!<arch>\nsomething else".getBytes(StandardCharsets.US_ASCII);
-    assertEquals("ar", KnownMagics.formatOf(ar).name());
+    assertEquals("ar", magics.formatOf(ar).name());
   }
 
   /** Binary DXF uses control bytes after the ASCII sentinel. */
@@ -95,7 +97,7 @@ public class KnownMagicsTest {
     final byte[] header = "AutoCAD Binary DXF\r\n\u001a\u0000"
         .getBytes(StandardCharsets.US_ASCII);
     assertEquals(22, header.length);
-    assertEquals("dxf", KnownMagics.formatOf(header).name());
+    assertEquals("dxf", magics.formatOf(header).name());
     final byte[] content = Arrays.copyOf(header, 30);
     final String encoded = Base64.getEncoder().encodeToString(content);
     final EmbeddedAsset asset = new CursorAssetDetector().detect(encoded).get(0);
@@ -114,7 +116,7 @@ public class KnownMagicsTest {
   void testDxbPointDrawing() {
     final byte[] header = DXB_HEADER.getBytes(StandardCharsets.US_ASCII);
     assertEquals(19, header.length);
-    assertEquals("dxb", KnownMagics.formatOf(header).name());
+    assertEquals("dxb", magics.formatOf(header).name());
     final byte[] drawing = ByteBuffer.allocate(25).order(ByteOrder.LITTLE_ENDIAN)
         .put(header).put((byte) 2).putShort((short) 10).putShort((short) 20)
         .put((byte) 0).array();
@@ -134,7 +136,7 @@ public class KnownMagicsTest {
   @ParameterizedTest
   @ValueSource(ints = {0, 14, 15, 16, 17, 18})
   void testTruncatedDxbSentinelIsRejected(int length) {
-    assertNull(KnownMagics.formatOf(Arrays.copyOf(
+    assertNull(magics.formatOf(Arrays.copyOf(
         DXB_HEADER.getBytes(StandardCharsets.US_ASCII), length)));
   }
 
@@ -148,7 +150,7 @@ public class KnownMagicsTest {
       "AutoCAD DXB 1.0\n\r\u001a\u0000", "AutoCAD DXB 1.0\r\n\u001a!"})
   void testInvalidDxbSentinelIsRejected(String sentinel) {
     final byte[] content = Arrays.copyOf(sentinel.getBytes(StandardCharsets.US_ASCII), 30);
-    assertNull(KnownMagics.formatOf(content));
+    assertNull(magics.formatOf(content));
     assertTrue(new CursorAssetDetector().detect(
         Base64.getEncoder().encodeToString(content)).isEmpty());
   }
@@ -162,7 +164,7 @@ public class KnownMagicsTest {
   @ValueSource(ints = {0, 0x200, 0x400, 0x600, 0x800, 0xc00, 0x1000, 0x1400, 0x1800, 0x1c00})
   void testOpenExrHeaderFlags(int flags) {
     final byte[] header = openExrHeader(flags);
-    assertEquals("exr", KnownMagics.formatOf(header).name());
+    assertEquals("exr", magics.formatOf(header).name());
     final String encoded = Base64.getEncoder().encodeToString(header);
     final List<EmbeddedAsset> assets = new CursorAssetDetector().detect(encoded);
     assertEquals(1, assets.size());
@@ -191,7 +193,7 @@ public class KnownMagicsTest {
   @ParameterizedTest
   @ValueSource(ints = {0, 1, 2, 3})
   void testTruncatedOpenExrMagicIsRejected(int length) {
-    assertNull(KnownMagics.formatOf(Arrays.copyOf(openExrHeader(0), length)));
+    assertNull(magics.formatOf(Arrays.copyOf(openExrHeader(0), length)));
   }
 
   /** An OpenEXR magic number stored in big-endian order is not recognized. */
@@ -199,7 +201,7 @@ public class KnownMagicsTest {
   void testBigEndianOpenExrMagicIsRejected() {
     final byte[] header = ByteBuffer.allocate(32).order(ByteOrder.BIG_ENDIAN)
         .putInt(20000630).putInt(2).array();
-    assertNull(KnownMagics.formatOf(header));
+    assertNull(magics.formatOf(header));
     assertTrue(new CursorAssetDetector().detect(
         Base64.getEncoder().encodeToString(header)).isEmpty());
   }
@@ -210,7 +212,7 @@ public class KnownMagicsTest {
     final byte[] stream = ByteBuffer.allocate(32).order(ByteOrder.LITTLE_ENDIAN)
         .putInt(0x000006ff).put("sNaPpY".getBytes(StandardCharsets.US_ASCII))
         .putInt(0x000012fe).array();
-    assertEquals("sz", KnownMagics.formatOf(stream).name());
+    assertEquals("sz", magics.formatOf(stream).name());
     final String encoded = Base64.getEncoder().encodeToString(stream);
     final List<EmbeddedAsset> assets = new CursorAssetDetector().detect(encoded);
     assertEquals(1, assets.size());
@@ -224,7 +226,7 @@ public class KnownMagicsTest {
   void testSnappyIdentifierWithoutChunkHeaderIsRejected() {
     final byte[] text = "sNaPpY is the identifier, not the complete chunk"
         .getBytes(StandardCharsets.US_ASCII);
-    assertNull(KnownMagics.formatOf(text));
+    assertNull(magics.formatOf(text));
     assertTrue(new CursorAssetDetector().detect(
         Base64.getEncoder().encodeToString(text)).isEmpty());
   }
@@ -248,7 +250,7 @@ public class KnownMagicsTest {
       buffer.putInt(8);
     }
     final byte[] header = buffer.array();
-    assertEquals(EmbeddedAsset.FORMAT_TIFF, KnownMagics.formatOf(header).name());
+    assertEquals(EmbeddedAsset.FORMAT_TIFF, magics.formatOf(header).name());
     final String encoded = Base64.getEncoder().encodeToString(header);
     final List<EmbeddedAsset> assets = new CursorAssetDetector().detect(encoded);
     assertEquals(1, assets.size());
@@ -301,7 +303,7 @@ public class KnownMagicsTest {
   void testTextualHexadecimalDxfSuffixIsRejected() {
     final byte[] header = "AutoCAD Binary DXF\r\n0x1A00"
         .getBytes(StandardCharsets.US_ASCII);
-    assertNull(KnownMagics.formatOf(header));
+    assertNull(magics.formatOf(header));
   }
 
   /** @return The format constants and media types represented in the signature table. */
@@ -359,7 +361,7 @@ public class KnownMagicsTest {
   @Test
   void testMatchingFormatAndMediaTypeStayTogether() {
     for (final KnownMagics.Entry entry : KnownMagics.ENTRIES) {
-      assertSame(entry.format(), KnownMagics.formatOf(entry.magic()));
+      assertSame(entry.format(), magics.formatOf(entry.magic()));
     }
   }
 
