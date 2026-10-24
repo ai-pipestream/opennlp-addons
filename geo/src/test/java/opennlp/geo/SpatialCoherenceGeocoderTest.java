@@ -123,6 +123,22 @@ public class SpatialCoherenceGeocoderTest {
     assertEquals("first", resolutions.get(0).entry().recordId());
   }
 
+  /** Candidates at the very point of the context carry no separating evidence. */
+  @Test
+  void testCandidatesAtTheContextPointKeepThePriorAtBaseConfidence() throws IOException {
+    final Gazetteer colocated = InMemoryGazetteer.fromEntries(List.of(
+        place("first", "Choice", 10.0, 20.0, "US", 2),
+        place("second", "Choice", 10.0, 20.0, "US", 1),
+        place("context", "Context", 10.0, 20.0, "US", 1)));
+    final String text = "Choice Context";
+
+    final List<GeoResolution> resolutions = new SpatialCoherenceGeocoder(colocated)
+        .resolve(text, mentionsOf(text, "Choice", "Context"));
+
+    assertEquals("first", resolutions.get(0).entry().recordId(), "the prior breaks the tie");
+    assertEquals(0.5d, resolutions.get(0).confidence());
+  }
+
   /** A document repeating one mention asks the gazetteer for that name once. */
   @Test
   void testRepeatedMentionsAreLookedUpOnce() throws IOException {

@@ -118,6 +118,7 @@ public class GazetteerFoldingRuleTest {
   static Stream<Arguments> queries() {
     return Stream.of(
         Arguments.of("New\nYork", "ny"),
+        Arguments.of(" New\u00a0York\u3000", "ny"),
         Arguments.of("new  york", "ny"),
         Arguments.of("New York", "ny"),
         Arguments.of("nyc", "ny"),

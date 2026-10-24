@@ -320,6 +320,21 @@ public class ContainmentSpineTest {
         spine.ancestors("999"));
   }
 
+  /** Verifies that a file may end right after a quoted field, without a final line break. */
+  @Test
+  void testQuotedFieldMayEndTheFileWithoutALineBreak(@TempDir Path dir) throws IOException {
+    final Path meta = dir.resolve("unterminated-line.csv");
+    Files.writeString(meta, String.join("\n",
+        "id,parent_id,name,placetype",
+        "999,123,Child,neighbourhood",
+        "123,-1,\"Brazil\",\"country\""), StandardCharsets.UTF_8);
+
+    final ContainmentSpine spine = ContainmentSpine.builder().addWofMeta(meta).build();
+
+    Assertions.assertEquals(List.of(new PlaceAncestor("123", "Brazil", "country")),
+        spine.ancestors("999"));
+  }
+
   /** Verifies the RFC 4180 doubled-quote escape. */
   @Test
   void testDoubledQuoteReadsAsOneLiteralQuote(@TempDir Path dir) throws IOException {
