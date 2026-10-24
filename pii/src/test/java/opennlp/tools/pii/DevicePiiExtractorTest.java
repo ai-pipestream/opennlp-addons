@@ -60,7 +60,9 @@ public class DevicePiiExtractorTest {
       "IMEI: 49015420323751",
       "IMEI: 4901542032375180",
       "IMEI was recorded as 490154203237518",
-      "xIMEI: 490154203237518"})
+      "xIMEI: 490154203237518",
+      "IMEI: 000000000000000",
+      "IMEI: 00-000000-000000-0"})
   void testRejectsUnlabeledOrInvalidImei(String text) {
     Assertions.assertTrue(extractor.extract(text).isEmpty(), text);
   }

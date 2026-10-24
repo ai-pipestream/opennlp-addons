@@ -56,6 +56,8 @@ public class CaIdentityPiiExtractorTest {
   @ValueSource(strings = {
       "046 454 286",
       "SIN: 046 454 287",
+      "SIN: 000 000 000",
+      "SIN: 000-000-000",
       "SIN: 046-454 286",
       "SIN: 04645428",
       "SIN: 0464542860",

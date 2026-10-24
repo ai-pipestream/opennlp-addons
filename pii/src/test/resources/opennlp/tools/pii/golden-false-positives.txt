@@ -144,8 +144,11 @@ token github_pat_11ABCDEFG0abcdefghij
 # Context-gated identifiers: valid bare values and labeled checksum failures.
 device 860000000000009
 device IMEI: 860000000000008
+device IMEI: 000000000000000
+device IMEI: 00-000000-000000-0
 employee 046 454 286
 employee SIN: 046 454 287
+employee SIN: 000 000 000
 
 # JWT: three dot separated parts whose first part is not a JSON header.
 token bWFkZSB1cA.cGF5bG9hZA.c2lnbmF0dXJl

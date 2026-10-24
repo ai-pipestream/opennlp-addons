@@ -51,6 +51,17 @@ class LuhnTest {
       value.setCharAt(length - 1, (char) ('0' + replacement));
       Assertions.assertEquals(replacement == check, Luhn.valid(value, length));
     }
-    Assertions.assertTrue(Luhn.valid("0".repeat(length), length));
+  }
+
+  /**
+   * Checks that a zero-only sequence fails although its digit sum is a multiple of 10: no
+   * issuer assigns it, and a placeholder such as an all-zero IMEI identifies nothing.
+   *
+   * @param length The sequence length.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {9, 13, 15, 16, 19})
+  void testZeroOnlySequenceIsRejected(int length) {
+    Assertions.assertFalse(Luhn.valid("0".repeat(length), length));
   }
 }
