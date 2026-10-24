@@ -274,14 +274,13 @@ final class GazetteerIndex {
    */
   static String normalizeRegionCode(String isoCountryCode) {
     ParamChecks.requireNonNullArg(isoCountryCode, "isoCountryCode");
-    if (isoCountryCode.length() != 2
-        || !isAsciiLetter(isoCountryCode.charAt(0)) || !isAsciiLetter(isoCountryCode.charAt(1))) {
+    if (isoCountryCode.length() != 2 || !StringUtil.isAsciiLetter(isoCountryCode.charAt(0))
+        || !StringUtil.isAsciiLetter(isoCountryCode.charAt(1))) {
       throw new IllegalArgumentException(
           "isoCountryCode must be an ISO 3166-1 alpha-2 code (two ASCII letters), got: "
               + isoCountryCode);
     }
-    return new String(new char[] {upperAscii(isoCountryCode.charAt(0)),
-        upperAscii(isoCountryCode.charAt(1))});
+    return StringUtil.toUpperCase(isoCountryCode);
   }
 
   /**
@@ -297,16 +296,6 @@ final class GazetteerIndex {
     return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder()
         .onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT)));
-  }
-
-  /** {@return {@code true} if {@code c} is an ASCII letter} */
-  private static boolean isAsciiLetter(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-  }
-
-  /** {@return {@code c} upper-cased if it is an ASCII lowercase letter, otherwise unchanged} */
-  private static char upperAscii(char c) {
-    return c >= 'a' && c <= 'z' ? (char) (c - ('a' - 'A')) : c;
   }
 
   /** The composite identifier of one record; only (source, recordId) together are unique. */
@@ -393,7 +382,7 @@ final class GazetteerIndex {
      * @return The non-empty match key of {@code name}.
      * @throws IllegalArgumentException Thrown if {@code name} folds to an empty match key.
      */
-    private static String requireMatchable(String name, GazetteerEntry entry) {
+    private String requireMatchable(String name, GazetteerEntry entry) {
       final String key = foldKey(name);
       if (key.isEmpty()) {
         throw unmatchable(name, entry);
@@ -408,7 +397,7 @@ final class GazetteerIndex {
      * @param entry The entry the name belongs to.
      * @return The exception to throw.
      */
-    private static IllegalArgumentException unmatchable(String name, GazetteerEntry entry) {
+    private IllegalArgumentException unmatchable(String name, GazetteerEntry entry) {
       return new IllegalArgumentException("Name '" + name + "' of record " + entry.source()
           + ";" + entry.recordId() + " folds to an empty match key, so the record would be"
           + " unreachable by lookup");

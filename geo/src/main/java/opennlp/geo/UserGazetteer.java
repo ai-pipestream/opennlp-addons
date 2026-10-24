@@ -200,9 +200,9 @@ public final class UserGazetteer implements Gazetteer {
             + " columns, expected at most 3");
       }
       try {
-        rules.add(new Suppression(trim(fields[0]),
-            absent(fields, 1) ? null : trim(fields[1]),
-            absent(fields, 2) ? null : trim(fields[2])));
+        rules.add(new Suppression(StringUtil.trimUnicodeWhitespace(fields[0]),
+            absent(fields, 1) ? null : StringUtil.trimUnicodeWhitespace(fields[1]),
+            absent(fields, 2) ? null : StringUtil.trimUnicodeWhitespace(fields[2])));
       } catch (IllegalArgumentException e) {
         throw new InvalidFormatException(
             "line " + lineNumber + " is not a suppression rule: " + e.getMessage(), e);
@@ -247,28 +247,30 @@ public final class UserGazetteer implements Gazetteer {
           + " columns, expected at least record id and name");
     }
     try {
-      final GeoBoundingBox box = absent(fields, 8) ? null : parseBox(trim(fields[8]));
+      final GeoBoundingBox box =
+          absent(fields, 8) ? null : parseBox(StringUtil.trimUnicodeWhitespace(fields[8]));
       final Map<String, AttributeValue> attributes = new LinkedHashMap<>();
       for (int i = 10; i < fields.length; i++) {
-        final String field = trim(fields[i]);
+        final String field = StringUtil.trimUnicodeWhitespace(fields[i]);
         final int separator = field.indexOf(ATTRIBUTE_SEPARATOR);
         if (separator < 1) {
           throw new IllegalArgumentException(
               "an attribute column must read key=value, got: " + field);
         }
-        final String key = trim(field.substring(0, separator));
+        final String key = StringUtil.trimUnicodeWhitespace(field.substring(0, separator));
         if (attributes.put(key, new AttributeValue(
-            trim(field.substring(separator + 1)), source, "")) != null) {
+            StringUtil.trimUnicodeWhitespace(field.substring(separator + 1)), source, "")) != null) {
           throw new IllegalArgumentException("the attribute key repeats: " + key);
         }
       }
-      return new GazetteerEntry(source, trim(fields[0]), trim(fields[1]),
+      return new GazetteerEntry(source, StringUtil.trimUnicodeWhitespace(fields[0]),
+          StringUtil.trimUnicodeWhitespace(fields[1]),
           absent(fields, 2) ? List.of() : names(fields[2]),
           location(fields, box), box,
-          absent(fields, 5) ? null : trim(fields[5]),
+          absent(fields, 5) ? null : StringUtil.trimUnicodeWhitespace(fields[5]),
           absent(fields, 9) ? List.of() : names(fields[9]),
-          absent(fields, 7) ? 0L : Long.parseLong(trim(fields[7])),
-          absent(fields, 6) ? null : trim(fields[6]),
+          absent(fields, 7) ? 0L : Long.parseLong(StringUtil.trimUnicodeWhitespace(fields[7])),
+          absent(fields, 6) ? null : StringUtil.trimUnicodeWhitespace(fields[6]),
           attributes);
     } catch (IllegalArgumentException e) {
       throw new InvalidFormatException(
@@ -291,8 +293,8 @@ public final class UserGazetteer implements Gazetteer {
           "latitude and longitude must be present together or absent together");
     }
     if (hasLatitude) {
-      return new GeoPoint(
-          Double.parseDouble(trim(fields[3])), Double.parseDouble(trim(fields[4])));
+      return new GeoPoint(Double.parseDouble(StringUtil.trimUnicodeWhitespace(fields[3])),
+          Double.parseDouble(StringUtil.trimUnicodeWhitespace(fields[4])));
     }
     if (box == null) {
       throw new IllegalArgumentException("a row needs coordinates or a bounding box");
@@ -311,16 +313,17 @@ public final class UserGazetteer implements Gazetteer {
       throw new IllegalArgumentException(
           "a bounding box must read west,south,east,north, got: " + field);
     }
-    return new GeoBoundingBox(Double.parseDouble(trim(edges[0])),
-        Double.parseDouble(trim(edges[1])), Double.parseDouble(trim(edges[2])),
-        Double.parseDouble(trim(edges[3])));
+    return new GeoBoundingBox(Double.parseDouble(StringUtil.trimUnicodeWhitespace(edges[0])),
+        Double.parseDouble(StringUtil.trimUnicodeWhitespace(edges[1])),
+        Double.parseDouble(StringUtil.trimUnicodeWhitespace(edges[2])),
+        Double.parseDouble(StringUtil.trimUnicodeWhitespace(edges[3])));
   }
 
   /** Splits a {@code |}-separated list field, dropping blank elements. */
   private static List<String> names(String field) {
     final List<String> elements = new ArrayList<>();
     for (final String element : StringUtil.split(field, LIST_SEPARATOR)) {
-      final String trimmed = trim(element);
+      final String trimmed = StringUtil.trimUnicodeWhitespace(element);
       if (!trimmed.isEmpty()) {
         elements.add(trimmed);
       }
@@ -330,17 +333,6 @@ public final class UserGazetteer implements Gazetteer {
 
   /** {@return {@code true} if the column at {@code i} is missing or empty after trimming} */
   private static boolean absent(String[] fields, int i) {
-    return fields.length <= i || trim(fields[i]).isEmpty();
-  }
-
-  /**
-   * Trims a cell by Unicode whitespace, so padding with a no-break or ideographic space is
-   * removed like ASCII padding.
-   *
-   * @param cell The cell content. Must not be {@code null}.
-   * @return The cell without leading and trailing Unicode whitespace.
-   */
-  private static String trim(String cell) {
-    return StringUtil.trimUnicodeWhitespace(cell);
+    return fields.length <= i || StringUtil.trimUnicodeWhitespace(fields[i]).isEmpty();
   }
 }

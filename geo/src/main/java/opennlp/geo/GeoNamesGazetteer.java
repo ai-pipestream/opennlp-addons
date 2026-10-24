@@ -151,27 +151,28 @@ public final class GeoNamesGazetteer implements Gazetteer {
           + " columns, expected " + COLUMNS);
     }
     try {
-      final String id = trim(fields[0]);
-      final String name = trim(fields[1]);
+      final String id = StringUtil.trimUnicodeWhitespace(fields[0]);
+      final String name = StringUtil.trimUnicodeWhitespace(fields[1]);
       final Set<String> alternates = new LinkedHashSet<>();
-      final String ascii = trim(fields[2]);
+      final String ascii = StringUtil.trimUnicodeWhitespace(fields[2]);
       if (!ascii.isEmpty() && !ascii.equals(name)) {
         alternates.add(ascii);
       }
       for (final String alternate : StringUtil.split(fields[3], LIST_SEPARATOR)) {
-        final String trimmed = trim(alternate);
+        final String trimmed = StringUtil.trimUnicodeWhitespace(alternate);
         if (!trimmed.isEmpty() && !trimmed.equals(name)) {
           alternates.add(trimmed);
         }
       }
       final GeoPoint location = new GeoPoint(
-          Double.parseDouble(trim(fields[4])), Double.parseDouble(trim(fields[5])));
-      final String country = trim(fields[8]);
+          Double.parseDouble(StringUtil.trimUnicodeWhitespace(fields[4])),
+          Double.parseDouble(StringUtil.trimUnicodeWhitespace(fields[5])));
+      final String country = StringUtil.trimUnicodeWhitespace(fields[8]);
       final String countryCode = country.isEmpty() ? null : country;
-      final String population = trim(fields[14]);
+      final String population = StringUtil.trimUnicodeWhitespace(fields[14]);
       return new GazetteerEntry(SOURCE, id, name, List.copyOf(alternates), location,
           countryCode, List.of(), population.isEmpty() ? 0L : Long.parseLong(population),
-          featureClass(trim(fields[6])), Map.of());
+          featureClass(StringUtil.trimUnicodeWhitespace(fields[6])), Map.of());
     } catch (IllegalArgumentException e) {
       throw new InvalidFormatException(
           "line " + lineNumber + " is not a GeoNames row: " + e.getMessage(), e);
@@ -185,16 +186,5 @@ public final class GeoNamesGazetteer implements Gazetteer {
       case "A" -> GazetteerEntry.FEATURE_CLASS_ADMIN;
       default -> GazetteerEntry.FEATURE_CLASS_POI;
     };
-  }
-
-  /**
-   * Trims a cell by Unicode whitespace, so padding with a no-break or ideographic space is
-   * removed like ASCII padding.
-   *
-   * @param cell The cell content. Must not be {@code null}.
-   * @return The cell without leading and trailing Unicode whitespace.
-   */
-  private static String trim(String cell) {
-    return StringUtil.trimUnicodeWhitespace(cell);
   }
 }

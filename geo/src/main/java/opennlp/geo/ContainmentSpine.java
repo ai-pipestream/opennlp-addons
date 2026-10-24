@@ -253,54 +253,130 @@ public final class ContainmentSpine implements PlaceHierarchy {
     }
 
     /**
-     * Reads a Who's On First parent identifier, where a non-positive decimal integer means the
-     * row has no usable parent.
+     * Reads a file as UTF-8 lines, accepting {@code LF}, {@code CRLF}, or {@code CR} endings.
      *
-     * @param parent The parent column, already trimmed.
-     * @return The identifier, or {@code null} when the row is a root.
-     * @throws IllegalArgumentException Thrown if {@code parent} is not empty and is not a signed
-     *     decimal integer.
+     * @param file The file to read.
+     * @return The lines without their terminators.
+     * @throws IOException Thrown if reading fails.
      */
-    private static String positiveOrNull(String parent) {
-      if (parent.isEmpty()) {
-        return null;
-      }
-      int digit = 0;
-      final boolean negative = parent.charAt(0) == '-';
-      if (negative) {
-        digit++;
-      }
-      if (digit == parent.length()) {
-        throw new IllegalArgumentException(INVALID_PARENT + parent);
-      }
-      boolean nonZero = false;
-      for (; digit < parent.length(); digit++) {
-        final char c = parent.charAt(digit);
-        if (c < '0' || c > '9') {
-          throw new IllegalArgumentException(INVALID_PARENT + parent);
+    private List<String> readLines(Path file) throws IOException {
+      final List<String> lines = new ArrayList<>();
+      try (BufferedReader reader = GazetteerIndex.utf8Reader(Files.newInputStream(file))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          lines.add(line);
         }
-        nonZero |= c != '0';
       }
-      return negative || !nonZero ? null : parent;
+      return lines;
     }
-  }
 
-  /**
-   * Reads a file as UTF-8 lines, accepting {@code LF}, {@code CRLF}, or {@code CR} endings.
-   *
-   * @param file The file to read.
-   * @return The lines without their terminators.
-   * @throws IOException Thrown if reading fails.
-   */
-  private static List<String> readLines(Path file) throws IOException {
-    final List<String> lines = new ArrayList<>();
-    try (BufferedReader reader = GazetteerIndex.utf8Reader(Files.newInputStream(file))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        lines.add(line);
+    /**
+     * Parses a CSV file row by row, with double-quote quoting, doubled-quote escapes,
+     * and quoted fields that may span lines, so a row is only ended by a line break
+     * outside a quoted field. Blank lines between rows are dropped. {@code LF} and {@code CRLF} end
+     * a line, inside a quoted field as well as outside, and a quoted line break is kept in the field
+     * as a single {@code LF}. A quote inside an unquoted field and content after a field's closing
+     * quote are rejected.
+     *
+     * <p>The file is streamed, never materialized whole, so a table of any size parses
+     * in memory proportional to its longest row.</p>
+     *
+     * @param file The CSV file, UTF-8.
+     * @param consumer Receives each completed row with its starting line.
+     * @throws IOException Thrown if reading fails.
+     * @throws InvalidFormatException Thrown if a quoted field is never closed, a quote
+     *         appears inside an unquoted field, or content follows a closing quote.
+     */
+    private void parseCsv(Path file, CsvRows consumer) throws IOException {
+      try (Reader in = GazetteerIndex.utf8Reader(Files.newInputStream(file))) {
+        final StringBuilder field = new StringBuilder();
+        List<String> fields = new ArrayList<>();
+        boolean quoted = false;
+        boolean closedQuote = false;
+        int line = 1;
+        int rowLine = 1;
+        int quoteLine = 1;
+        // One character of pushback covers the two lookahead cases, the CRLF pair and
+        // the doubled quote.
+        int pending = NO_PENDING;
+        while (true) {
+          final int read = pending != NO_PENDING ? pending : in.read();
+          pending = NO_PENDING;
+          if (read < 0) {
+            break;
+          }
+          final char c = (char) read;
+          boolean lineBreak = c == '\n';
+          if (c == '\r') {
+            final int follow = in.read();
+            if (follow == '\n') {
+              lineBreak = true;
+            } else {
+              pending = follow;
+            }
+          }
+          if (quoted) {
+            if (c == '"') {
+              final int follow = in.read();
+              if (follow == '"') {
+                field.append('"');
+              } else {
+                quoted = false;
+                closedQuote = true;
+                pending = follow;
+              }
+            } else if (lineBreak) {
+              field.append('\n');
+              line++;
+            } else {
+              field.append(c);
+            }
+          } else if (c == '"') {
+            if (field.length() > 0 || closedQuote) {
+              throw new InvalidFormatException("stray quote in an unquoted field at line " + line
+                  + " in " + file);
+            }
+            quoted = true;
+            quoteLine = line;
+          } else if (c == ',') {
+            fields.add(field.toString());
+            field.setLength(0);
+            closedQuote = false;
+          } else if (lineBreak) {
+            fields.add(field.toString());
+            field.setLength(0);
+            closedQuote = false;
+            emitRow(consumer, rowLine, fields);
+            fields = new ArrayList<>();
+            line++;
+            rowLine = line;
+          } else {
+            if (closedQuote) {
+              throw new InvalidFormatException("content after a closing quote at line " + line
+                  + " in " + file);
+            }
+            field.append(c);
+          }
+        }
+        if (quoted) {
+          throw new InvalidFormatException("unterminated quoted field starting at line " + quoteLine
+              + " in " + file);
+        }
+        if (field.length() > 0 || !fields.isEmpty() || closedQuote) {
+          fields.add(field.toString());
+          emitRow(consumer, rowLine, fields);
+        }
       }
     }
-    return lines;
+
+    /** Passes a nonblank row to the consumer. */
+    private void emitRow(CsvRows consumer, int line, List<String> fields)
+        throws InvalidFormatException {
+      if (fields.size() == 1 && fields.get(0).isEmpty()) {
+        return;
+      }
+      consumer.row(line, List.copyOf(fields));
+    }
   }
 
   /** Consumes CSV rows as the parser completes them, with the row's starting line. */
@@ -373,120 +449,44 @@ public final class ContainmentSpine implements PlaceHierarchy {
       final String parent = StringUtil.trimUnicodeWhitespace(fields.get(parentColumn));
       final String parentId;
       try {
-        parentId = Builder.positiveOrNull(parent);
+        parentId = positiveOrNull(parent);
       } catch (IllegalArgumentException e) {
         throw new InvalidFormatException("invalid parent_id column at line " + line + " in "
             + file + ": " + e.getMessage(), e);
       }
       builder.add(id, parentId, name, type);
     }
-  }
 
-  /**
-   * Parses a CSV file row by row, with double-quote quoting, doubled-quote escapes,
-   * and quoted fields that may span lines, so a row is only ended by a line break
-   * outside a quoted field. Blank lines between rows are dropped. {@code LF} and {@code CRLF} end
-   * a line, inside a quoted field as well as outside, and a quoted line break is kept in the field
-   * as a single {@code LF}. A quote inside an unquoted field and content after a field's closing
-   * quote are rejected.
-   *
-   * <p>The file is streamed, never materialized whole, so a table of any size parses
-   * in memory proportional to its longest row.</p>
-   *
-   * @param file The CSV file, UTF-8.
-   * @param consumer Receives each completed row with its starting line.
-   * @throws IOException Thrown if reading fails.
-   * @throws InvalidFormatException Thrown if a quoted field is never closed, a quote
-   *         appears inside an unquoted field, or content follows a closing quote.
-   */
-  private static void parseCsv(Path file, CsvRows consumer) throws IOException {
-    try (Reader in = GazetteerIndex.utf8Reader(Files.newInputStream(file))) {
-      final StringBuilder field = new StringBuilder();
-      List<String> fields = new ArrayList<>();
-      boolean quoted = false;
-      boolean closedQuote = false;
-      int line = 1;
-      int rowLine = 1;
-      int quoteLine = 1;
-      // One character of pushback covers the two lookahead cases, the CRLF pair and
-      // the doubled quote.
-      int pending = NO_PENDING;
-      while (true) {
-        final int read = pending != NO_PENDING ? pending : in.read();
-        pending = NO_PENDING;
-        if (read < 0) {
-          break;
-        }
-        final char c = (char) read;
-        boolean lineBreak = c == '\n';
-        if (c == '\r') {
-          final int follow = in.read();
-          if (follow == '\n') {
-            lineBreak = true;
-          } else {
-            pending = follow;
-          }
-        }
-        if (quoted) {
-          if (c == '"') {
-            final int follow = in.read();
-            if (follow == '"') {
-              field.append('"');
-            } else {
-              quoted = false;
-              closedQuote = true;
-              pending = follow;
-            }
-          } else if (lineBreak) {
-            field.append('\n');
-            line++;
-          } else {
-            field.append(c);
-          }
-        } else if (c == '"') {
-          if (field.length() > 0 || closedQuote) {
-            throw new InvalidFormatException("stray quote in an unquoted field at line " + line
-                + " in " + file);
-          }
-          quoted = true;
-          quoteLine = line;
-        } else if (c == ',') {
-          fields.add(field.toString());
-          field.setLength(0);
-          closedQuote = false;
-        } else if (lineBreak) {
-          fields.add(field.toString());
-          field.setLength(0);
-          closedQuote = false;
-          emitRow(consumer, rowLine, fields);
-          fields = new ArrayList<>();
-          line++;
-          rowLine = line;
-        } else {
-          if (closedQuote) {
-            throw new InvalidFormatException("content after a closing quote at line " + line
-                + " in " + file);
-          }
-          field.append(c);
-        }
+    /**
+     * Reads a Who's On First parent identifier, where a non-positive decimal integer means the
+     * row has no usable parent.
+     *
+     * @param parent The parent column, already trimmed.
+     * @return The identifier, or {@code null} when the row is a root.
+     * @throws IllegalArgumentException Thrown if {@code parent} is not empty and is not a signed
+     *     decimal integer.
+     */
+    private String positiveOrNull(String parent) {
+      if (parent.isEmpty()) {
+        return null;
       }
-      if (quoted) {
-        throw new InvalidFormatException("unterminated quoted field starting at line " + quoteLine
-            + " in " + file);
+      int digit = 0;
+      final boolean negative = parent.charAt(0) == '-';
+      if (negative) {
+        digit++;
       }
-      if (field.length() > 0 || !fields.isEmpty() || closedQuote) {
-        fields.add(field.toString());
-        emitRow(consumer, rowLine, fields);
+      if (digit == parent.length()) {
+        throw new IllegalArgumentException(INVALID_PARENT + parent);
       }
+      boolean nonZero = false;
+      for (; digit < parent.length(); digit++) {
+        final char c = parent.charAt(digit);
+        if (c < '0' || c > '9') {
+          throw new IllegalArgumentException(INVALID_PARENT + parent);
+        }
+        nonZero |= c != '0';
+      }
+      return negative || !nonZero ? null : parent;
     }
-  }
-
-  /** Passes a nonblank row to the consumer. */
-  private static void emitRow(CsvRows consumer, int line, List<String> fields)
-      throws InvalidFormatException {
-    if (fields.size() == 1 && fields.get(0).isEmpty()) {
-      return;
-    }
-    consumer.row(line, List.copyOf(fields));
   }
 }
