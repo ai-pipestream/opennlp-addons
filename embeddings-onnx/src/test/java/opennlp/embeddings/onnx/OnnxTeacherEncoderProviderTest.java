@@ -67,7 +67,7 @@ class OnnxTeacherEncoderProviderTest {
   void testRejectsANullOrUnsupportedSpec() {
     assertEquals("spec must not be null", assertThrows(IllegalArgumentException.class,
         () -> provider.supports(null)).getMessage());
-    assertEquals("spec is not supported: null", assertThrows(IllegalArgumentException.class,
+    assertEquals("spec must not be null", assertThrows(IllegalArgumentException.class,
         () -> provider.create(null)).getMessage());
     final ProviderSpec spec = ProviderSpec.of(Path.of("model.bin"));
     assertEquals("spec is not supported: " + spec, assertThrows(IllegalArgumentException.class,

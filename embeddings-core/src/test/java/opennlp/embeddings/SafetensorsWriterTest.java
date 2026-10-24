@@ -159,9 +159,9 @@ class SafetensorsWriterTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = ';', value = {
-      "0;2;2;rows must be at least 1, got 0",
-      "2;0;2;cols must be at least 1, got 0",
-      "-1;2;2;rows must be at least 1, got -1",
+      "0;2;2;rows must be positive",
+      "2;0;2;cols must be positive",
+      "-1;2;2;rows must be positive",
       "2;3;5;values has 5 elements, not 2 x 3",
       "2;3;7;values has 7 elements, not 2 x 3",
       "1;1;0;values has 0 elements, not 1 x 1"

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -122,9 +123,7 @@ final class TeacherTokenizer {
    */
   static TeacherTokenizer read(Path tokenizerJsonFile, Path tokenizerConfigFile)
       throws IOException {
-    if (tokenizerJsonFile == null) {
-      throw new IllegalArgumentException("tokenizerJsonFile must not be null");
-    }
+    ParamChecks.requireNonNullArg(tokenizerJsonFile, "tokenizerJsonFile");
     if (!Files.isRegularFile(tokenizerJsonFile)) {
       throw new IllegalArgumentException("File does not exist or is not a regular file: "
           + tokenizerJsonFile);
@@ -416,9 +415,7 @@ final class TeacherTokenizer {
    *     {@code null}.
    */
   long[] inputSequence(List<String> pieces) {
-    if (pieces == null) {
-      throw new IllegalArgumentException("pieces must not be null");
-    }
+    ParamChecks.requireNonNullArg(pieces, "pieces");
     final long[] sequence = new long[bosIds.length + pieces.size() + eosIds.length];
     int i = 0;
     for (final int id : bosIds) {
@@ -471,9 +468,7 @@ final class TeacherTokenizer {
    * @throws IOException Thrown if writing fails.
    */
   void writeCleaned(Path file) throws IOException {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
+    ParamChecks.requireNonNullArg(file, "file");
     final Map<Integer, Integer> newIdByOriginal = new HashMap<>(keptOriginalIds.length * 2);
     for (int row = 0; row < keptOriginalIds.length; row++) {
       newIdByOriginal.put(keptOriginalIds[row], row);

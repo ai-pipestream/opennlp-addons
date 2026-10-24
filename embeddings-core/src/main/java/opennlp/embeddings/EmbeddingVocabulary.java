@@ -27,6 +27,7 @@ import java.util.Set;
 
 import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * The row table of a static embedding matrix: piece string to row index and back. Row {@code id}
@@ -92,9 +93,7 @@ final class EmbeddingVocabulary {
    *     regular file.
    */
   private static void requireRegularFile(Path file) {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
+    ParamChecks.requireNonNullArg(file, "file");
     if (!Files.isRegularFile(file)) {
       throw new IllegalArgumentException("File does not exist or is not a regular file: " + file);
     }
@@ -148,9 +147,7 @@ final class EmbeddingVocabulary {
    * @throws IllegalArgumentException Thrown if {@code token} is {@code null}.
    */
   int id(String token) {
-    if (token == null) {
-      throw new IllegalArgumentException("token must not be null");
-    }
+    ParamChecks.requireNonNullArg(token, "token");
     final Integer id = idByToken.get(token);
     return id == null ? -1 : id;
   }

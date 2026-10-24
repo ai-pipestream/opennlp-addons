@@ -20,6 +20,8 @@ import java.util.Random;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Principal component analysis by randomized SVD
  * (<a href="https://arxiv.org/abs/0909.4061">Halko, Martinsson, Tropp</a>), the approximation
@@ -89,9 +91,7 @@ final class RandomizedPca {
    *     no variance to decompose (every row is identical, or a value is not finite).
    */
   static Result fitTransform(float[] data, int rows, int cols, int components, long seed) {
-    if (data == null) {
-      throw new IllegalArgumentException("data must not be null");
-    }
+    ParamChecks.requireNonNullArg(data, "data");
     if (rows < 1 || cols < 1 || data.length != (long) rows * cols) {
       throw new IllegalArgumentException("Data has " + data.length + " elements, not " + rows
           + " x " + cols);

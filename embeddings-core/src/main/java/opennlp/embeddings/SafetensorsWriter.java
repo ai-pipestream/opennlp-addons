@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+import opennlp.tools.util.ParamChecks;
+
 /**
  * Writes a <a href="https://github.com/huggingface/safetensors">safetensors</a> file holding a
  * single 2-D {@code F32} tensor, the shape a distilled embedding table takes (vocabulary size by
@@ -61,23 +63,15 @@ final class SafetensorsWriter {
    * @param cols   The number of matrix columns.
    * @param values The matrix values in row-major order, {@code rows * cols} of them. Must not be
    *               {@code null}.
-   * @throws IllegalArgumentException Thrown if an argument is {@code null}, a dimension is less
-   *     than 1, or the value count does not match the shape.
+   * @throws IllegalArgumentException Thrown if an argument is {@code null}, a dimension is not
+   *     positive, or the value count does not match the shape.
    * @throws IOException Thrown if writing fails.
    */
   static void writeMatrix(Path file, int rows, int cols, float[] values) throws IOException {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
-    if (values == null) {
-      throw new IllegalArgumentException("values must not be null");
-    }
-    if (rows < 1) {
-      throw new IllegalArgumentException("rows must be at least 1, got " + rows);
-    }
-    if (cols < 1) {
-      throw new IllegalArgumentException("cols must be at least 1, got " + cols);
-    }
+    ParamChecks.requireNonNullArg(file, "file");
+    ParamChecks.requireNonNullArg(values, "values");
+    ParamChecks.requirePositive(rows, "rows");
+    ParamChecks.requirePositive(cols, "cols");
     if (values.length != (long) rows * cols) {
       throw new IllegalArgumentException("values has " + values.length + " elements, not "
           + rows + " x " + cols);

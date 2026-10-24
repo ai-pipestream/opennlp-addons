@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -94,9 +95,7 @@ public final class ModelAssembler {
    * @throws IOException Thrown if reading or writing a file fails.
    */
   public static Result assemble(Path modelDirectory) throws IOException {
-    if (modelDirectory == null) {
-      throw new IllegalArgumentException("modelDirectory must not be null");
-    }
+    ParamChecks.requireNonNullArg(modelDirectory, "modelDirectory");
     if (!Files.isDirectory(modelDirectory)) {
       throw new IllegalArgumentException(
           "Model directory does not exist or is not a directory: " + modelDirectory);

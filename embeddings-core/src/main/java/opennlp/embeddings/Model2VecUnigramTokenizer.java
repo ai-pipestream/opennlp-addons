@@ -33,6 +33,7 @@ import opennlp.subword.sentencepiece.SentencePieceTokenizer;
 import opennlp.tools.tokenize.SubwordPiece;
 import opennlp.tools.tokenize.SubwordTokenizer;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.normalizer.AlignedText;
 import opennlp.tools.util.normalizer.Alignment;
@@ -89,9 +90,7 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
    * @throws IOException Thrown if the configuration cannot be read or loaded.
    */
   static Model2VecUnigramTokenizer load(Path tokenizerJson) throws IOException {
-    if (tokenizerJson == null) {
-      throw new IllegalArgumentException("tokenizerJson must not be null");
-    }
+    ParamChecks.requireNonNullArg(tokenizerJson, "tokenizerJson");
     if (!Files.isRegularFile(tokenizerJson)) {
       throw new IllegalArgumentException(
           "File does not exist or is not a regular file: " + tokenizerJson);
@@ -102,9 +101,7 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   /** {@inheritDoc} */
   @Override
   public List<SubwordPiece> encode(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final String original = text.toString();
     AlignedText aligned = normalizer.normalizeAligned(original);
     for (NormalizationOperation operation : operations) {

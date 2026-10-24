@@ -36,6 +36,7 @@ import opennlp.tools.tokenize.SubwordTokenizer;
 import opennlp.tools.tokenize.WordpieceEncoder;
 import opennlp.tools.tokenize.WordpieceTokenizer;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -99,9 +100,6 @@ public final class StaticEmbeddingModel implements TextEmbedder {
   private static final String WEIGHTS_TENSOR_NAME = "weights";
   // The only pooling this model implements; the value the distiller writes into config.json.
   private static final String MEAN_POOLING = "mean";
-  private static final String SAFETENSORS_FILE_NULL = "safetensorsFile must not be null";
-  private static final String NORMALIZATION_NULL = "normalization must not be null";
-  private static final String TEXT_NULL = "text must not be null";
   private static final int[] NO_EXCLUDED_ROWS = new int[0];
   // Conventional WordPiece special tokens, excluded from neighbor results when present.
   private static final Set<String> WORDPIECE_SPECIAL_TOKENS =
@@ -171,9 +169,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    * @throws IOException Thrown if reading a file fails.
    */
   public static StaticEmbeddingModel load(Path modelDirectory) throws IOException {
-    if (modelDirectory == null) {
-      throw new IllegalArgumentException("modelDirectory must not be null");
-    }
+    ParamChecks.requireNonNullArg(modelDirectory, "modelDirectory");
     if (!Files.isDirectory(modelDirectory)) {
       throw new IllegalArgumentException(
           "Model directory does not exist or is not a directory: " + modelDirectory);
@@ -381,18 +377,10 @@ public final class StaticEmbeddingModel implements TextEmbedder {
                                                     List<String> termLines,
                                                     String termsSourceName)
       throws IOException {
-    if (vocabularyFile == null) {
-      throw new IllegalArgumentException("vocabularyFile must not be null");
-    }
-    if (safetensorsFile == null) {
-      throw new IllegalArgumentException(SAFETENSORS_FILE_NULL);
-    }
-    if (casing == null) {
-      throw new IllegalArgumentException("casing must not be null");
-    }
-    if (normalization == null) {
-      throw new IllegalArgumentException(NORMALIZATION_NULL);
-    }
+    ParamChecks.requireNonNullArg(vocabularyFile, "vocabularyFile");
+    ParamChecks.requireNonNullArg(safetensorsFile, "safetensorsFile");
+    ParamChecks.requireNonNullArg(casing, "casing");
+    ParamChecks.requireNonNullArg(normalization, "normalization");
     final EmbeddingVocabulary vocabulary = EmbeddingVocabulary.fromVocabTxt(vocabularyFile);
     final TermTable terms = TermTable.of(termLines, vocabulary.size(), termsSourceName);
     final Matrix matrix = readMatrix(vocabulary, terms.size(), safetensorsFile,
@@ -511,18 +499,10 @@ public final class StaticEmbeddingModel implements TextEmbedder {
                                                         List<String> termLines,
                                                         String termsSourceName)
       throws IOException {
-    if (sentencePieceModelFile == null) {
-      throw new IllegalArgumentException("sentencePieceModelFile must not be null");
-    }
-    if (tokenizerJsonFile == null) {
-      throw new IllegalArgumentException("tokenizerJsonFile must not be null");
-    }
-    if (safetensorsFile == null) {
-      throw new IllegalArgumentException(SAFETENSORS_FILE_NULL);
-    }
-    if (normalization == null) {
-      throw new IllegalArgumentException(NORMALIZATION_NULL);
-    }
+    ParamChecks.requireNonNullArg(sentencePieceModelFile, "sentencePieceModelFile");
+    ParamChecks.requireNonNullArg(tokenizerJsonFile, "tokenizerJsonFile");
+    ParamChecks.requireNonNullArg(safetensorsFile, "safetensorsFile");
+    ParamChecks.requireNonNullArg(normalization, "normalization");
     final EmbeddingVocabulary vocabulary =
         EmbeddingVocabulary.fromTokenizerJson(tokenizerJsonFile);
     final TermTable terms = TermTable.of(termLines, vocabulary.size(), termsSourceName);
@@ -743,9 +723,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    */
   @Override
   public float[] embed(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_NULL);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     return embed(text instanceof String s ? s : text.toString());
   }
 
@@ -758,9 +736,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    * @throws IllegalArgumentException Thrown if {@code text} is {@code null}.
    */
   public float[] embed(String text) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_NULL);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     final double[] sum = new double[dimension];
     // IntConsumer needs a mutable counter for the pooled rows.
     final int[] pooled = new int[1];
@@ -888,12 +864,8 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    * @throws IllegalArgumentException Thrown if {@code text1} or {@code text2} is {@code null}.
    */
   public double similarity(String text1, String text2) {
-    if (text1 == null) {
-      throw new IllegalArgumentException("text1 must not be null");
-    }
-    if (text2 == null) {
-      throw new IllegalArgumentException("text2 must not be null");
-    }
+    ParamChecks.requireNonNullArg(text1, "text1");
+    ParamChecks.requireNonNullArg(text2, "text2");
     return cosineSimilarity(embed(text1), embed(text2));
   }
 
@@ -904,17 +876,15 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    * order.
    *
    * @param text The query text. Must not be {@code null}.
-   * @param topK The maximum number of results. Must be at least 1.
+   * @param topK The maximum number of results. Must be positive.
    * @return Up to {@code topK} neighbors, most similar first, excluding the model's special
    *     tokens; empty when {@code text} has no in-vocabulary tokens.
    * @throws IllegalArgumentException Thrown if {@code text} is {@code null} or {@code topK} is
    *     less than 1.
    */
   public List<Neighbor> mostSimilar(String text, int topK) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_NULL);
-    }
-    requirePositive(topK);
+    ParamChecks.requireNonNullArg(text, "text");
+    ParamChecks.requirePositive(topK, "topK");
     return nearestNeighbors(embed(text), topK, NO_EXCLUDED_ROWS);
   }
 
@@ -927,7 +897,7 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    * @param a    The first term. Must not be {@code null}.
    * @param b    The second term. Must not be {@code null}.
    * @param c    The third term. Must not be {@code null}.
-   * @param topK The maximum number of results. Must be at least 1.
+   * @param topK The maximum number of results. Must be positive.
    * @return Up to {@code topK} neighbors, most similar first, excluding the model's special
    *     tokens and every vocabulary token the three terms themselves tokenize to. The exclusion
    *     folds the terms exactly the way {@link #embed(String)} folds text, so on an uncased
@@ -937,16 +907,10 @@ public final class StaticEmbeddingModel implements TextEmbedder {
    *     {@code null}, or {@code topK} is less than 1.
    */
   public List<Neighbor> analogy(String a, String b, String c, int topK) {
-    if (a == null) {
-      throw new IllegalArgumentException("a must not be null");
-    }
-    if (b == null) {
-      throw new IllegalArgumentException("b must not be null");
-    }
-    if (c == null) {
-      throw new IllegalArgumentException("c must not be null");
-    }
-    requirePositive(topK);
+    ParamChecks.requireNonNullArg(a, "a");
+    ParamChecks.requireNonNullArg(b, "b");
+    ParamChecks.requireNonNullArg(c, "c");
+    ParamChecks.requirePositive(topK, "topK");
     final float[] va = embed(a);
     final float[] vb = embed(b);
     final float[] vc = embed(c);
@@ -955,18 +919,6 @@ public final class StaticEmbeddingModel implements TextEmbedder {
       target[d] = (double) vb[d] - va[d] + vc[d];
     }
     return nearestNeighbors(target, topK, excludedRows(a, b, c));
-  }
-
-  /**
-   * Requires {@code topK} to be at least 1.
-   *
-   * @param topK The requested result count.
-   * @throws IllegalArgumentException Thrown if {@code topK} is less than 1.
-   */
-  private void requirePositive(int topK) {
-    if (topK < 1) {
-      throw new IllegalArgumentException("topK must be at least 1, got " + topK);
-    }
   }
 
   /**

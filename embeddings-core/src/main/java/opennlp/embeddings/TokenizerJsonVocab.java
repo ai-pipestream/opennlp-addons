@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Reads the row order of a static embedding matrix out of a {@code tokenizer.json} file with a
@@ -81,9 +82,7 @@ final class TokenizerJsonVocab {
    * @throws IOException Thrown if reading the file fails.
    */
   static Result read(Path file) throws IOException {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
+    ParamChecks.requireNonNullArg(file, "file");
     if (!Files.isRegularFile(file)) {
       throw new IllegalArgumentException("File does not exist or is not a regular file: " + file);
     }

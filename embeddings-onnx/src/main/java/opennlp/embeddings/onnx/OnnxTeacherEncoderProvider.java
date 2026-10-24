@@ -72,7 +72,7 @@ public final class OnnxTeacherEncoderProvider implements TeacherEncoderProvider 
   /** {@inheritDoc} */
   @Override
   public TeacherEncoder create(ProviderSpec spec) throws IOException {
-    if (spec == null || !supports(spec)) {
+    if (!supports(spec)) {
       throw new IllegalArgumentException("spec is not supported: " + spec);
     }
     return OnnxTeacherEncoder.load(spec.path().orElseThrow());

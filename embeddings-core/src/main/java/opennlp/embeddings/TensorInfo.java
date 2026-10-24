@@ -18,6 +18,7 @@ package opennlp.embeddings;
 
 import java.util.Arrays;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -48,15 +49,9 @@ public record TensorInfo(String name, String dtype, int[] shape, long dataOffset
    *     before the starting offset.
    */
   public TensorInfo {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
-    if (dtype == null) {
-      throw new IllegalArgumentException("dtype must not be null");
-    }
-    if (shape == null) {
-      throw new IllegalArgumentException("shape must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
+    ParamChecks.requireNonNullArg(dtype, "dtype");
+    ParamChecks.requireNonNullArg(shape, "shape");
     for (int i = 0; i < shape.length; i++) {
       if (shape[i] < 0) {
         throw new IllegalArgumentException("shape[" + i + "] must not be negative");

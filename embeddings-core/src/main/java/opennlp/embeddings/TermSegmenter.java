@@ -28,6 +28,7 @@ import opennlp.tools.tokenize.SubwordPiece;
 import opennlp.tools.tokenize.SubwordTokenizer;
 import opennlp.tools.tokenize.WordpieceEncoder;
 import opennlp.tools.tokenize.WordpieceTokenizer;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Segments a term's text into the piece strings the teacher's own tokenizer would produce, so a
@@ -69,12 +70,8 @@ final class TermSegmenter {
    */
   static TermSegmenter forTeacher(TeacherTokenizer teacher, Path teacherDirectory)
       throws IOException {
-    if (teacher == null) {
-      throw new IllegalArgumentException("teacher must not be null");
-    }
-    if (teacherDirectory == null) {
-      throw new IllegalArgumentException("teacherDirectory must not be null");
-    }
+    ParamChecks.requireNonNullArg(teacher, "teacher");
+    ParamChecks.requireNonNullArg(teacherDirectory, "teacherDirectory");
     if (TeacherTokenizer.WORDPIECE.equals(teacher.modelType())) {
       // The lowercase default matches ModelAssembler's: absent means the uncased convention.
       final boolean lowerCase = teacher.lowerCase() == null || teacher.lowerCase();
@@ -113,9 +110,7 @@ final class TermSegmenter {
    * @throws IllegalArgumentException Thrown if {@code term} is {@code null}.
    */
   List<String> pieces(String term) {
-    if (term == null) {
-      throw new IllegalArgumentException("term must not be null");
-    }
+    ParamChecks.requireNonNullArg(term, "term");
     final List<SubwordPiece> encoded = tokenizer.encode(term);
     final List<String> pieces = new ArrayList<>(encoded.size());
     for (final SubwordPiece piece : encoded) {

@@ -38,6 +38,7 @@ import java.util.Set;
 
 import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -107,9 +108,7 @@ public final class SafetensorsFile {
    * @throws IOException Thrown if reading the file fails.
    */
   public static SafetensorsFile read(Path file) throws IOException {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
+    ParamChecks.requireNonNullArg(file, "file");
     if (!Files.isRegularFile(file)) {
       throw new IllegalArgumentException("File does not exist or is not a regular file: " + file);
     }
@@ -200,9 +199,7 @@ public final class SafetensorsFile {
    *     this file.
    */
   public TensorInfo tensorInfo(String name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name must not be null");
-    }
+    ParamChecks.requireNonNullArg(name, "name");
     final TensorInfo info = tensorsByName.get(name);
     if (info == null) {
       throw new IllegalArgumentException(

@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * Reads single top-level fields out of a small flat JSON configuration file (a model's
@@ -107,12 +108,8 @@ final class FlatJsonFields {
    */
   private static <T> T topLevelField(Path file, String field, ValueReader<T> valueReader)
       throws IOException {
-    if (file == null) {
-      throw new IllegalArgumentException("file must not be null");
-    }
-    if (field == null) {
-      throw new IllegalArgumentException("field must not be null");
-    }
+    ParamChecks.requireNonNullArg(file, "file");
+    ParamChecks.requireNonNullArg(field, "field");
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
     cursor.skipWhitespace();

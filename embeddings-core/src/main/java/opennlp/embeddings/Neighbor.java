@@ -16,6 +16,7 @@
  */
 package opennlp.embeddings;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -39,9 +40,7 @@ public record Neighbor(String token, double similarity) {
    *     {@code similarity} is non-finite or outside {@code [-1, 1]}.
    */
   public Neighbor {
-    if (token == null) {
-      throw new IllegalArgumentException("token must not be null");
-    }
+    ParamChecks.requireNonNullArg(token, "token");
     if (!Double.isFinite(similarity) || similarity < -1.0 || similarity > 1.0) {
       throw new IllegalArgumentException(
           "similarity must be finite and within [-1, 1], got " + similarity);

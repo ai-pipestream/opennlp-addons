@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 
 /**
  * A cursor parser for the JSON header of a safetensors file: a flat object of tensor name to a
@@ -50,9 +51,7 @@ final class SafetensorsHeaderParser {
    * @throws InvalidFormatException Thrown if {@code headerJson} is malformed.
    */
   static Result parse(String headerJson) throws InvalidFormatException {
-    if (headerJson == null) {
-      throw new IllegalArgumentException("headerJson must not be null");
-    }
+    ParamChecks.requireNonNullArg(headerJson, "headerJson");
     final SafetensorsHeaderParser parser = new SafetensorsHeaderParser(headerJson);
     return parser.parseTop();
   }
