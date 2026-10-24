@@ -17,6 +17,7 @@
 package opennlp.embeddings;
 
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -347,9 +348,9 @@ class SafetensorsFileTest {
     final SafetensorsFile parsed = SafetensorsFile.read(file);
     writeFile(dir, MODEL_FILE_NAME, header, floatsToLittleEndianBytes(1f));
 
-    final IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> parsed.readFloat32("w"));
-    assertTrue(e.getMessage().contains("truncated"));
+    final EOFException e = assertThrows(EOFException.class, () -> parsed.readFloat32("w"));
+    assertEquals("File " + file + " ended at byte " + Files.size(file)
+        + "; it has been truncated since its header was read", e.getMessage());
   }
 
   @Test
