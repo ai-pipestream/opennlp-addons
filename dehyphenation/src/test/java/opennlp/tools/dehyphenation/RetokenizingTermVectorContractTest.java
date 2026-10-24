@@ -32,6 +32,7 @@ import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.util.Span;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Checks empty tokens, term ordering and preservation of input layers. */
@@ -104,9 +105,29 @@ class RetokenizingTermVectorContractTest {
   }
 
   /**
+   * A tokenizer result that is null, holds null or reaches past the normalized text is
+   * rejected with a message naming the tokenizer.
+   *
+   * @param mode The term-vector mode.
+   */
+  @ParameterizedTest
+  @EnumSource(TermVectorAnnotator.Mode.class)
+  void testRejectsMisbehavingTokenizerResults(TermVectorAnnotator.Mode mode) {
+    final Document input = Document.of(TEXT);
+    assertEquals("tokenizer result must not be null", assertThrows(IllegalArgumentException.class,
+        () -> annotator(null, mode).annotate(input)).getMessage());
+    assertEquals("tokenizer result must not contain null", assertThrows(
+        IllegalArgumentException.class,
+        () -> annotator(new Span[] {new Span(0, 4), null}, mode).annotate(input)).getMessage());
+    assertEquals("tokenizer spans must lie within the text", assertThrows(
+        IllegalArgumentException.class,
+        () -> annotator(new Span[] {new Span(16, 21)}, mode).annotate(input)).getMessage());
+  }
+
+  /**
    * Builds an annotator with a tokenizer that returns the supplied spans.
    *
-   * @param spans The spans in normalized text.
+   * @param spans The spans in normalized text, or {@code null}.
    * @param mode The term-vector mode.
    * @return The annotator.
    */
@@ -123,7 +144,7 @@ class RetokenizingTermVectorContractTest {
       @Override
       public Span[] tokenizePos(String text) {
         assertEquals(NORMALIZED, text);
-        return spans.clone();
+        return spans == null ? null : spans.clone();
       }
     };
     return new RetokenizingTermVectorAnnotator(
