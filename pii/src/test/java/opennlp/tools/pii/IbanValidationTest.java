@@ -111,7 +111,7 @@ class IbanValidationTest {
       Assertions.assertEquals(expected, extractor.extract(new StringBuilder(text)));
       final Document document = new PiiAnnotator(extractor).annotate(Document.of(text));
       Assertions.assertEquals(prefix + "*".repeat(formatted.length()) + ".",
-          Masker.mask(document, PiiAnnotator.PII, '*'));
+          new Masker('*').mask(document, PiiAnnotator.PII));
     }
   }
 
@@ -297,7 +297,7 @@ class IbanValidationTest {
     Assertions.assertEquals(1, transfer.get(PiiAnnotator.PII).size());
     Assertions.assertEquals(EXAMPLE, transfer.get(PiiAnnotator.PII).getFirst().value().normalized());
     Assertions.assertEquals("Wire " + "*".repeat(account.length()) + "; reference 1234.",
-        Masker.mask(transfer, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(transfer, PiiAnnotator.PII));
     Assertions.assertEquals("Wire IBAN-1; reference 1234.",
         new Pseudonymizer().rewrite(transfer).text());
   }

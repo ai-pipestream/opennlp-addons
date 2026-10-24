@@ -26,9 +26,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.document.Document;
+import opennlp.tools.document.LayerKey;
 
 /**
- * Tests {@link MaskPolicies} and the type-aware {@link Masker} overload it feeds.
+ * Tests {@link MaskPolicies} and the {@link Masker} that chooses a policy per mention.
  */
 public class MaskPoliciesTest {
 
@@ -123,7 +124,7 @@ public class MaskPoliciesTest {
     final Document document = new PiiAnnotator(PiiPacks.allStructured())
         .annotate(Document.of(text));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType());
+    final String masked = new Masker(MaskPolicies.byType()).mask(document, PiiAnnotator.PII);
     Assertions.assertEquals("card **** **** **** 1111 mail ****@*******.*** "
         + "key ********************", masked);
   }
@@ -136,7 +137,7 @@ public class MaskPoliciesTest {
         .annotate(Document.of(text));
 
     Assertions.assertEquals(text.length(),
-        Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType()).length());
+        new Masker(MaskPolicies.byType()).mask(document, PiiAnnotator.PII).length());
   }
 
   @Test
@@ -145,7 +146,7 @@ public class MaskPoliciesTest {
         .annotate(Document.of("card 4111111111111111"));
 
     Assertions.assertEquals("card XXXXXXXXXXXX1111",
-        Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType('X')));
+        new Masker(MaskPolicies.byType('X')).mask(document, PiiAnnotator.PII));
   }
 
   @Test
@@ -154,15 +155,14 @@ public class MaskPoliciesTest {
         .annotate(Document.of("card 4111111111111111"));
 
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(null, PiiAnnotator.PII, MaskPolicies.byType()));
+        () -> new Masker(MaskPolicies.byType()).mask(null, PiiAnnotator.PII));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, null, MaskPolicies.byType()));
+        () -> new Masker(MaskPolicies.byType()).mask(document, (LayerKey<?>) null));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, PiiAnnotator.PII,
-            (Function<PiiMention, MaskPolicy>) null));
+        () -> new Masker((Function<PiiMention, MaskPolicy>) null).mask(document, PiiAnnotator.PII));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(Document.of("no layer"), PiiAnnotator.PII, MaskPolicies.byType()));
+        () -> new Masker(MaskPolicies.byType()).mask(Document.of("no layer"), PiiAnnotator.PII));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, PiiAnnotator.PII, mention -> null));
+        () -> new Masker(mention -> null).mask(document, PiiAnnotator.PII));
   }
 }

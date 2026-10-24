@@ -90,7 +90,7 @@ class InternationalPhonePrefixTest {
     Assertions.assertEquals(expected, extractor.extract(new StringBuilder(text)));
     final Document document = new PiiAnnotator(extractor).annotate(Document.of(text));
     Assertions.assertEquals(zeros == 0 ? prefix + "*".repeat(phone.length()) + suffix : text,
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
   }
 
   /**
@@ -138,6 +138,6 @@ class InternationalPhonePrefixTest {
     Assertions.assertEquals(1, phones.get(PiiAnnotator.PII).size());
     Assertions.assertEquals("+14155550123", phones.get(PiiAnnotator.PII).getFirst().value().normalized());
     Assertions.assertEquals("Invalid +014155550123; call ************.",
-        Masker.mask(phones, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(phones, PiiAnnotator.PII));
   }
 }

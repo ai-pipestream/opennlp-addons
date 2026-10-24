@@ -83,8 +83,7 @@ public final class MaskPolicies {
 
   /**
    * Returns the type-aware defaults as a function, ready for
-   * {@link Masker#mask(opennlp.tools.document.Document, opennlp.tools.document.LayerKey,
-   * Function)}.
+   * {@link Masker#Masker(Function)}.
    *
    * @return The non-null function assigning a default policy to a mention.
    */

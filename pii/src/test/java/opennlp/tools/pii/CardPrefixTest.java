@@ -77,7 +77,7 @@ class CardPrefixTest {
     Assertions.assertEquals(expected, extractor.extract(new StringBuilder(text)));
     final Document document = new PiiAnnotator(extractor).annotate(Document.of(text));
     Assertions.assertEquals(prefix + "*".repeat(formatted.length()) + ".",
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
     Assertions.assertEquals(prefix + "CARD-1.", new Pseudonymizer().rewrite(document).text());
   }
 
@@ -224,6 +224,6 @@ class CardPrefixTest {
     Assertions.assertEquals(1, cards.get(PiiAnnotator.PII).size());
     Assertions.assertEquals(EXAMPLE, cards.get(PiiAnnotator.PII).getFirst().value().normalized());
     Assertions.assertEquals("Card **** **** **** 0028.",
-        Masker.mask(cards, PiiAnnotator.PII, MaskPolicies.byType()));
+        new Masker(MaskPolicies.byType()).mask(cards, PiiAnnotator.PII));
   }
 }

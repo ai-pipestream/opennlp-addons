@@ -82,7 +82,7 @@ Document document = new PiiAnnotator(new CursorPiiExtractor())
 List<Annotation<PiiMention>> mentions = document.get(PiiAnnotator.PII);
 // email, phone, card: exact spans, types, and normalized forms
 
-String masked = Masker.mask(document, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(document, PiiAnnotator.PII);
 // "Contact ****************, call **************, or charge card *******************."]]>
 			</programlisting>
 		</para>
@@ -95,7 +95,7 @@ String masked = Masker.mask(document, PiiAnnotator.PII, '*');
 String emailText = "Skip user@example.com.é; contact User+tag@Example.COM.";
 Document emailDocument = new PiiAnnotator(PiiPacks.contact())
     .annotate(Document.of(emailText));
-String emailMasked = Masker.mask(emailDocument, PiiAnnotator.PII, '*');
+String emailMasked = new Masker('*').mask(emailDocument, PiiAnnotator.PII);
 // "Skip user@example.com.é; contact " + "*".repeat("User+tag@Example.COM".length()) + "."
 String emailReplaced = new Pseudonymizer().rewrite(emailDocument).text();
 // "Skip user@example.com.é; contact EMAIL-1."]]>
@@ -111,7 +111,7 @@ String emailReplaced = new Pseudonymizer().rewrite(emailDocument).text();
 String phone = "+1 (4155550123)";
 Document phoneDocument = new PiiAnnotator(PiiPacks.contact())
     .annotate(Document.of("Call " + phone + "."));
-String phoneMasked = Masker.mask(phoneDocument, PiiAnnotator.PII, '*');
+String phoneMasked = new Masker('*').mask(phoneDocument, PiiAnnotator.PII);
 // "Call " + "*".repeat(phone.length()) + "."
 String phoneReplaced = new Pseudonymizer().rewrite(phoneDocument).text();
 // "Call PHONE-1."]]>
@@ -125,7 +125,7 @@ String phoneReplaced = new Pseudonymizer().rewrite(phoneDocument).text();
 			<programlisting language="java"><![CDATA[
 Document internationalPhones = new PiiAnnotator(PiiPacks.contact())
     .annotate(Document.of("Invalid +014155550123; call +14155550123."));
-String internationalMasked = Masker.mask(internationalPhones, PiiAnnotator.PII, '*');
+String internationalMasked = new Masker('*').mask(internationalPhones, PiiAnnotator.PII);
 // "Invalid +014155550123; call ************."]]>
 			</programlisting>
 		</para>
@@ -164,8 +164,8 @@ String internationalMasked = Masker.mask(internationalPhones, PiiAnnotator.PII, 
 			each span readable, the customary receipt style.
 			<code>PiiUsageExampleTest</code> asserts the exact output shown here.
 			<programlisting language="java"><![CDATA[
-String receipt = Masker.mask(document, PiiAnnotator.PII,
-    MaskPolicy.of('*').keepingFormat().keepingTrailing(4));
+String receipt = new Masker(MaskPolicy.of('*').keepingFormat().keepingTrailing(4))
+    .mask(document, PiiAnnotator.PII);
 // "Contact ****@******e.com, call (***) ***-4567, or charge card **** **** **** 1111."]]>
 			</programlisting>
 		</para>
@@ -174,10 +174,10 @@ String receipt = Masker.mask(document, PiiAnnotator.PII,
 			those defaults: a card keeps its last four digits, an address or an IP
 			address keeps only its separators, and a credential is masked whole,
 			formatting included, since even its shape says which system it opens.
-			Passing the defaults to <code>Masker</code> chooses a policy per mention,
+			A <code>Masker</code> built from the defaults chooses a policy per mention,
 			so one pass redacts a mixed document correctly.
 			<programlisting language="java"><![CDATA[
-String masked = Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType());
+String masked = new Masker(MaskPolicies.byType()).mask(document, PiiAnnotator.PII);
 // "Contact ****@*******.***, call (***) ***-****, or charge card **** **** **** 1111."]]>
 			</programlisting>
 		</para>
@@ -191,7 +191,7 @@ String masked = Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType());
 			<programlisting language="java"><![CDATA[
 Document cards = new PiiAnnotator(PiiPacks.payment())
     .annotate(Document.of("Card 8100 0000 0000 0028."));
-String cardReceipt = Masker.mask(cards, PiiAnnotator.PII, MaskPolicies.byType());
+String cardReceipt = new Masker(MaskPolicies.byType()).mask(cards, PiiAnnotator.PII);
 // "Card **** **** **** 0028."]]>
 			</programlisting>
 		</para>
@@ -205,7 +205,7 @@ String cardReceipt = Masker.mask(cards, PiiAnnotator.PII, MaskPolicies.byType())
 String account = "DE89 3704 0044 0532 0130 00";
 Document transfer = new PiiAnnotator(PiiPacks.payment())
     .annotate(Document.of("Wire " + account + "; reference 1234."));
-String maskedTransfer = Masker.mask(transfer, PiiAnnotator.PII, '*');
+String maskedTransfer = new Masker('*').mask(transfer, PiiAnnotator.PII);
 // "Wire " + "*".repeat(account.length()) + "; reference 1234."
 String replacedTransfer = new Pseudonymizer().rewrite(transfer).text();
 // "Wire IBAN-1; reference 1234."]]>
@@ -224,8 +224,8 @@ Document overlaps = Document.of("123456")
     .with(left, List.of(new Annotation<>(new Span(0, 4), "1234")))
     .with(right, List.of(new Annotation<>(new Span(2, 6), "3456")));
 
-String masked = Masker.mask(overlaps, List.of(right, left),
-    MaskPolicy.of('*').keepingTrailing(2));
+String masked = new Masker(MaskPolicy.of('*').keepingTrailing(2))
+    .mask(overlaps, List.of(right, left));
 // "****56" with either layer order]]>
 			</programlisting>
 		</para>
@@ -260,7 +260,7 @@ String masked = Masker.mask(overlaps, List.of(right, left),
 					<programlisting language="java"><![CDATA[
 Document addresses = new PiiAnnotator(PiiPacks.network()).annotate(Document.of(
     "Peer [2001:db8::], host 192.0.2.1, MAC 02-1B-44-11-3A-B7."));
-String masked = Masker.mask(addresses, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(addresses, PiiAnnotator.PII);
 // "Peer [**********], host *********, MAC *****************."]]>
 					</programlisting>
 				</para>
@@ -278,7 +278,7 @@ String masked = Masker.mask(addresses, PiiAnnotator.PII, '*');
 					<programlisting language="java"><![CDATA[
 Document credentials = new PiiAnnotator(PiiPacks.secrets()).annotate(Document.of(
     "Fetch s3://user:demo%40pass@example.invalid/model.bin"));
-String masked = Masker.mask(credentials, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(credentials, PiiAnnotator.PII);
 // "Fetch s3://****************@example.invalid/model.bin"]]>
 					</programlisting>
 					GitHub installation tokens start with <code>ghs_</code> and have
@@ -296,7 +296,7 @@ String masked = Masker.mask(credentials, PiiAnnotator.PII, '*');
 String installationToken = "ghs_12345_eyJhbGciOiJIUzI1NiJ9.e30." + "A-_".repeat(160);
 Document credentials = new PiiAnnotator(PiiPacks.secrets()).annotate(
     Document.of("Bearer " + installationToken));
-String masked = Masker.mask(credentials, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(credentials, PiiAnnotator.PII);
 // "Bearer " + "*".repeat(installationToken.length())]]>
 					</programlisting>
 					JWT detection requires three non-empty, unpadded base64url segments
@@ -310,7 +310,7 @@ String masked = Masker.mask(credentials, PiiAnnotator.PII, '*');
 					<programlisting language="java"><![CDATA[
 String token = "eyAiYWxnIjogIkhTMjU2IiB9.e30.dGVzdA";
 Document bearer = new PiiAnnotator(PiiPacks.secrets()).annotate(Document.of("Bearer " + token));
-String masked = Masker.mask(bearer, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(bearer, PiiAnnotator.PII);
 // "Bearer " + "*".repeat(token.length())]]>
 					</programlisting>
 				</para>
@@ -339,7 +339,7 @@ Document result = new PiiAnnotator(PiiPacks.crypto()).annotate(
     Document.of("Address: " + address + "."));
 String normalized = result.get(PiiAnnotator.PII).getFirst().value().normalized();
 // "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
-String masked = Masker.mask(result, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(result, PiiAnnotator.PII);
 // "Address: " + "*".repeat(address.length()) + "."]]>
 					</programlisting>
 				</para>
@@ -368,7 +368,7 @@ String masked = Masker.mask(result, PiiAnnotator.PII, '*');
 					<programlisting language="java"><![CDATA[
 Document taxpayer = new PiiAnnotator(PiiPacks.usIdentity())
     .annotate(Document.of("Tax ID 900-50-0000."));
-String masked = Masker.mask(taxpayer, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(taxpayer, PiiAnnotator.PII);
 // "Tax ID ***********."]]>
 					</programlisting>
 				</para>
@@ -411,7 +411,7 @@ String masked = Masker.mask(taxpayer, PiiAnnotator.PII, '*');
 			<programlisting language="java"><![CDATA[
 Document identifiers = new PiiAnnotator(PiiPacks.euIdentity())
     .annotate(Document.of("NHS: 943 476 5919; IdNr: 65-929-970-489."));
-String masked = Masker.mask(identifiers, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(identifiers, PiiAnnotator.PII);
 // "NHS: ************; IdNr: **************."]]>
 			</programlisting>
 		</para>
@@ -425,7 +425,7 @@ String masked = Masker.mask(identifiers, PiiAnnotator.PII, '*');
 PiiExtractor labeled = new CompositePiiExtractor(PiiPacks.caIdentity(), PiiPacks.device());
 Document identifiers = new PiiAnnotator(labeled)
     .annotate(Document.of("SIN: 046 454 286; IMEI: 490154203237518."));
-String masked = Masker.mask(identifiers, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(identifiers, PiiAnnotator.PII);
 // "SIN: ***********; IMEI: ***************."]]>
 			</programlisting>
 		</para>
@@ -435,7 +435,7 @@ String masked = Masker.mask(identifiers, PiiAnnotator.PII, '*');
 			<programlisting language="java"><![CDATA[
 Document payment = new PiiAnnotator(PiiPacks.payment())
     .annotate(Document.of("Routing 001234561."));
-String masked = Masker.mask(payment, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(payment, PiiAnnotator.PII);
 // "Routing *********."]]>
 			</programlisting>
 		</para>
@@ -476,7 +476,7 @@ Document deviceDocument = new PiiAnnotator(deviceAndPayment)
 List<String> types = deviceDocument.get(PiiAnnotator.PII).stream()
     .map(annotation -> annotation.value().type()).toList();
 // List.of("imei", "card")
-String deviceMasked = Masker.mask(deviceDocument, PiiAnnotator.PII, '*');
+String deviceMasked = new Masker('*').mask(deviceDocument, PiiAnnotator.PII);
 // "IMEI: ***************."]]>
 			</programlisting>
 		</para>
@@ -491,7 +491,7 @@ PiiExtractor last = text -> List.of(new PiiMention(new Span(4, 7), "person", "Bo
 PiiExtractor combined = new CompositePiiExtractor(first,
     new CompositePiiExtractor(middle, last));
 Document people = new PiiAnnotator(combined).annotate(Document.of("Amy Bob"));
-String masked = Masker.mask(people, PiiAnnotator.PII, '*');
+String masked = new Masker('*').mask(people, PiiAnnotator.PII);
 // "*******"]]>
 			</programlisting>
 		</para>
@@ -512,7 +512,7 @@ Document link = new PiiAnnotator(PiiPacks.allStructured()).annotate(Document.of(
 List<PiiMention> matches = link.get(PiiAnnotator.PII).stream()
     .map(annotation -> annotation.value()).toList();
 // url-credential [8, 17), email [13, 29)
-String maskedLink = Masker.mask(link, PiiAnnotator.PII, '*');
+String maskedLink = new Masker('*').mask(link, PiiAnnotator.PII);
 // "https://*********************/path"]]>
 			</programlisting>
 		</para>

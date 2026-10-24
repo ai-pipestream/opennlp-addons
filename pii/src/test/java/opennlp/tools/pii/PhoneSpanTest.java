@@ -105,7 +105,7 @@ class PhoneSpanTest {
     Assertions.assertEquals(expected, document.get(PiiAnnotator.PII).stream()
         .map(annotation -> annotation.value()).toList());
     Assertions.assertEquals(prefix + "*".repeat(phone.text().length()) + suffix,
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
     Assertions.assertEquals(prefix + "PHONE-1" + suffix,
         new Pseudonymizer().rewrite(document).text());
   }
@@ -186,7 +186,7 @@ class PhoneSpanTest {
     Assertions.assertEquals("+14155550123",
         document.get(PiiAnnotator.PII).getFirst().value().normalized());
     Assertions.assertEquals("Call " + "*".repeat(phone.length()) + ".",
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
     Assertions.assertEquals("Call PHONE-1.", new Pseudonymizer().rewrite(document).text());
   }
 

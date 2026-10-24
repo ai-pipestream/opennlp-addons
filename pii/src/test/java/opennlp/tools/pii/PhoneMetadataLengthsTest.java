@@ -73,6 +73,6 @@ class PhoneMetadataLengthsTest {
     Assertions.assertEquals(expected, extractor.extract(new StringBuilder(text)));
     final Document document = new PiiAnnotator(extractor).annotate(Document.of(text));
     Assertions.assertEquals(accepted ? PREFIX + "*".repeat(phone.length()) + SUFFIX : text,
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
   }
 }

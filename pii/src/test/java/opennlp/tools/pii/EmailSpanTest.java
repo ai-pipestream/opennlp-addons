@@ -127,7 +127,7 @@ class EmailSpanTest {
     Assertions.assertEquals(List.of(new PiiMention(new Span(start, start + ADDRESS.length()),
         PiiMention.TYPE_EMAIL, NORMALIZED)), extractor.extract(text));
     Assertions.assertEquals("Skip user@example.com.é; contact "
-        + "*".repeat(ADDRESS.length()) + ".", Masker.mask(document, PiiAnnotator.PII, '*'));
+        + "*".repeat(ADDRESS.length()) + ".", new Masker('*').mask(document, PiiAnnotator.PII));
     Assertions.assertEquals("Skip user@example.com.é; contact EMAIL-1.",
         new Pseudonymizer().rewrite(document).text());
   }
@@ -150,7 +150,7 @@ class EmailSpanTest {
     Assertions.assertEquals(List.of(expected), document.get(PiiAnnotator.PII).stream()
         .map(annotation -> annotation.value()).toList());
     Assertions.assertEquals(prefix + "*".repeat(ADDRESS.length()) + suffix,
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
     Assertions.assertEquals(prefix + "EMAIL-1" + suffix, new Pseudonymizer().rewrite(document).text());
     Assertions.assertEquals(text, document.text());
   }

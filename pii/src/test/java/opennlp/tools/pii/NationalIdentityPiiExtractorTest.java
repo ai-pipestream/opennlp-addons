@@ -227,7 +227,7 @@ class NationalIdentityPiiExtractorTest {
     Assertions.assertEquals(List.of(Family.NHS.type, Family.TAX.type),
         result.get(PiiAnnotator.PII).stream().map(a -> a.value().type()).toList());
     Assertions.assertEquals("NHS: ************; IdNr: **************.",
-        Masker.mask(result, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(result, PiiAnnotator.PII));
   }
 
   /**

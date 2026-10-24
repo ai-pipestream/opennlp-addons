@@ -38,7 +38,7 @@ public class MaskerTest {
     final String text = "Contact jane@example.com or call +44 20 7946 0958.";
     final Document document = annotator.annotate(Document.of(text));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII, '*');
+    final String masked = new Masker('*').mask(document, PiiAnnotator.PII);
 
     Assertions.assertEquals(text.length(), masked.length());
     Assertions.assertEquals("Contact **************** or call ****************.", masked);
@@ -57,7 +57,7 @@ public class MaskerTest {
     document = document.with(terms,
         List.of(new Annotation<>(new Span(9, 21), "widget press")));
 
-    final String masked = Masker.mask(document, List.of(PiiAnnotator.PII, terms), '#');
+    final String masked = new Masker('#').mask(document, List.of(PiiAnnotator.PII, terms));
 
     Assertions.assertEquals(text.length(), masked.length());
     Assertions.assertEquals("Send the ############ manual to ################ now.", masked);
@@ -72,7 +72,7 @@ public class MaskerTest {
     final String text = "Nothing sensitive here.";
     final Document document = annotator.annotate(Document.of(text));
 
-    Assertions.assertEquals(text, Masker.mask(document, PiiAnnotator.PII, '*'));
+    Assertions.assertEquals(text, new Masker('*').mask(document, PiiAnnotator.PII));
   }
 
   /**
@@ -86,7 +86,7 @@ public class MaskerTest {
     final Document document = annotator.annotate(Document.of(text));
 
     Assertions.assertEquals("Card **************** 12/26",
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
   }
 
   @Test
@@ -95,17 +95,35 @@ public class MaskerTest {
     final List<LayerKey<?>> withNullLayer = new ArrayList<>();
     withNullLayer.add(null);
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(null, PiiAnnotator.PII, '*'));
+        () -> new Masker('*').mask(null, PiiAnnotator.PII));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, (LayerKey<?>) null, '*'));
+        () -> new Masker('*').mask(document, (LayerKey<?>) null));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, (Collection<LayerKey<?>>) null, '*'));
+        () -> new Masker('*').mask(document, (Collection<LayerKey<?>>) null));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, List.of(), '*'));
+        () -> new Masker('*').mask(document, List.of()));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, withNullLayer, '*'));
+        () -> new Masker('*').mask(document, withNullLayer));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, PiiAnnotator.PII, '*'));
+        () -> new Masker('*').mask(document, PiiAnnotator.PII));
+  }
+
+  /**
+   * Verifies that a masker choosing policies from one value type rejects a layer whose
+   * values are of another type before it reads any annotation.
+   */
+  @Test
+  void testRejectsLayersOfAnotherValueType() {
+    final LayerKey<String> terms = LayerKey.of("term", String.class);
+    final Document document = annotator.annotate(Document.of("Call +44 20 7946 0958 now."))
+        .with(terms, List.of(new Annotation<>(new Span(0, 4), "call")));
+    final Masker byMention = new Masker(MaskPolicies.byType());
+
+    Assertions.assertEquals("Call +** ** **** **** now.", byMention.mask(document, PiiAnnotator.PII));
+    final IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> byMention.mask(document, List.of(PiiAnnotator.PII, terms)));
+    Assertions.assertEquals("layer values must be of type opennlp.tools.pii.PiiMention: " + terms,
+        thrown.getMessage());
   }
 
   /**
@@ -124,9 +142,9 @@ public class MaskerTest {
     final MaskPolicy policy = MaskPolicy.of('*').keepingTrailing(4);
 
     final String fullThenPrefix =
-        Masker.mask(document, List.<LayerKey<?>>of(fullCard, prefix), policy);
+        new Masker(policy).mask(document, List.<LayerKey<?>>of(fullCard, prefix));
     final String prefixThenFull =
-        Masker.mask(document, List.<LayerKey<?>>of(prefix, fullCard), policy);
+        new Masker(policy).mask(document, List.<LayerKey<?>>of(prefix, fullCard));
 
     Assertions.assertEquals("card ************1111 end", fullThenPrefix);
     Assertions.assertEquals("card ************1111 end", prefixThenFull);

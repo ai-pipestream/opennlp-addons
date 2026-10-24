@@ -246,7 +246,7 @@ class GithubInstallationTokenTest {
     final Document credentials = new PiiAnnotator(PiiPacks.secrets()).annotate(
         Document.of("Bearer " + installationToken));
     Assertions.assertEquals("Bearer " + "*".repeat(installationToken.length()),
-        Masker.mask(credentials, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(credentials, PiiAnnotator.PII));
     Assertions.assertEquals(installationToken,
         credentials.get(PiiAnnotator.PII).getFirst().value().normalized());
   }

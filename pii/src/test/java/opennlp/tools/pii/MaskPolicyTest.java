@@ -100,8 +100,8 @@ public class MaskPolicyTest {
     final Document document =
         new PiiAnnotator(new CursorPiiExtractor()).annotate(Document.of(text));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII,
-        MaskPolicy.of('*').keepingFormat().keepingTrailing(4));
+    final String masked = new Masker(MaskPolicy.of('*').keepingFormat().keepingTrailing(4))
+        .mask(document, PiiAnnotator.PII);
 
     Assertions.assertEquals(text.length(), masked.length());
     Assertions.assertEquals("Card **** **** **** 1111 and mail ****@******e.com.",
@@ -113,6 +113,6 @@ public class MaskPolicyTest {
     final Document document = new PiiAnnotator(new CursorPiiExtractor())
         .annotate(Document.of("no pii here"));
     Assertions.assertThrows(IllegalArgumentException.class,
-        () -> Masker.mask(document, List.of(PiiAnnotator.PII), (MaskPolicy) null));
+        () -> new Masker((MaskPolicy) null).mask(document, List.of(PiiAnnotator.PII)));
   }
 }

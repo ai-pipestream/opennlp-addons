@@ -234,7 +234,7 @@ class LabeledPiiExtractorTest {
     Assertions.assertEquals(List.of(Family.SIN.type, Family.IMEI.type),
         result.get(PiiAnnotator.PII).stream().map(annotation -> annotation.value().type()).toList());
     Assertions.assertEquals("SIN: ***********; IMEI: ***************.",
-        Masker.mask(result, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(result, PiiAnnotator.PII));
   }
 
   /**

@@ -302,7 +302,7 @@ class JwtHeaderTest {
     final String value = "eyAiYWxnIjogIkhTMjU2IiB9.e30.dGVzdA";
     final Document doc = new PiiAnnotator(PiiPacks.secrets()).annotate(Document.of("Bearer " + value));
     Assertions.assertEquals("Bearer " + "*".repeat(value.length()),
-        Masker.mask(doc, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(doc, PiiAnnotator.PII));
     Assertions.assertEquals(value, doc.get(PiiAnnotator.PII).getFirst().value().normalized());
   }
 

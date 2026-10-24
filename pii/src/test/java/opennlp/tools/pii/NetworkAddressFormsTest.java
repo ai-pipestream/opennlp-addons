@@ -290,7 +290,7 @@ class NetworkAddressFormsTest {
     Assertions.assertEquals(List.of(IPV6, IPV4, MAC),
         layer.stream().map(a -> a.value().normalized()).toList());
     Assertions.assertEquals("Peer [**********], host *********, MAC *****************.",
-        Masker.mask(result, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(result, PiiAnnotator.PII));
   }
 
   /**

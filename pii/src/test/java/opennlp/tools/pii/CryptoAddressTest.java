@@ -189,7 +189,7 @@ class CryptoAddressTest {
         Document.of("Address: " + address + "."));
     Assertions.assertEquals(ETH, result.get(PiiAnnotator.PII).getFirst().value().normalized());
     Assertions.assertEquals("Address: " + "*".repeat(address.length()) + ".",
-        Masker.mask(result, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(result, PiiAnnotator.PII));
   }
 
   /**

@@ -47,7 +47,7 @@ class MaskerOverlapTest {
   /**
    * Provides policies and short texts for exhaustive UTF-16 span-pair checks.
    *
-   * @return Text, mask character, format option, trailing count and overload.
+   * @return Text, mask character, format option, trailing count and layer arrangement.
    */
   private static Stream<Arguments> combinations() {
     final List<Arguments> cases = new ArrayList<>();
@@ -72,7 +72,7 @@ class MaskerOverlapTest {
    * @param mask The replacement character.
    * @param keepFormat Whether punctuation stays visible.
    * @param trailing The number of trailing letters or digits to retain.
-   * @param mode The masking overload.
+   * @param mode The layer arrangement.
    */
   @ParameterizedTest
   @MethodSource("combinations")
@@ -103,7 +103,7 @@ class MaskerOverlapTest {
    * @param first The first span to mask.
    * @param second The second span to mask.
    * @param policy The policy for both spans.
-   * @param mode The masking overload.
+   * @param mode The layer arrangement.
    * @return The masked text.
    */
   private String mask(String text, Span first, Span second, MaskPolicy policy, Mode mode) {
@@ -111,11 +111,11 @@ class MaskerOverlapTest {
     final Annotation<String> b = new Annotation<>(second, "b");
     if (mode == Mode.SEPARATE_LAYERS) {
       final Document document = Document.of(text).with(FIRST, List.of(a)).with(SECOND, List.of(b));
-      return Masker.mask(document, List.of(FIRST, SECOND), policy);
+      return new Masker(policy).mask(document, List.of(FIRST, SECOND));
     }
     final Document document = Document.of(text).with(FIRST, List.of(a, b));
-    return mode == Mode.SINGLE_LAYER ? Masker.mask(document, FIRST, policy)
-        : Masker.mask(document, FIRST, value -> policy);
+    return mode == Mode.SINGLE_LAYER ? new Masker(policy).mask(document, FIRST)
+        : new Masker(String.class, value -> policy).mask(document, FIRST);
   }
 
   /**
@@ -162,7 +162,8 @@ class MaskerOverlapTest {
     final MaskPolicy rightPolicy = MaskPolicy.of('#').keepingTrailing(1);
     final Document document = withPolicies(leftPolicy, rightPolicy, reverse);
 
-    Assertions.assertEquals(expected, Masker.mask(document, POLICIES, policy -> policy));
+    Assertions.assertEquals(expected,
+        new Masker(MaskPolicy.class, policy -> policy).mask(document, POLICIES));
     Assertions.assertEquals("123456", document.text());
   }
 
@@ -178,7 +179,8 @@ class MaskerOverlapTest {
     final MaskPolicy rightPolicy = MaskPolicy.of('*').keepingTrailing(1);
     final Document document = withPolicies(leftPolicy, rightPolicy, reverse);
 
-    Assertions.assertEquals("*****6", Masker.mask(document, POLICIES, policy -> policy));
+    Assertions.assertEquals("*****6",
+        new Masker(MaskPolicy.class, policy -> policy).mask(document, POLICIES));
   }
 
   /**
@@ -211,17 +213,17 @@ class MaskerOverlapTest {
 
     Assertions.assertAll(
         () -> Assertions.assertThrows(IllegalArgumentException.class,
-            () -> Masker.mask(document, category, '*')),
+            () -> new Masker('*').mask(document, category)),
         () -> Assertions.assertThrows(IllegalArgumentException.class,
-            () -> Masker.mask(document, category, policy)),
+            () -> new Masker(policy).mask(document, category)),
         () -> Assertions.assertThrows(IllegalArgumentException.class,
-            () -> Masker.mask(document, List.of(category), '*')),
+            () -> new Masker('*').mask(document, List.of(category))),
         () -> Assertions.assertThrows(IllegalArgumentException.class,
-            () -> Masker.mask(document, List.of(category), policy)),
+            () -> new Masker(policy).mask(document, List.of(category))),
         () -> Assertions.assertThrows(IllegalArgumentException.class,
-            () -> Masker.mask(document, category, value -> {
+            () -> new Masker(String.class, value -> {
               Assertions.fail("A document-scoped layer must be rejected before selecting a policy");
               return policy;
-            })));
+            }).mask(document, category)));
   }
 }

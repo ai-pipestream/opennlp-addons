@@ -153,7 +153,7 @@ class BankingPiiPolicyTest {
     Assertions.assertEquals(List.of(new PiiMention(new Span(8, 17),
         PiiMention.TYPE_ABA_ROUTING, GOVERNMENT_EXAMPLE)),
         result.get(PiiAnnotator.PII).stream().map(annotation -> annotation.value()).toList());
-    Assertions.assertEquals("Routing *********.", Masker.mask(result, PiiAnnotator.PII, '*'));
+    Assertions.assertEquals("Routing *********.", new Masker('*').mask(result, PiiAnnotator.PII));
     Assertions.assertEquals("Routing ABA-ROUTING-1.", new Pseudonymizer().rewrite(result).text());
     Assertions.assertTrue(source.layers().isEmpty());
   }

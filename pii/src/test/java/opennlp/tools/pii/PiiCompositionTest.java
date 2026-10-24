@@ -109,7 +109,7 @@ class PiiCompositionTest {
 
     Assertions.assertEquals(List.of(amy, middle, bob), result.get(PiiAnnotator.PII).stream()
         .map(annotation -> annotation.value()).toList());
-    Assertions.assertEquals(prefix + "*******", Masker.mask(result, PiiAnnotator.PII, '*'));
+    Assertions.assertEquals(prefix + "*******", new Masker('*').mask(result, PiiAnnotator.PII));
     // The rewrite keeps the longest span and drops both persons it crosses.
     Assertions.assertEquals(prefix + "ACUSTOM-1ob",
         new Pseudonymizer().rewrite(result).text());

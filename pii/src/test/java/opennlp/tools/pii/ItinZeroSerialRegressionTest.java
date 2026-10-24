@@ -197,7 +197,7 @@ class ItinZeroSerialRegressionTest {
     Assertions.assertEquals(List.of(new Annotation<>(mention.span(), mention)),
         document.get(PiiAnnotator.PII), name);
     Assertions.assertEquals("Tax ID ***********.",
-        Masker.mask(document, PiiAnnotator.PII, '*'), name);
+        new Masker('*').mask(document, PiiAnnotator.PII), name);
     Assertions.assertEquals("Tax ID US-ITIN-1.",
         new Pseudonymizer().rewrite(document).text(), name);
 

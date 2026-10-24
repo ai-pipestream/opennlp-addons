@@ -77,7 +77,7 @@ public class PiiUsageExampleTest {
   void testMaskProducesExactRedactedText() {
     final Document document = annotator.annotate(Document.of(TEXT));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII, '*');
+    final String masked = new Masker('*').mask(document, PiiAnnotator.PII);
 
     Assertions.assertEquals(TEXT.length(), masked.length());
     Assertions.assertEquals(
@@ -94,8 +94,8 @@ public class PiiUsageExampleTest {
   void testMaskWithAReceiptStylePolicy() {
     final Document document = annotator.annotate(Document.of(TEXT));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII,
-        MaskPolicy.of('*').keepingFormat().keepingTrailing(4));
+    final String masked = new Masker(MaskPolicy.of('*').keepingFormat().keepingTrailing(4))
+        .mask(document, PiiAnnotator.PII);
 
     Assertions.assertEquals(TEXT.length(), masked.length());
     Assertions.assertEquals(
@@ -112,7 +112,7 @@ public class PiiUsageExampleTest {
   void testMaskWithTypeAwareDefaults() {
     final Document document = annotator.annotate(Document.of(TEXT));
 
-    final String masked = Masker.mask(document, PiiAnnotator.PII, MaskPolicies.byType());
+    final String masked = new Masker(MaskPolicies.byType()).mask(document, PiiAnnotator.PII);
 
     Assertions.assertEquals(TEXT.length(), masked.length());
     Assertions.assertEquals(
@@ -130,8 +130,8 @@ public class PiiUsageExampleTest {
         .with(right, List.of(new Annotation<>(new Span(2, 6), "3456")));
     final MaskPolicy policy = MaskPolicy.of('*').keepingTrailing(2);
 
-    Assertions.assertEquals("****56", Masker.mask(overlaps, List.of(right, left), policy));
-    Assertions.assertEquals("****56", Masker.mask(overlaps, List.of(left, right), policy));
+    Assertions.assertEquals("****56", new Masker(policy).mask(overlaps, List.of(right, left)));
+    Assertions.assertEquals("****56", new Masker(policy).mask(overlaps, List.of(left, right)));
     Assertions.assertEquals("123456", overlaps.text());
     Assertions.assertEquals(new Span(0, 4), overlaps.get(left).getFirst().span());
     Assertions.assertEquals(new Span(2, 6), overlaps.get(right).getFirst().span());

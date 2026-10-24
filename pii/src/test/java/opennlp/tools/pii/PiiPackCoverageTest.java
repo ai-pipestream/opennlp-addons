@@ -71,7 +71,7 @@ class PiiPackCoverageTest {
     final List<PiiMention> all = document.get(PiiAnnotator.PII).stream()
         .map(Annotation::value).toList();
     Assertions.assertTrue(all.contains(expected), () -> "allStructured matches: " + all);
-    final String masked = Masker.mask(document, PiiAnnotator.PII, '*');
+    final String masked = new Masker('*').mask(document, PiiAnnotator.PII);
     Assertions.assertEquals("*".repeat(address.length()),
         masked.substring(start, start + address.length()),
         () -> "allStructured left contact text visible: " + masked);
@@ -82,7 +82,7 @@ class PiiPackCoverageTest {
   void testMaskerCoversCrossingMentions() {
     final Document document = crossingMentions();
     Assertions.assertEquals("https://" + "*".repeat("john:pass@example.com".length()) + "/path",
-        Masker.mask(document, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(document, PiiAnnotator.PII));
   }
 
   /** Checks extraction, annotation, masking and audit counts for overlapping detections. */
@@ -103,7 +103,7 @@ class PiiPackCoverageTest {
     Assertions.assertEquals(expected, document.get(PiiAnnotator.PII).stream()
         .map(Annotation::value).toList());
     Assertions.assertEquals("https://" + "*".repeat("john:pass@example.com".length())
-        + "/path", Masker.mask(document, PiiAnnotator.PII, '*'));
+        + "/path", new Masker('*').mask(document, PiiAnnotator.PII));
     final PiiAuditReport report = PiiAuditReport.of(document, TOKENIZER);
     Assertions.assertEquals(2, report.total());
     Assertions.assertEquals(Map.of(PiiMention.TYPE_URL_CREDENTIAL, 1,

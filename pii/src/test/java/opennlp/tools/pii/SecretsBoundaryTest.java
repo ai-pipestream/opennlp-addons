@@ -272,7 +272,7 @@ class SecretsBoundaryTest {
     final Document result = new PiiAnnotator(PiiPacks.secrets()).annotate(Document.of(
         "Fetch s3://user:demo%40pass@example.invalid/model.bin"));
     Assertions.assertEquals("Fetch s3://****************@example.invalid/model.bin",
-        Masker.mask(result, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(result, PiiAnnotator.PII));
   }
 
   /**

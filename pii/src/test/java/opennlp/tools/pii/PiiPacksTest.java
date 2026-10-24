@@ -236,7 +236,7 @@ public class PiiPacksTest {
         deviceDocument.get(PiiAnnotator.PII).stream()
         .map(annotation -> annotation.value()).toList());
     Assertions.assertEquals("IMEI: ***************.",
-        Masker.mask(deviceDocument, PiiAnnotator.PII, '*'));
+        new Masker('*').mask(deviceDocument, PiiAnnotator.PII));
   }
 
   /**
