@@ -19,6 +19,7 @@ package opennlp.embeddings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -647,6 +648,25 @@ class HuggingFaceModelCacheTest {
         new byte[] {(byte) 0xFF, (byte) 0xFE, (byte) 0xC0});
 
     assertThrows(IOException.class, () -> HuggingFaceModelCache.pinnedRevision(cache));
+  }
+
+  /**
+   * A file record that exists but cannot be read is an error too, the same as an unreadable
+   * revision file, rather than a reason to download the snapshot again over the files it lists.
+   */
+  @Test
+  void testAnUnreadableFileRecordFailsLoud(@TempDir Path cacheRoot) throws IOException {
+    serveTeacher();
+    final Path cache = HuggingFaceModelCache.resolve(MODEL_ID, hub.base(), cacheRoot, null);
+    Files.write(cache.resolve(HuggingFaceModelCache.FILES_FILE),
+        new byte[] {(byte) 0xFF, (byte) 0xFE, (byte) 0xC0});
+    hub.requests.clear();
+
+    final MalformedInputException e = assertThrows(MalformedInputException.class,
+        () -> HuggingFaceModelCache.resolve(MODEL_ID, hub.base(), cacheRoot, null));
+
+    assertEquals("Input length = 1", e.getMessage());
+    assertTrue(hub.requests.isEmpty(), hub.requests.toString());
   }
 
   /**
