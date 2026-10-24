@@ -85,9 +85,10 @@
 			token ids and return mean-pooled vectors without L2 normalization.
 			<code>Providers.of(TeacherEncoderProvider.class)</code> picks the provider for a spec
 			naming the teacher's ONNX file the same way, pinned by the system property
-			<code>opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider</code>. The local-directory
-			<code>ModelDistiller.distill</code> overload with a final provider name selects
-			another implementation registered through
+			<code>opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider</code>. A
+			<code>ModelDistiller</code> created with its own <code>Providers</code> instance uses
+			that lookup instead, for example one with the application's class loader. Providers
+			register through
 			<code>META-INF/services/opennlp.embeddings.spi.TeacherEncoderProvider</code>.
 			Changing the backend does not change the required tokenization or pooling semantics.
 		</para>
@@ -220,7 +221,7 @@ results.sort(Comparator.comparingDouble(Scored::score).reversed());]]>
 			</para>
 			<programlisting language="java"><![CDATA[Path teacher = Path.of("teacher");
 Path output = Path.of("static-model");
-ModelDistiller.distill(teacher, output, 2, List.of("coffee espresso"), null);
+new ModelDistiller(2, null).distill(teacher, output, List.of("coffee espresso"));
 StaticEmbeddingModel model = StaticEmbeddingModel.load(output);
 float[] vector = model.embed("coffee espresso");
 List<Neighbor> related = model.mostSimilar("coffee espresso", 3);]]></programlisting>

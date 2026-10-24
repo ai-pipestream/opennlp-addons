@@ -14,13 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package opennlp.embeddings;
 
-import java.nio.file.Path;
-import java.util.List;
-
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -30,12 +26,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /** Argument checks of {@link ModelDistiller} that need no teacher model. */
 class ModelDistillerTest {
 
-  /** A provider name made of Unicode whitespace only is blank, not a provider name. */
   @ParameterizedTest
-  @ValueSource(strings = {" ", "\u00A0", "\u3000", "\u2028"})
-  void testRejectsAUnicodeBlankProviderName(String blank, @TempDir Path dir) {
+  @ValueSource(ints = {0, -1, Integer.MIN_VALUE})
+  void testRejectsANonPositivePcaDimension(int pcaDims) {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(dir, dir.resolve("out"), 8, List.of(), null, blank));
-    assertEquals("provider must not be blank", e.getMessage());
+        () -> new ModelDistiller(pcaDims, null));
+    assertEquals("pcaDims must be positive", e.getMessage());
+  }
+
+  @Test
+  void testRejectsNullEncoderProviders() {
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> new ModelDistiller(1, null, null));
+    assertEquals("encoders must not be null", e.getMessage());
   }
 }

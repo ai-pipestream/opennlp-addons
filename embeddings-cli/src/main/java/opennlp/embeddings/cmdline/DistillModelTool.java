@@ -65,8 +65,8 @@ public class DistillModelTool extends BasicCmdLineTool {
     try {
       final List<String> terms = params.getTerms() == null
           ? List.of() : readTerms(Path.of(params.getTerms()));
-      result = ModelDistiller.distill(params.getTeacher(), Path.of(params.getOut()),
-          params.getPcaDims(), terms, listener);
+      result = new ModelDistiller(params.getPcaDims(), listener)
+          .distill(params.getTeacher(), Path.of(params.getOut()), terms);
     } catch (IllegalArgumentException | InvalidFormatException | ProviderResolutionException e) {
       throw new TerminateToolException(1, e.getMessage(), e);
     } catch (EmbeddingException e) {

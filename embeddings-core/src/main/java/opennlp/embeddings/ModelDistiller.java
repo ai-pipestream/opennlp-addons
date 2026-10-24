@@ -31,10 +31,9 @@ import java.util.Set;
 
 import opennlp.embeddings.spi.TeacherEncoder;
 import opennlp.embeddings.spi.TeacherEncoderProvider;
-import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.ext.ProviderSpec;
 import opennlp.tools.util.ext.Providers;
-import opennlp.tools.util.ext.UnsatisfiedProviderException;
 import opennlp.tools.util.java.Experimental;
 
 /**
@@ -81,10 +80,6 @@ public final class ModelDistiller {
   /** The fixed seed of the PCA range finder, so a distillation is reproducible. */
   private static final long PCA_SEED = 42;
 
-  /** Not instantiable. */
-  private ModelDistiller() {
-  }
-
   /** Receives progress messages; the command-line tool prints them. */
   @FunctionalInterface
   public interface ProgressListener {
@@ -112,6 +107,44 @@ public final class ModelDistiller {
                        int dimension, double explainedVarianceRatio) {
   }
 
+  private final int pcaDims;
+  private final ProgressListener listener;
+  private final Providers<TeacherEncoderProvider> encoders;
+
+  /**
+   * Creates a distiller that runs teachers through the {@link TeacherEncoderProvider} the
+   * {@link Providers#of(Class) default lookup} selects for their ONNX file.
+   *
+   * @param pcaDims  The number of principal components to keep; clamped to the teacher's hidden
+   *                 dimension, and skipped entirely when it would not reduce a tiny vocabulary.
+   *                 Model2Vec's default (and the recommended value) is 256. Must be positive.
+   * @param listener Receives one progress line per distillation phase, per forward-pass batch
+   *                 and per download; may be {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code pcaDims} is not positive.
+   */
+  public ModelDistiller(int pcaDims, ProgressListener listener) {
+    this(pcaDims, listener, Providers.of(TeacherEncoderProvider.class));
+  }
+
+  /**
+   * Creates a distiller that runs teachers through the {@link TeacherEncoderProvider} the given
+   * lookup selects for their ONNX file, for an application that looks providers up with its own
+   * class loader or configuration.
+   *
+   * @param pcaDims  The number of principal components to keep, as in
+   *                 {@link #ModelDistiller(int, ProgressListener)}. Must be positive.
+   * @param listener Receives progress lines; may be {@code null}.
+   * @param encoders The teacher encoder providers. Must not be {@code null}.
+   * @throws IllegalArgumentException Thrown if {@code pcaDims} is not positive or
+   *     {@code encoders} is {@code null}.
+   */
+  public ModelDistiller(int pcaDims, ProgressListener listener,
+                        Providers<TeacherEncoderProvider> encoders) {
+    this.pcaDims = ParamChecks.requirePositive(pcaDims, "pcaDims");
+    this.listener = listener;
+    this.encoders = ParamChecks.requireNonNullArg(encoders, "encoders");
+  }
+
   /**
    * Distills a teacher into a model directory, resolving the teacher reference first: a local
    * directory is used as-is, a Hugging Face model id ({@code org/model}, or
@@ -119,45 +152,38 @@ public final class ModelDistiller {
    *
    * @param teacher         The teacher: a local directory or a Hugging Face model id. Must not
    *                        be {@code null}.
-   * @param outputDirectory The model directory to write. Must not be {@code null}.
-   * @param pcaDims         The number of principal components to keep.
-   * @param listener        Receives progress lines; may be {@code null}.
+   * @param outputDirectory The model directory to write, as in
+   *                        {@link #distill(Path, Path, List)}. Must not be {@code null}.
    * @return The distillation result, read back from the verified directory.
-   * @throws IllegalArgumentException Thrown if an argument is {@code null} or invalid, the
-   *     teacher reference is malformed, or the teacher cannot be run.
+   * @throws IllegalArgumentException Thrown if an argument is {@code null} or invalid, or the
+   *     teacher reference is malformed.
    * @throws IOException Thrown if reading or writing a file fails, or if a teacher cannot be
    *     downloaded and verified.
    */
-  public static Result distill(String teacher, Path outputDirectory, int pcaDims,
-                               ProgressListener listener) throws IOException {
-    return distill(teacher, outputDirectory, pcaDims, List.of(), listener);
+  public Result distill(String teacher, Path outputDirectory) throws IOException {
+    return distill(teacher, outputDirectory, List.of());
   }
 
   /**
    * Distills a teacher into a model directory with additional term rows, resolving the teacher
-   * reference the way {@link #distill(String, Path, int, ProgressListener)} does.
+   * reference the way {@link #distill(String, Path)} does.
    *
    * @param teacher         The teacher: a local directory or a Hugging Face model id. Must not
    *                        be {@code null}.
    * @param outputDirectory The model directory to write. Must not be {@code null}.
-   * @param pcaDims         The number of principal components to keep.
    * @param terms           The terms to distill as extra rows; see
-   *                        {@link #distill(Path, Path, int, List, ProgressListener)}. Must not
-   *                        be {@code null}.
-   * @param listener        Receives progress lines; may be {@code null}.
+   *                        {@link #distill(Path, Path, List)}. Must not be {@code null}.
    * @return The distillation result, read back from the verified directory.
    * @throws IllegalArgumentException Thrown if an argument is {@code null} or invalid, a term
-   *     normalizes to nothing, the teacher reference is malformed, or the teacher cannot be run.
+   *     normalizes to nothing, or the teacher reference is malformed.
    * @throws IOException Thrown if reading or writing a file fails, or if a teacher cannot be
    *     downloaded and verified.
    */
-  public static Result distill(String teacher, Path outputDirectory, int pcaDims,
-                               List<String> terms, ProgressListener listener)
+  public Result distill(String teacher, Path outputDirectory, List<String> terms)
       throws IOException {
-    checkOutput(outputDirectory, pcaDims);
+    checkOutput(outputDirectory);
     final List<String> prepared = prepareTerms(terms);
-    return distill(HuggingFaceModelCache.resolve(teacher, listener), outputDirectory, pcaDims,
-        prepared, listener);
+    return distill(HuggingFaceModelCache.resolve(teacher, listener), outputDirectory, prepared);
   }
 
   /**
@@ -170,22 +196,13 @@ public final class ModelDistiller {
    *                         or derived by distillation are replaced; unrelated files remain. A
    *                         failure part way through leaves an incomplete output directory. Must
    *                         not be {@code null}.
-   * @param pcaDims          The number of principal components to keep; clamped to the teacher's
-   *                         hidden dimension, and skipped entirely when it would not reduce a
-   *                         tiny vocabulary. Model2Vec's default (and the recommended value) is
-   *                         256.
-   * @param listener         Receives one progress line per distillation phase and one per
-   *                         forward-pass batch; may be {@code null}.
    * @return The distillation result, read back from the verified directory.
    * @throws IllegalArgumentException Thrown if an argument is {@code null} or invalid, the
-   *     teacher and output are the same directory, the teacher directory lacks its files, or the
-   *     teacher cannot be run.
+   *     teacher and output are the same directory, or the teacher directory lacks its files.
    * @throws IOException Thrown if reading or writing a file fails.
    */
-  public static Result distill(Path teacherDirectory, Path outputDirectory, int pcaDims,
-                               ProgressListener listener)
-      throws IOException {
-    return distill(teacherDirectory, outputDirectory, pcaDims, List.of(), listener);
+  public Result distill(Path teacherDirectory, Path outputDirectory) throws IOException {
+    return distill(teacherDirectory, outputDirectory, List.of());
   }
 
   /**
@@ -202,65 +219,31 @@ public final class ModelDistiller {
    * arrive sorted by descending corpus frequency: the Zipf weighting spans the subword rows and
    * the term rows as one ranking.</p>
    *
-   * @param teacherDirectory The teacher's directory, as in
-   *                         {@link #distill(Path, Path, int, ProgressListener)}. A Unigram
-   *                         teacher must also hold its trained SentencePiece {@code .model}
-   *                         file. Must not be {@code null}.
-   * @param outputDirectory  The model directory to write, as in
-   *                         {@link #distill(Path, Path, int, ProgressListener)}. Must not be
-   *                         {@code null}.
-   * @param pcaDims          The number of principal components to keep.
+   * @param teacherDirectory The teacher's directory, as in {@link #distill(Path, Path)}. A
+   *                         Unigram teacher must also hold its trained SentencePiece
+   *                         {@code .model} file. Must not be {@code null}.
+   * @param outputDirectory  The model directory to write, as in {@link #distill(Path, Path)}.
+   *                         Must not be {@code null}.
    * @param terms            The terms to distill as extra rows; empty for none. Must not be
    *                         {@code null} and must not contain {@code null}.
-   * @param listener         Receives progress lines; may be {@code null}.
    * @return The distillation result, read back from the verified directory.
    * @throws IllegalArgumentException Thrown if an argument is {@code null} or invalid, a term
-   *     normalizes to nothing, the teacher and output are the same directory, the teacher
-   *     directory lacks its files, or the teacher cannot be run.
-   * @throws IOException Thrown if reading or writing a file fails.
-   */
-  public static Result distill(Path teacherDirectory, Path outputDirectory, int pcaDims,
-                               List<String> terms, ProgressListener listener)
-      throws IOException {
-    return distill(teacherDirectory, outputDirectory, pcaDims, terms, listener, null);
-  }
-
-  /**
-   * Distills a local teacher using a named encoder provider instead of the one
-   * {@link Providers#select(ProviderSpec)} picks for the teacher's ONNX file.
-   * Tokenization, mean pooling requirements, and output layout are the same as the other
-   * overloads.
-   *
-   * @param teacherDirectory The teacher directory. Must not be null.
-   * @param outputDirectory The output directory. Must not be null or the teacher directory.
-   * @param pcaDims The positive number of principal components to keep.
-   * @param terms Additional terms, or null for none.
-   * @param listener Receives progress messages, or null.
-   * @param provider The name of the installed teacher encoder provider to use, or {@code null}
-   *                 to select one by capability and priority.
-   * @return The verified distillation result.
-   * @throws IllegalArgumentException Thrown if an argument or the teacher directory is invalid.
+   *     normalizes to nothing, the teacher and output are the same directory, or the teacher
+   *     directory lacks its files.
    * @throws opennlp.tools.util.ext.ProviderResolutionException Thrown if no available provider
-   *     of that name, or none at all, supports the teacher's ONNX file, or if several share the
-   *     highest priority.
+   *     supports the teacher's ONNX file, or if several share the highest priority.
    * @throws opennlp.tools.embeddings.EmbeddingException Thrown if the teacher fails to encode.
    * @throws IOException Thrown if reading or writing a file fails, including the teacher's ONNX
    *     file.
    */
-  public static Result distill(Path teacherDirectory, Path outputDirectory, int pcaDims,
-                               List<String> terms, ProgressListener listener, String provider)
+  public Result distill(Path teacherDirectory, Path outputDirectory, List<String> terms)
       throws IOException {
-    if (provider != null && StringUtil.isUnicodeBlank(provider)) {
-      throw new IllegalArgumentException("provider must not be blank");
-    }
-    if (teacherDirectory == null) {
-      throw new IllegalArgumentException("teacherDirectory must not be null");
-    }
+    ParamChecks.requireNonNullArg(teacherDirectory, "teacherDirectory");
     if (!Files.isDirectory(teacherDirectory)) {
       throw new IllegalArgumentException("Teacher directory does not exist or is not a "
           + "directory: " + teacherDirectory);
     }
-    checkOutput(outputDirectory, pcaDims);
+    checkOutput(outputDirectory);
     if (Files.exists(outputDirectory) && Files.isSameFile(teacherDirectory, outputDirectory)) {
       throw new IllegalArgumentException("outputDirectory must differ from teacherDirectory");
     }
@@ -286,24 +269,18 @@ public final class ModelDistiller {
       final int requestedTerms = termList.size();
       termList.removeIf(keptTokens::contains);
       if (requestedTerms > termList.size()) {
-        report(listener, "Dropped " + (requestedTerms - termList.size())
+        report("Dropped " + (requestedTerms - termList.size())
             + " terms already present as vocabulary tokens");
       }
     }
     final int totalRows = rows + termList.size();
 
-    report(listener, "Encoding " + rows + " vocabulary tokens of " + teacherDirectory
+    report("Encoding " + rows + " vocabulary tokens of " + teacherDirectory
         + " through its ONNX graph");
     final float[] embeddings;
     final int teacherDimension;
     final ProviderSpec spec = ProviderSpec.of(onnxFile);
-    final Providers<TeacherEncoderProvider> encoders = Providers.of(TeacherEncoderProvider.class);
-    final TeacherEncoderProvider encoderProvider = provider == null ? encoders.select(spec)
-        : encoders.byName(provider).filter(named -> named.supports(spec))
-            .orElseThrow(() -> new UnsatisfiedProviderException("No available "
-                + TeacherEncoderProvider.class.getName() + " provider named '" + provider
-                + "' supports " + spec));
-    try (TeacherEncoder encoder = encoderProvider.create(spec)) {
+    try (TeacherEncoder encoder = encoders.select(spec).create(spec)) {
       float[][] first = encoder.encodeBatch(new long[][] {tokenizer.inputSequence(0)});
       teacherDimension = first[0].length;
       embeddings = new float[totalRows * teacherDimension];
@@ -321,10 +298,10 @@ public final class ModelDistiller {
               teacherDimension);
         }
         row += batchSize;
-        report(listener, "Encoded " + row + " / " + rows + " vocabulary tokens");
+        report("Encoded " + row + " / " + rows + " vocabulary tokens");
       }
       encodeTerms(termList, tokenizer, teacherDirectory, encoder, embeddings, rows,
-          teacherDimension, listener);
+          teacherDimension);
     }
     nonFiniteToZero(embeddings);
 
@@ -338,7 +315,7 @@ public final class ModelDistiller {
       transformed = embeddings;
       components = teacherDimension;
     } else {
-      report(listener, "Reducing " + totalRows + " x " + teacherDimension + " to " + requested
+      report("Reducing " + totalRows + " x " + teacherDimension + " to " + requested
           + " principal components");
       final RandomizedPca.Result pca = RandomizedPca.fitTransform(embeddings, totalRows,
           teacherDimension, requested, PCA_SEED);
@@ -355,14 +332,14 @@ public final class ModelDistiller {
       }
     }
 
-    report(listener, "Writing and verifying the model directory " + outputDirectory);
+    report("Writing and verifying the model directory " + outputDirectory);
     Files.createDirectories(outputDirectory);
     removeDerivedArtifacts(outputDirectory);
     SafetensorsWriter.writeMatrix(outputDirectory.resolve(ModelFileNames.SAFETENSORS), totalRows,
         components, transformed);
     tokenizer.writeCleaned(outputDirectory.resolve(ModelFileNames.TOKENIZER_JSON));
     Files.writeString(outputDirectory.resolve(ModelFileNames.CONFIG),
-        configJson(teacherDirectory, pcaDims, components));
+        configJson(teacherDirectory, components));
     copySentencePieceModel(teacherDirectory, outputDirectory);
     final Path termsFile = outputDirectory.resolve(ModelFileNames.TERMS);
     if (termList.isEmpty()) {
@@ -383,7 +360,7 @@ public final class ModelDistiller {
    * @param outputDirectory The model output directory.
    * @throws IOException Thrown if an old artifact cannot be removed.
    */
-  private static void removeDerivedArtifacts(Path outputDirectory) throws IOException {
+  private void removeDerivedArtifacts(Path outputDirectory) throws IOException {
     Files.deleteIfExists(outputDirectory.resolve(ModelFileNames.VOCABULARY));
     Files.deleteIfExists(outputDirectory.resolve(ModelFileNames.TOKENIZER_CONFIG));
     for (final String name : ModelFileNames.SENTENCEPIECE_MODELS) {
@@ -404,17 +381,16 @@ public final class ModelDistiller {
    * @param embeddings       The matrix being filled, {@code totalRows * teacherDimension}.
    * @param vocabularyRows   The number of vocabulary rows preceding the term rows.
    * @param teacherDimension The teacher's hidden dimension.
-   * @param listener         Receives one progress line per batch; may be {@code null}.
    * @throws IOException Thrown if reading the teacher's SentencePiece file fails.
    */
-  private static void encodeTerms(List<String> termList, TeacherTokenizer tokenizer,
-                                  Path teacherDirectory, TeacherEncoder encoder,
-                                  float[] embeddings, int vocabularyRows, int teacherDimension,
-                                  ProgressListener listener) throws IOException {
+  private void encodeTerms(List<String> termList, TeacherTokenizer tokenizer,
+                           Path teacherDirectory, TeacherEncoder encoder,
+                           float[] embeddings, int vocabularyRows, int teacherDimension)
+      throws IOException {
     if (termList.isEmpty()) {
       return;
     }
-    report(listener, "Encoding " + termList.size()
+    report("Encoding " + termList.size()
         + " terms through the teacher's own segmentation");
     final TermSegmenter segmenter = TermSegmenter.forTeacher(tokenizer, teacherDirectory);
     final long[][] sequences = new long[termList.size()][];
@@ -443,7 +419,7 @@ public final class ModelDistiller {
             (vocabularyRows + byLength[encoded + b]) * teacherDimension, teacherDimension);
       }
       encoded = end;
-      report(listener, "Encoded " + encoded + " / " + termList.size() + " terms");
+      report("Encoded " + encoded + " / " + termList.size() + " terms");
     }
   }
 
@@ -457,16 +433,12 @@ public final class ModelDistiller {
    * @throws IllegalArgumentException Thrown if {@code terms} is {@code null}, contains
    *     {@code null}, or contains a term with no letter or digit.
    */
-  private static List<String> prepareTerms(List<String> terms) {
-    if (terms == null) {
-      throw new IllegalArgumentException("terms must not be null");
-    }
+  private List<String> prepareTerms(List<String> terms) {
+    ParamChecks.requireNonNullArg(terms, "terms");
     final Set<String> prepared = new LinkedHashSet<>(terms.size() * 2);
     for (int termIndex = 0; termIndex < terms.size(); termIndex++) {
-      final String term = terms.get(termIndex);
-      if (term == null) {
-        throw new IllegalArgumentException("terms[" + termIndex + "] must not be null");
-      }
+      final String term = ParamChecks.requireNonNullArg(terms.get(termIndex),
+          "terms[" + termIndex + "]");
       final String normalized = TermTable.normalizeTerm(term);
       if (normalized.isEmpty()) {
         throw new IllegalArgumentException("Term '" + term
@@ -478,35 +450,28 @@ public final class ModelDistiller {
   }
 
   /**
-   * Validates the arguments that do not depend on the teacher, so that a distillation naming a
+   * Validates the output directory before any teacher work, so that a distillation naming a
    * hub teacher fails before it downloads anything.
    *
    * @param outputDirectory The model directory to write.
-   * @param pcaDims         The number of principal components to keep.
-   * @throws IllegalArgumentException Thrown if the directory is {@code null} or {@code pcaDims}
-   *     is below 1.
+   * @throws IllegalArgumentException Thrown if the directory is {@code null}, or exists and is
+   *     not a directory.
    */
-  private static void checkOutput(Path outputDirectory, int pcaDims) {
-    if (outputDirectory == null) {
-      throw new IllegalArgumentException("outputDirectory must not be null");
-    }
+  private void checkOutput(Path outputDirectory) {
+    ParamChecks.requireNonNullArg(outputDirectory, "outputDirectory");
     if (Files.exists(outputDirectory, LinkOption.NOFOLLOW_LINKS)
         && !Files.isDirectory(outputDirectory)) {
       throw new IllegalArgumentException(
           "outputDirectory must be a directory or not exist: " + outputDirectory);
-    }
-    if (pcaDims < 1) {
-      throw new IllegalArgumentException("pcaDims must be at least 1, got " + pcaDims);
     }
   }
 
   /**
    * Reports one progress line, if anyone is listening.
    *
-   * @param listener The listener; may be {@code null}.
-   * @param message  The message.
+   * @param message The message.
    */
-  private static void report(ProgressListener listener, String message) {
+  private void report(String message) {
     if (listener != null) {
       listener.progress(message);
     }
@@ -520,7 +485,7 @@ public final class ModelDistiller {
    * @param rows           The number of rows.
    * @param sifCoefficient The SIF coefficient.
    */
-  static float[] zipfWeights(int rows, double sifCoefficient) {
+  float[] zipfWeights(int rows, double sifCoefficient) {
     double harmonicSum = 0;
     for (int j = 2; j <= rows + 1; j++) {
       harmonicSum += 1.0 / j;
@@ -541,7 +506,7 @@ public final class ModelDistiller {
    *
    * @param values The matrix, modified in place.
    */
-  private static void nonFiniteToZero(float[] values) {
+  private void nonFiniteToZero(float[] values) {
     for (int i = 0; i < values.length; i++) {
       if (!Float.isFinite(values[i])) {
         values[i] = 0;
@@ -554,11 +519,10 @@ public final class ModelDistiller {
    * writes; the loader reads only {@code normalize}}
    *
    * @param teacherDirectory The teacher's directory, for the name.
-   * @param pcaDims          The requested PCA dimension.
    * @param components       The effective PCA dimension.
    * @throws IOException Thrown if the teacher's revision file cannot be read.
    */
-  private static String configJson(Path teacherDirectory, int pcaDims, int components)
+  private String configJson(Path teacherDirectory, int components)
       throws IOException {
     final Path name = teacherDirectory.getFileName();
     return "{\n"
@@ -587,7 +551,7 @@ public final class ModelDistiller {
    * @param teacherDirectory The teacher's directory.
    * @throws IOException Thrown if the teacher's revision file cannot be read.
    */
-  private static String teacherRevisionField(Path teacherDirectory) throws IOException {
+  private String teacherRevisionField(Path teacherDirectory) throws IOException {
     final String revision = HuggingFaceModelCache.pinnedRevision(teacherDirectory);
     return revision == null ? "" : "  \"teacher_revision\": " + jsonString(revision) + ",\n";
   }
@@ -601,7 +565,7 @@ public final class ModelDistiller {
    *
    * @param value The value to quote and escape.
    */
-  static String jsonString(String value) {
+  String jsonString(String value) {
     final StringBuilder json = new StringBuilder(value.length() + 2).append('"');
     for (int i = 0; i < value.length(); i++) {
       final char c = value.charAt(i);
@@ -636,7 +600,7 @@ public final class ModelDistiller {
    * @param outputDirectory  The model directory.
    * @throws IOException Thrown if copying fails.
    */
-  private static void copySentencePieceModel(Path teacherDirectory, Path outputDirectory)
+  private void copySentencePieceModel(Path teacherDirectory, Path outputDirectory)
       throws IOException {
     for (final String name : ModelFileNames.SENTENCEPIECE_MODELS) {
       final Path source = teacherDirectory.resolve(name);

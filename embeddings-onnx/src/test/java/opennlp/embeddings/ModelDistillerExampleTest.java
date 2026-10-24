@@ -78,7 +78,8 @@ class ModelDistillerExampleTest {
     final Path output = directory.resolve("static-model");
     final List<String> terms = includeTerms ? REQUESTED_TERMS : List.of();
 
-    final ModelDistiller.Result result = ModelDistiller.distill(teacher, output, 2, terms, null);
+    final ModelDistiller.Result result =
+        new ModelDistiller(2, null).distill(teacher, output, terms);
     final StaticEmbeddingModel model = StaticEmbeddingModel.load(output);
 
     assertEquals("WordPiece", result.family());
@@ -122,7 +123,7 @@ class ModelDistillerExampleTest {
     assertEquals("coffee", model.mostSimilar("coffee", 1).get(0).token());
 
     final Path repeatedOutput = directory.resolve("repeated-model");
-    assertEquals(result, ModelDistiller.distill(teacher, repeatedOutput, 2, terms, null));
+    assertEquals(result, new ModelDistiller(2, null).distill(teacher, repeatedOutput, terms));
     for (final String file : List.of(ModelFileNames.SAFETENSORS, ModelFileNames.TOKENIZER_JSON,
         ModelFileNames.CONFIG, ModelFileNames.VOCABULARY, ModelFileNames.TOKENIZER_CONFIG)) {
       assertEquals(-1L, Files.mismatch(output.resolve(file), repeatedOutput.resolve(file)), file);
@@ -142,7 +143,7 @@ class ModelDistillerExampleTest {
     final Path teacher = writeTeacher(directory.resolve("teacher"));
     final Path output = directory.resolve("static-model");
 
-    ModelDistiller.distill(teacher, output, 2, List.of("coffee espresso"), null);
+    new ModelDistiller(2, null).distill(teacher, output, List.of("coffee espresso"));
     final StaticEmbeddingModel model = StaticEmbeddingModel.load(output);
     final float[] vector = model.embed("coffee espresso");
     final List<Neighbor> related = model.mostSimilar("coffee espresso", 3);

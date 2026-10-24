@@ -84,7 +84,7 @@ class ModelDistillerTest {
     final Path output = directory.resolve("output");
 
     final EmbeddingException error = assertThrows(EmbeddingException.class,
-        () -> ModelDistiller.distill(teacher, output, 1, null));
+        () -> new ModelDistiller(1, null).distill(teacher, output));
 
     assertEquals("ONNX output 'last_hidden_state' has hidden dimension 3, expected 1 from the "
         + "initial batch", error.getMessage());
@@ -94,7 +94,7 @@ class ModelDistillerTest {
   @Test
   void testZipfWeightsFollowTheModel2vecFormula() {
     // Two rows: the Zipf distribution is over 1/2 and 1/3, normalized by their sum 5/6.
-    final float[] weights = ModelDistiller.zipfWeights(2, SIF);
+    final float[] weights = new ModelDistiller(1, null).zipfWeights(2, SIF);
 
     assertEquals(2, weights.length);
     assertEquals(SIF / (SIF + 0.6), weights[0], 1e-10);
@@ -104,7 +104,7 @@ class ModelDistillerTest {
   @Test
   void testZipfWeightsOfASingleRowUseTheWholeDistribution() {
     // One row takes all the probability mass, so p is 1 regardless of the harmonic sum.
-    final float[] weights = ModelDistiller.zipfWeights(1, SIF);
+    final float[] weights = new ModelDistiller(1, null).zipfWeights(1, SIF);
 
     assertEquals(1, weights.length);
     assertEquals(SIF / (SIF + 1.0), weights[0], 1e-10);
@@ -113,7 +113,7 @@ class ModelDistillerTest {
   @ParameterizedTest
   @ValueSource(ints = {2, 3, 100, 1000})
   void testZipfWeightsDiscountEarlyRows(int rows) {
-    final float[] weights = ModelDistiller.zipfWeights(rows, SIF);
+    final float[] weights = new ModelDistiller(1, null).zipfWeights(rows, SIF);
 
     assertEquals(rows, weights.length);
     // Frequent (early) tokens are down-weighted relative to rare (late) ones, and every weight is
@@ -131,7 +131,7 @@ class ModelDistillerTest {
   @Test
   void testZipfWeightsMatchTheHarmonicNormalizationOfTheLastRow() {
     final int rows = 1000;
-    final float[] weights = ModelDistiller.zipfWeights(rows, SIF);
+    final float[] weights = new ModelDistiller(1, null).zipfWeights(rows, SIF);
 
     double harmonicSum = 0;
     for (int j = 2; j <= rows + 1; j++) {
@@ -143,7 +143,7 @@ class ModelDistillerTest {
   @Test
   void testRejectsANullTeacherDirectory(@TempDir Path dir) {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill((Path) null, dir, 256, null));
+        () -> new ModelDistiller(256, null).distill((Path) null, dir));
     assertEquals("teacherDirectory must not be null", e.getMessage());
   }
 
@@ -152,23 +152,15 @@ class ModelDistillerTest {
     final Path file = Files.writeString(dir.resolve("teacher"), "not a directory");
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(file, dir.resolve("out"), 256, null));
+        () -> new ModelDistiller(256, null).distill(file, dir.resolve("out")));
     assertTrue(e.getMessage().contains("is not a directory"), e.getMessage());
   }
 
   @Test
   void testRejectsANullOutputDirectory(@TempDir Path dir) {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(dir, null, 256, null));
+        () -> new ModelDistiller(256, null).distill(dir, null));
     assertEquals("outputDirectory must not be null", e.getMessage());
-  }
-
-  @ParameterizedTest
-  @ValueSource(ints = {0, -1, Integer.MIN_VALUE})
-  void testRejectsANonPositivePcaDimension(int pcaDims, @TempDir Path dir) {
-    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(dir, dir.resolve("out"), pcaDims, null));
-    assertEquals("pcaDims must be at least 1, got " + pcaDims, e.getMessage());
   }
 
   @Test
@@ -177,7 +169,7 @@ class ModelDistillerTest {
     final Path output = Files.writeString(dir.resolve("model.bin"), "keep me");
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill("not a model id", output, 256, null));
+        () -> new ModelDistiller(256, null).distill("not a model id", output));
 
     assertEquals("outputDirectory must be a directory or not exist: " + output, e.getMessage());
     assertEquals("keep me", Files.readString(output));
@@ -189,7 +181,7 @@ class ModelDistillerTest {
     Files.writeString(teacher.resolve(ModelFileNames.TOKENIZER_JSON), "{}");
 
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(teacher, dir.resolve("out"), 256, null));
+        () -> new ModelDistiller(256, null).distill(teacher, dir.resolve("out")));
     assertTrue(e.getMessage().contains(ModelFileNames.ONNX_MODEL), e.getMessage());
     // Nothing may be written before the teacher is known to be usable.
     assertTrue(Files.notExists(dir.resolve("out")), "the output directory must not be created");
@@ -207,7 +199,7 @@ class ModelDistillerTest {
       Files.writeString(output.resolve(name), "stale model");
     }
 
-    final ModelDistiller.Result result = ModelDistiller.distill(teacher, output, 1, null);
+    final ModelDistiller.Result result = new ModelDistiller(1, null).distill(teacher, output);
 
     assertEquals("WordPiece", result.family());
     assertEquals(List.of("[PAD]", "[UNK]", "hello", "world"),
@@ -227,7 +219,7 @@ class ModelDistillerTest {
     final String tokenizer = Files.readString(teacher.resolve(ModelFileNames.TOKENIZER_JSON));
 
     final IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill(teacher, teacher, 1, null));
+        () -> new ModelDistiller(1, null).distill(teacher, teacher));
 
     assertEquals("outputDirectory must differ from teacherDirectory", error.getMessage());
     assertEquals(tokenizer, Files.readString(teacher.resolve(ModelFileNames.TOKENIZER_JSON)));
@@ -240,7 +232,7 @@ class ModelDistillerTest {
     final Path teacher = writeTinyTeacher(Files.createDirectory(dir.resolve("teacher")));
     final Path output = dir.resolve("output");
 
-    final ModelDistiller.Result result = ModelDistiller.distill(teacher, output, 1, null);
+    final ModelDistiller.Result result = new ModelDistiller(1, null).distill(teacher, output);
 
     assertEquals("WordPiece", result.family());
     assertTrue(Files.readString(output.resolve(ModelFileNames.CONFIG))
@@ -255,11 +247,12 @@ class ModelDistillerTest {
    */
   @Test
   void testJsonStringEscapesQuotesBackslashesAndControlCharacters() {
-    assertEquals("\"teacher\\\"quoted\"", ModelDistiller.jsonString("teacher\"quoted"));
-    assertEquals("\"back\\\\slash\"", ModelDistiller.jsonString("back\\slash"));
-    assertEquals("\"line\\nbreak\"", ModelDistiller.jsonString("line\nbreak"));
-    assertEquals("\"\\u0001\"", ModelDistiller.jsonString("\u0001"));
-    assertEquals("\"plain\"", ModelDistiller.jsonString("plain"));
+    final ModelDistiller distiller = new ModelDistiller(1, null);
+    assertEquals("\"teacher\\\"quoted\"", distiller.jsonString("teacher\"quoted"));
+    assertEquals("\"back\\\\slash\"", distiller.jsonString("back\\slash"));
+    assertEquals("\"line\\nbreak\"", distiller.jsonString("line\nbreak"));
+    assertEquals("\"\\u0001\"", distiller.jsonString("\u0001"));
+    assertEquals("\"plain\"", distiller.jsonString("plain"));
   }
 
   /**
@@ -269,13 +262,15 @@ class ModelDistillerTest {
    */
   @ParameterizedTest
   @ValueSource(strings = {"BAAI/bge-m3", "sentence-transformers/all-MiniLM-L6-v2"})
-  void testRejectsABadOutputBeforeResolvingAHubTeacher(String teacher, @TempDir Path dir) {
+  void testRejectsABadOutputBeforeResolvingAHubTeacher(String teacher, @TempDir Path dir)
+      throws IOException {
+    final Path file = Files.writeString(dir.resolve("model.txt"), "not a directory");
     assertEquals("outputDirectory must not be null",
         assertThrows(IllegalArgumentException.class,
-            () -> ModelDistiller.distill(teacher, null, 256, null)).getMessage());
-    assertEquals("pcaDims must be at least 1, got 0",
+            () -> new ModelDistiller(256, null).distill(teacher, null)).getMessage());
+    assertEquals("outputDirectory must be a directory or not exist: " + file,
         assertThrows(IllegalArgumentException.class,
-            () -> ModelDistiller.distill(teacher, dir.resolve("out"), 0, null)).getMessage());
+            () -> new ModelDistiller(256, null).distill(teacher, file)).getMessage());
   }
 
   /**
@@ -286,20 +281,20 @@ class ModelDistillerTest {
   void testRejectsBadTermsBeforeResolvingAHubTeacher(@TempDir Path dir) {
     assertEquals("terms must not be null",
         assertThrows(IllegalArgumentException.class,
-            () -> ModelDistiller.distill("BAAI/bge-m3", dir.resolve("out"), 256, null, null))
+            () -> new ModelDistiller(256, null).distill("BAAI/bge-m3", dir.resolve("out"), null))
             .getMessage());
     assertEquals("terms[0] must not be null",
         assertThrows(IllegalArgumentException.class,
-            () -> ModelDistiller.distill("BAAI/bge-m3", dir.resolve("out"), 256,
-                Collections.singletonList(null), null)).getMessage());
+            () -> new ModelDistiller(256, null).distill("BAAI/bge-m3", dir.resolve("out"),
+                Collections.singletonList(null))).getMessage());
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"&", "!!", " . "})
   void testRejectsATermWithoutALetterOrDigit(String term, @TempDir Path dir) {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> ModelDistiller.distill("BAAI/bge-m3", dir.resolve("out"), 256, List.of(term),
-            null));
+        () -> new ModelDistiller(256, null).distill("BAAI/bge-m3", dir.resolve("out"),
+            List.of(term)));
     assertTrue(e.getMessage().contains("no letter or digit"), e.getMessage());
   }
 }

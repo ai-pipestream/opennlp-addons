@@ -70,9 +70,9 @@ Distillation preserves its prepared-token and mean-pooling contract through the
 separate `TeacherEncoderProvider` SPI, a `Provider<TeacherEncoder>` that
 `Providers.of(TeacherEncoderProvider.class)` selects the same way for a spec naming the
 teacher's ONNX file. The property
-`opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider` pins it by name, and the
-local-directory `ModelDistiller.distill` overload with a final provider name selects one
-by name. Register a factory in
+`opennlp.provider.opennlp.embeddings.spi.TeacherEncoderProvider` pins it by name, and a
+`ModelDistiller` created with its own `Providers` instance uses that lookup instead. Register
+a factory in
 `META-INF/services/opennlp.embeddings.spi.TeacherEncoderProvider`.
 
 ## Quickstart
