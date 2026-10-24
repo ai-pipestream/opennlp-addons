@@ -37,7 +37,8 @@ import opennlp.tools.util.StringUtil;
  *
  * <p>Bare runs require at least 32 encoded characters and a recognized file signature
  * in the decoded header. Explicitly typed {@code data:} URIs accept non-empty payloads
- * of any length. Format detection uses the decoded header when recognized; otherwise,
+ * of any length; the scheme and the {@code ;base64} extension are matched without
+ * regard to ASCII letter case. Format detection uses the decoded header when recognized; otherwise,
  * the declared media subtype is used. File signatures identify possible formats, not
  * complete or safe files.</p>
  *
@@ -235,13 +236,13 @@ public final class CursorAssetDetector implements AssetDetector {
    * @return The index after the URI when one was recognized, or {@code start}.
    */
   private int tryDataUri(CharSequence text, int start, List<EmbeddedAsset> assets) {
-    if (!matches(text, start, DATA_URI_SCHEME)) {
+    if (!matchesIgnoringAsciiCase(text, start, DATA_URI_SCHEME)) {
       return start;
     }
     int i = start + DATA_URI_SCHEME.length();
     final int mediaTypeStart = i;
     final int length = text.length();
-    while (i < length && !matches(text, i, BASE64_MARKER)) {
+    while (i < length && !matchesIgnoringAsciiCase(text, i, BASE64_MARKER)) {
       final char c = text.charAt(i);
       // A media type with optional parameters; anything else, including any Unicode
       // whitespace, means this is not a base64 data URI and the scheme text is left to
@@ -994,6 +995,34 @@ public final class CursorAssetDetector implements AssetDetector {
     }
     for (int i = 0; i < literal.length(); i++) {
       if (text.charAt(at + i) != literal.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Whether the text matches a lower-case ASCII literal at an index, ignoring the
+   * ASCII letter case of the text. The URI scheme of
+   * <a href="https://www.rfc-editor.org/rfc/rfc3986.html#section-3.1">RFC 3986</a> and
+   * the {@code base64} extension of
+   * <a href="https://www.rfc-editor.org/rfc/rfc2397.html#section-3">RFC 2397</a> are
+   * ASCII tokens compared without regard to case.
+   *
+   * @param text The text.
+   * @param at The index.
+   * @param literal The literal, in lower case.
+   * @return {@code true} on a full match within bounds.
+   */
+  private boolean matchesIgnoringAsciiCase(CharSequence text, int at, String literal) {
+    if (at + literal.length() > text.length()) {
+      return false;
+    }
+    for (int i = 0; i < literal.length(); i++) {
+      final char expected = literal.charAt(i);
+      final char actual = text.charAt(at + i);
+      if (actual != expected
+          && !(StringUtil.isAsciiLowerCase(expected) && actual == expected - ('a' - 'A'))) {
         return false;
       }
     }
