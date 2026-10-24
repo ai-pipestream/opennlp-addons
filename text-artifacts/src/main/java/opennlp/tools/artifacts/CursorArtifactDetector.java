@@ -24,14 +24,17 @@ import java.util.Set;
 import opennlp.tools.tokenize.uax29.ExtendedPictographic;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
+import opennlp.tools.util.normalizer.CodePointSet;
 
 /**
  * Detects character artifacts with code-point scans and reports source spans.
  *
- * <p>A single zero-width character between letters is left unreported, including when
- * combining marks intervene. A single joiner adjacent to a pictograph or emoji
- * variation selector is also left unreported. Other occurrences and runs of two or
- * more zero-width characters are reported. These rules do not validate orthography.</p>
+ * <p>Zero-width findings cover the zero width space, non-joiner and joiner, the word
+ * joiner, the zero width no-break space, the soft hyphen, the invisible operators U+2061
+ * to U+2064 and the Mongolian vowel separator. A single one of them between letters is
+ * left unreported, including when combining marks intervene. A single joiner adjacent to
+ * a pictograph or emoji variation selector is also left unreported. Other occurrences and
+ * runs of two or more are reported. These rules do not validate orthography.</p>
  *
  * <p>Mojibake candidates are maximal non-ASCII runs for which Windows-1252 or ISO-8859-1
  * reverse mappings form valid UTF-8. This is a heuristic, not proof of an encoding
@@ -65,11 +68,15 @@ public final class CursorArtifactDetector implements ArtifactDetector {
       TextArtifact.TYPE_MOJIBAKE);
 
   private static final int REPLACEMENT = 0xFFFD;
-  private static final int ZERO_WIDTH_SPACE = 0x200B;
-  private static final int ZERO_WIDTH_NON_JOINER = 0x200C;
   private static final int ZERO_WIDTH_JOINER = 0x200D;
-  private static final int WORD_JOINER = 0x2060;
-  private static final int ZERO_WIDTH_NO_BREAK_SPACE = 0xFEFF;
+
+  /**
+   * The invisible characters resolved by context: soft hyphen, Mongolian vowel separator,
+   * zero width space, non-joiner and joiner, word joiner, the invisible operators U+2061 to
+   * U+2064, and the zero width no-break space.
+   */
+  private static final CodePointSet ZERO_WIDTH = CodePointSet.of(0x00AD, 0x180E, 0x200B,
+      0x200C, ZERO_WIDTH_JOINER, 0x2060, 0x2061, 0x2062, 0x2063, 0x2064, 0xFEFF);
   private static final int VARIATION_SELECTOR_16 = 0xFE0F;
   private static final int WAVING_BLACK_FLAG = 0x1F3F4;
   private static final int TAG_OFFSET = 0xE0000;
@@ -246,15 +253,13 @@ public final class CursorArtifactDetector implements ArtifactDetector {
   }
 
   /**
-   * Whether the code point is invisible and zero-width, the context-resolved class.
+   * Whether the code point is one of the invisible characters resolved by context.
    *
    * @param codePoint The code point.
    * @return {@code true} for the zero-width characters this detector resolves.
    */
   private boolean isZeroWidth(int codePoint) {
-    return codePoint == ZERO_WIDTH_SPACE || codePoint == ZERO_WIDTH_NON_JOINER
-        || codePoint == ZERO_WIDTH_JOINER || codePoint == WORD_JOINER
-        || codePoint == ZERO_WIDTH_NO_BREAK_SPACE;
+    return ZERO_WIDTH.contains(codePoint);
   }
 
   /**

@@ -59,7 +59,8 @@ public record TextArtifact(Span span, String type) {
   public static final String TYPE_BIDI_CONTROL = "bidi-control";
 
   /**
-   * Zero-width characters reported by a detector's contextual rules.
+   * Zero-width and other invisible format characters, such as U+200B ZERO WIDTH SPACE or
+   * U+00AD SOFT HYPHEN, reported by a detector's contextual rules.
    */
   public static final String TYPE_ZERO_WIDTH = "zero-width";
 

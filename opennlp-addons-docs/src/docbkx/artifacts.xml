@@ -39,6 +39,10 @@
 			reverse single-byte mapping produces valid multibyte UTF-8).
 		</para>
 		<para>
+			The <code>zero-width</code> type covers U+200B ZERO WIDTH SPACE, the joining
+			controls U+200C and U+200D, U+2060 WORD JOINER, U+FEFF ZERO WIDTH NO-BREAK SPACE,
+			U+00AD SOFT HYPHEN, the invisible operators U+2061 to U+2064 and U+180E MONGOLIAN
+			VOWEL SEPARATOR.
 			A single zero-width character between letters is left unreported, even when
 			combining marks intervene. This includes joining controls in words from scripts
 			such as Malayalam and Sinhala. A single joiner next to a pictograph or emoji
