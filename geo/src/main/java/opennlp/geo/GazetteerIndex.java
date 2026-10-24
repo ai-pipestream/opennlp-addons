@@ -55,7 +55,8 @@ import opennlp.tools.util.normalizer.TermAnalyzer;
  * {@link UnmatchableAlternates} policy says.</p>
  *
  * <p>Instances are immutable and thread-safe; a {@link Builder} collects entries, and
- * {@link #load(InputStream, boolean, RowParser)} is the shared read loop of the file loaders.</p>
+ * {@link #load(InputStream, boolean, RowParser, UnmatchableAlternates)} is the shared read loop of
+ * the file loaders.</p>
  */
 @ThreadSafe
 final class GazetteerIndex {

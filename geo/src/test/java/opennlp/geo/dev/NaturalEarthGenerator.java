@@ -211,12 +211,12 @@ public final class NaturalEarthGenerator {
     require(coordinates.isArray() && coordinates.size() >= 2, "Missing coordinates for " + id);
     double longitude = coordinate(coordinates.get(0), 180);
     double latitude = coordinate(coordinates.get(1), 90);
-    String iso = text(properties, "ISO_A2").strip();
+    String iso = StringUtil.trimUnicodeWhitespace(text(properties, "ISO_A2"));
     if (iso.length() != 2 || !upper(iso.charAt(0)) || !upper(iso.charAt(1))) {
       iso = "";
     }
-    String admin = collapse(fold(text(properties, "ADM1NAME").strip()).text());
-    String adminKey = text(properties, "ADM0NAME").strip() + "\t" + admin;
+    String admin = collapse(fold(StringUtil.trimUnicodeWhitespace(text(properties, "ADM1NAME"))).text());
+    String adminKey = StringUtil.trimUnicodeWhitespace(text(properties, "ADM0NAME")) + "\t" + admin;
     if (ADM1_REPAIRS.containsKey(adminKey)) {
       admin = ADM1_REPAIRS.get(adminKey);
       usedRepairs.add("ADM1:" + adminKey);
@@ -235,7 +235,7 @@ public final class NaturalEarthGenerator {
     long population = populationNode.isMissingNode() || populationNode.isNull() ? 0
         : Math.max(0, integer(populationNode, "POP_MAX"));
     var attributes = new ArrayList<String>();
-    String wikidata = text(properties, "WIKIDATAID").strip();
+    String wikidata = StringUtil.trimUnicodeWhitespace(text(properties, "WIKIDATAID"));
     if (!wikidata.isEmpty()) {
       require(wikidata.charAt(0) == 'Q' && digits(wikidata, 1), "Invalid WIKIDATAID for " + id);
       attributes.add("wikidata=" + wikidata);

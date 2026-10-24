@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
+import opennlp.tools.util.StringUtil;
+
 /** Developer tool for deriving an attributed division table from Overture Parquet. */
 public final class OvertureGenerator {
   private static final String SUBTYPES = "country,dependency,region,county,localadmin,locality";
@@ -143,10 +145,10 @@ public final class OvertureGenerator {
   /** Format the eight fields expected by OvertureGazetteer without ambiguous list separators. */
   static String row(String id, String name, List<String> alternates, Double latitude,
                     Double longitude, String country, String subtype, long population) {
-    if (name == null || name.isBlank() || latitude == null || longitude == null) {
+    if (StringUtil.isUnicodeBlank(name) || latitude == null || longitude == null) {
       return null;
     }
-    require(id != null && !id.isBlank() && !id.startsWith("#"), "Invalid division id");
+    require(!StringUtil.isUnicodeBlank(id) && !id.startsWith("#"), "Invalid division id");
     require(Double.isFinite(latitude) && latitude >= -90 && latitude <= 90
         && Double.isFinite(longitude) && longitude >= -180 && longitude <= 180, "Invalid coordinates");
     require(population >= 0, "Invalid population");
@@ -154,7 +156,7 @@ public final class OvertureGenerator {
     for (String alternate : alternates) {
       if (alternate != null) {
         clean(alternate);
-        alternate = alternate.strip();
+        alternate = StringUtil.trimUnicodeWhitespace(alternate);
         if (!alternate.isEmpty() && !alternate.equals(name)) {
           require(alternate.indexOf(',') < 0, "Comma in alternate name cannot be represented: " + alternate);
           cleanAlternates.add(alternate);

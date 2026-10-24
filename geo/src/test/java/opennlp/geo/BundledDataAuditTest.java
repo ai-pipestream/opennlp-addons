@@ -24,8 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -33,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.geo.GazetteerEntry;
+import opennlp.tools.util.StringUtil;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,17 +54,13 @@ public class BundledDataAuditTest {
       GazetteerEntry.ATTRIBUTE_KEY_GEONAMES,
       GazetteerEntry.ATTRIBUTE_KEY_WHOSONFIRST);
 
-  // Upstream mojibake (encoding-corrupted text) signature: an uppercase letter directly after a
-  // lowercase one, or a lowercase letter after two uppercase ones at a word start (an accented
-  // letter replaced by a wrong ASCII letter, e.g. 'MUdenine' for Medenine). Mirrors the
-  // generation script's detector.
-  private static final Pattern CASE_ANOMALY = Pattern.compile("[a-z][A-Z]|\\b[A-Z][A-Z][a-z]");
-  private static final Pattern MC_PREFIX = Pattern.compile("\\bMc(?=[A-Z])");
+  /** The header sentence that states the row count, for example {@code 7343 rows.}. */
+  private static final String ROW_COUNT_CLAIM = " rows.";
 
-  /** The header's row-count claim, e.g. {@code 7343 rows.}, checked against the parsed data. */
-  private static final Pattern ROW_COUNT_CLAIM = Pattern.compile("(\\d+) rows\\.");
+  /** The prefix of a Scottish or Irish surname, where a capital after it is regular casing. */
+  private static final String MC_PREFIX = "Mc";
 
-  /** Values the anomaly pattern flags that are verified correct upstream spellings. */
+  /** Values the case-anomaly check flags that are verified correct upstream spellings. */
   private static final Set<String> LEGIT_CASE_ANOMALIES =
       Set.of("KwaZulu-Natal", "HaMerkaz", "HaDarom", "HaZafon");
 
@@ -88,9 +83,13 @@ public class BundledDataAuditTest {
         BundledGazetteer.class.getResourceAsStream(RESOURCE), StandardCharsets.UTF_8))) {
       String line;
       while ((line = reader.readLine()) != null && line.startsWith("#")) {
-        final Matcher matcher = ROW_COUNT_CLAIM.matcher(line);
-        if (matcher.find()) {
-          claimed = Integer.parseInt(matcher.group(1));
+        final int end = line.indexOf(ROW_COUNT_CLAIM);
+        int start = end;
+        while (start > 0 && StringUtil.isAsciiDigit(line.charAt(start - 1))) {
+          start--;
+        }
+        if (end > 0 && start < end) {
+          claimed = Integer.parseInt(line.substring(start, end));
           break;
         }
       }
@@ -136,10 +135,59 @@ public class BundledDataAuditTest {
     if (LEGIT_CASE_ANOMALIES.contains(value)) {
       return;
     }
-    final String withoutMc = MC_PREFIX.matcher(value).replaceAll("");
-    if (CASE_ANOMALY.matcher(withoutMc).find()) {
+    if (hasCaseAnomaly(withoutMcPrefixes(value))) {
       fail("Mojibake case anomaly in " + what + " '" + value + "' of " + entry.recordId());
     }
+  }
+
+  /**
+   * Detects the upstream mojibake signature in the pure ASCII table: an uppercase letter directly
+   * after a lowercase one, or a word starting with two uppercase letters followed by a lowercase
+   * one, as in {@code MUdenine} for Medenine, where an accented letter was replaced by a wrong
+   * ASCII letter.
+   */
+  private static boolean hasCaseAnomaly(String value) {
+    for (int i = 0; i + 1 < value.length(); i++) {
+      final char c = value.charAt(i);
+      final char next = value.charAt(i + 1);
+      if (StringUtil.isAsciiLowerCase(c) && isAsciiUpperCase(next)) {
+        return true;
+      }
+      if (atWordStart(value, i) && i + 2 < value.length() && isAsciiUpperCase(c)
+          && isAsciiUpperCase(next) && StringUtil.isAsciiLowerCase(value.charAt(i + 2))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Removes every {@code Mc} that starts a word and precedes a capital, so {@code McAllen} passes. */
+  private static String withoutMcPrefixes(String value) {
+    final StringBuilder stripped = new StringBuilder(value.length());
+    for (int i = 0; i < value.length(); i++) {
+      if (atWordStart(value, i) && value.startsWith(MC_PREFIX, i)
+          && i + MC_PREFIX.length() < value.length()
+          && isAsciiUpperCase(value.charAt(i + MC_PREFIX.length()))) {
+        i += MC_PREFIX.length() - 1;
+      } else {
+        stripped.append(value.charAt(i));
+      }
+    }
+    return stripped.toString();
+  }
+
+  /** {@return {@code true} if no ASCII letter, digit or underscore precedes position {@code i}} */
+  private static boolean atWordStart(String value, int i) {
+    if (i == 0) {
+      return true;
+    }
+    final char before = value.charAt(i - 1);
+    return !StringUtil.isAsciiLetter(before) && !StringUtil.isAsciiDigit(before) && before != '_';
+  }
+
+  /** {@return {@code true} if {@code c} is an ASCII capital letter} */
+  private static boolean isAsciiUpperCase(char c) {
+    return StringUtil.isAsciiLetter(c) && !StringUtil.isAsciiLowerCase(c);
   }
 
   @Test
