@@ -105,7 +105,9 @@ public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
    * @return A new {@link Document} with the {@link TermVectorAnnotator#TERM_VECTORS} layer
    *         added. Never {@code null}.
    * @throws IllegalArgumentException Thrown if {@code document} is {@code null} or already
-   *         carries the {@link TermVectorAnnotator#TERM_VECTORS} layer.
+   *         carries the {@link TermVectorAnnotator#TERM_VECTORS} layer, or if the tokenizer
+   *         returns {@code null}, a {@code null} span, or a span that ends after the
+   *         normalized text.
    */
   @Override
   public Document annotate(Document document) {
@@ -115,6 +117,7 @@ public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
     final AlignedText aligned = normalizer.normalizeAligned(document.text());
     final String normalized = aligned.normalizedString();
     final Span[] tokens = tokenizer.tokenizePos(normalized);
+    checkTokens(tokens, normalized.length());
     return document.with(TermVectorAnnotator.TERM_VECTORS,
         mode == TermVectorAnnotator.Mode.FULL
             ? fullVectors(aligned, normalized, tokens)
@@ -131,6 +134,28 @@ public class RetokenizingTermVectorAnnotator implements DocumentAnnotator {
   @Override
   public Set<LayerKey<?>> provides() {
     return Set.of(TermVectorAnnotator.TERM_VECTORS);
+  }
+
+  /**
+   * Checks the spans the tokenizer returned for the normalized text.
+   *
+   * @param tokens The token spans.
+   * @param length The length of the normalized text.
+   * @throws IllegalArgumentException Thrown if {@code tokens} is {@code null}, holds
+   *         {@code null}, or holds a span that ends after {@code length}.
+   */
+  private void checkTokens(Span[] tokens, int length) {
+    if (tokens == null) {
+      throw new IllegalArgumentException("tokenizer result must not be null");
+    }
+    for (final Span token : tokens) {
+      if (token == null) {
+        throw new IllegalArgumentException("tokenizer result must not contain null");
+      }
+      if (token.getEnd() > length) {
+        throw new IllegalArgumentException("tokenizer spans must lie within the text");
+      }
+    }
   }
 
   /**
