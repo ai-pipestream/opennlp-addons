@@ -293,7 +293,7 @@ final class JwsHeader {
     return true;
   }
 
-  /** Skips the 4 whitespace characters permitted by JSON. */
+  /** Skips the 4 whitespace characters JSON permits (RFC 8259, section 2). */
   private void skipWhitespace() {
     while (position < text.length()) {
       final char c = text.charAt(position);

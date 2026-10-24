@@ -159,7 +159,8 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Finds AWS access key identifiers.
+   * Finds AWS access key identifiers. AWS issues the 16-character body in ASCII capital
+   * letters and digits.
    *
    * @param text The text to scan.
    * @param hits The candidate collector.
@@ -241,7 +242,8 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Parses a GitHub token body using the alphabet for the prefix.
+   * Parses a GitHub token body using the alphabet for the prefix. GitHub issues the body
+   * in ASCII letters, digits and underscores, with dots and hyphens in installation tokens.
    *
    * @param text The text being scanned.
    * @param start The first body character.
@@ -469,7 +471,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Checks a noninitial character in a scheme.
+   * Checks a noninitial character in a scheme, which RFC 3986, section 3.1, limits to ASCII.
    *
    * @param c The character to check.
    * @return {@code true} for an ASCII letter, digit, plus sign, hyphen or dot.
@@ -479,7 +481,8 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Checks userinfo characters and percent signs. The scanner validates escape digits.
+   * Checks userinfo characters and percent signs, the ASCII set of RFC 3986, section 3.2.1.
+   * The scanner validates escape digits.
    *
    * @param c The character.
    * @return {@code true} if the character may appear in a userinfo component.
@@ -496,7 +499,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Tests for a base64url character.
+   * Tests for a base64url character, the ASCII alphabet of RFC 4648, section 5.
    *
    * @param c The character.
    * @return {@code true} for a letter, a digit, {@code -}, or {@code _}.

@@ -274,7 +274,8 @@ public final class CursorPiiExtractor implements PiiExtractor {
 
   /**
    * Finds uppercase IBAN candidates with a registered country/length and a passing
-   * MOD 97 checksum. Spaces may separate groups after the 4-character header.
+   * MOD 97 checksum. Spaces may separate groups after the 4-character header. ISO 13616
+   * restricts an IBAN to ASCII capital letters and digits.
    *
    * @param text The text to scan.
    * @param hits The candidate collector.
@@ -502,7 +503,8 @@ public final class CursorPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Tests for a character allowed in an email local part.
+   * Tests for a character allowed in an email local part. The addr-spec of RFC 5322 is
+   * ASCII; an internationalized address (RFC 6531) is not matched.
    *
    * @param c The character.
    * @return {@code true} for ASCII letters, digits, and {@code . _ % + -}.
@@ -513,7 +515,8 @@ public final class CursorPiiExtractor implements PiiExtractor {
   }
 
   /**
-   * Tests for a character allowed in an email domain.
+   * Tests for a character allowed in an email domain. Domain labels are ASCII (RFC 1035);
+   * an internationalized domain name is matched in its A-label form only.
    *
    * @param c The character.
    * @return {@code true} for ASCII letters, digits, dot, and hyphen.
