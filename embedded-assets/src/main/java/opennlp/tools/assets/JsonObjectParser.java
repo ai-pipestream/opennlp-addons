@@ -26,6 +26,8 @@ import opennlp.tools.util.StringUtil;
  * JSON library to the runtime. It recognizes
  * <a href="https://www.rfc-editor.org/rfc/rfc8259">RFC 8259</a> values and can capture one
  * string-valued member from the outermost object.
+ *
+ * @since 3.0.0
  */
 final class JsonObjectParser {
 

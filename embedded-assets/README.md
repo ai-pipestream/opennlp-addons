@@ -25,11 +25,14 @@ Build and run the module tests from the repository root:
 mvn -pl embedded-assets -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
-## Source
+## Contents
 
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-embedded-assets](https://github.com/ai-pipestream/opennlp/tree/892f45d9aca70d67bb3dc56f69b6ef3a869e25e4).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.
+`CursorAssetDetector` finds base64 content in `data:` URIs, bare runs with a
+recognized file signature, RFC 7468 PEM envelopes and compact JSON Web Tokens, and
+reports each as an `EmbeddedAsset` with exact spans over the original text.
+`AssetAnnotator` writes the `opennlp:assets` layer and `AssetFolder` replaces the
+assets with text while keeping an alignment to the original offsets. The manual
+chapter "Embedded Asset Detection" describes the recognized formats and their limits.

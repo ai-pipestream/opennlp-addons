@@ -23,7 +23,11 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-/** Identifies an SVG root element without resolving external XML resources. */
+/**
+ * Identifies an SVG root element without resolving external XML resources.
+ *
+ * @since 3.0.0
+ */
 final class SvgHeader {
 
   static final String FORMAT_NAME = "svg";
@@ -45,6 +49,7 @@ final class SvgHeader {
    * @return Whether the root is svg in the SVG namespace.
    */
   boolean matches(CharSequence text, int start, int end) {
+    // A factory per call: the JDK factory is not safe for concurrent use.
     final XMLInputFactory factory = XMLInputFactory.newDefaultFactory();
     factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, true);
     factory.setProperty(XMLInputFactory.IS_VALIDATING, false);
@@ -70,6 +75,7 @@ final class SvgHeader {
         reader.close();
       }
     } catch (XMLStreamException e) {
+      // Not well-formed XML within the prefix: a classification result, not an error.
       return false;
     }
   }

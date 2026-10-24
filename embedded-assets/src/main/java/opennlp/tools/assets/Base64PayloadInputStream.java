@@ -19,7 +19,11 @@ package opennlp.tools.assets;
 
 import java.io.InputStream;
 
-/** Reads a decoded prefix from a payload already validated by the asset detector. */
+/**
+ * Reads a decoded prefix from a payload already validated by the asset detector.
+ *
+ * @since 3.0.0
+ */
 final class Base64PayloadInputStream extends InputStream {
 
   private static final int DIGIT_BITS = 6;
