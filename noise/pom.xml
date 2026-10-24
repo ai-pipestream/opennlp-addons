@@ -37,11 +37,11 @@
 	</properties>
 
 	<dependencies>
-        <dependency>
-            <groupId>org.apache.opennlp.addons</groupId>
-            <artifactId>embedded-assets</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.opennlp.addons</groupId>
+			<artifactId>embedded-assets</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.opennlp</groupId>
 			<artifactId>opennlp-runtime</artifactId>

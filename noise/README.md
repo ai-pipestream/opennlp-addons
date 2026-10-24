@@ -25,11 +25,14 @@ Build and run the module tests from the repository root:
 mvn -pl noise -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
-## Source
+## Contents
 
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-noise](https://github.com/ai-pipestream/opennlp/tree/23bfc19c2ae364c1485ef0314671b6e9e341a47e).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.
+`StructuralNoiseScorer` scores whitespace-delimited ASCII tokens for OCR damage,
+gibberish, repeated letters and base64-shaped runs, with an optional dictionary
+predicate for misspelled words. `NoiseAnnotator` writes the `opennlp:noise` layer
+and, in its default mode, excludes the spans of the `opennlp:assets` layer written
+by the embedded-assets module. The manual chapter "Noise Scoring" describes the
+severities and the rules.
