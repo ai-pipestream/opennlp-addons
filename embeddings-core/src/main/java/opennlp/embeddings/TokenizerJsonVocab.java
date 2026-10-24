@@ -88,6 +88,7 @@ final class TokenizerJsonVocab {
     }
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
+    final JsonReader reader = new JsonReader(cursor);
     cursor.skipWhitespace();
 
     List<String> vocab = null;
@@ -103,7 +104,7 @@ final class TokenizerJsonVocab {
             throw cursor.malformed("Field 'model' appears more than once");
           }
           modelSeen = true;
-          final ParsedModel model = parseModel(cursor);
+          final ParsedModel model = reader.parseModel();
           vocab = model.vocab;
           modelType = model.type;
         }
@@ -112,7 +113,7 @@ final class TokenizerJsonVocab {
             throw cursor.malformed("Field 'added_tokens' appears more than once");
           }
           addedTokensSeen = true;
-          addedTokens = parseAddedTokens(cursor);
+          addedTokens = reader.parseAddedTokens();
         }
         default -> cursor.skipValue();
       }
@@ -137,133 +138,6 @@ final class TokenizerJsonVocab {
 
   /** The fields read out of the {@code model} object. */
   private record ParsedModel(String type, List<String> vocab) {
-  }
-
-  /**
-   * Parses the {@code model} object, collecting its {@code type} and its {@code vocab} pieces
-   * in list order.
-   *
-   * @param cursor The cursor, positioned at the object's opening brace.
-   * @return The parsed type and vocabulary; either may be absent ({@code null}).
-   */
-  private static ParsedModel parseModel(JsonCursor cursor) throws InvalidFormatException {
-    String type = null;
-    List<String> vocab = null;
-    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
-      switch (key) {
-        case "type" -> {
-          if (type != null) {
-            throw cursor.malformed("Field 'model.type' appears more than once");
-          }
-          type = cursor.parseString();
-        }
-        case "vocab" -> {
-          if (vocab != null) {
-            throw cursor.malformed("Field 'model.vocab' appears more than once");
-          }
-          if (cursor.peek() == '{') {
-            throw cursor.malformed("model.vocab is an object; only the Unigram list layout "
-                + "([piece, score] pairs) maps pieces to matrix rows here");
-          }
-          vocab = parseVocabList(cursor);
-        }
-        default -> cursor.skipValue();
-      }
-    }
-    return new ParsedModel(type, vocab);
-  }
-
-  /**
-   * Parses the Unigram {@code vocab} list of {@code [piece, score]} pairs.
-   *
-   * @param cursor The cursor, positioned at the list's opening bracket.
-   * @return The pieces in list order.
-   */
-  private static List<String> parseVocabList(JsonCursor cursor)
-      throws InvalidFormatException {
-    final List<String> pieces = new ArrayList<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after a vocab entry")) {
-      cursor.expect('[');
-      cursor.skipWhitespace();
-      pieces.add(cursor.parseString());
-      cursor.skipWhitespace();
-      cursor.expect(',');
-      cursor.skipWhitespace();
-      cursor.skipValue();
-      cursor.skipWhitespace();
-      cursor.expect(']');
-    }
-    return pieces;
-  }
-
-  /**
-   * Parses the {@code added_tokens} list of objects, keeping each entry's {@code id} and
-   * {@code content}.
-   *
-   * @param cursor The cursor, positioned at the list's opening bracket.
-   * @return The added tokens in list order.
-   */
-  private static List<AddedToken> parseAddedTokens(JsonCursor cursor)
-      throws InvalidFormatException {
-    final List<AddedToken> tokens = new ArrayList<>();
-    final Set<Long> tokenIds = new HashSet<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after an added token")) {
-      final AddedToken token = parseAddedToken(cursor);
-      if (!tokenIds.add(token.id())) {
-        throw cursor.malformed("added token id " + token.id() + " occurs more than once");
-      }
-      tokens.add(token);
-    }
-    return tokens;
-  }
-
-  /**
-   * Parses one {@code added_tokens} object, requiring its {@code id} and {@code content}.
-   *
-   * @param cursor The cursor, positioned at the object's opening brace.
-   * @return The parsed entry.
-   */
-  private static AddedToken parseAddedToken(JsonCursor cursor)
-      throws InvalidFormatException {
-    Long id = null;
-    String content = null;
-    Boolean special = null;
-    String key = cursor.firstKey();
-    if (key == null) {
-      throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
-    }
-    for (; key != null; key = cursor.nextKey("after an added token field")) {
-      switch (key) {
-        case "id" -> {
-          if (id != null) {
-            throw cursor.malformed("Field 'id' appears more than once in an added token");
-          }
-          id = cursor.parseLong();
-        }
-        case "content" -> {
-          if (content != null) {
-            throw cursor.malformed("Field 'content' appears more than once in an added token");
-          }
-          content = cursor.parseString();
-        }
-        case "special" -> {
-          if (special != null) {
-            throw cursor.malformed("Field 'special' appears more than once in an added token");
-          }
-          special = cursor.parseBoolean();
-        }
-        default -> cursor.skipValue();
-      }
-    }
-    if (id == null || content == null) {
-      throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
-    }
-    if (id < 0) {
-      throw cursor.malformed("An added token's id must not be negative: " + id);
-    }
-    return new AddedToken(id, content, Boolean.TRUE.equals(special));
   }
 
   /**
@@ -303,5 +177,143 @@ final class TokenizerJsonVocab {
       }
     }
     return new Result(List.copyOf(vocab), Set.copyOf(specialRows));
+  }
+
+  /**
+   * Reads the parts of a {@code tokenizer.json} under one cursor, the state every method shares.
+   * Each method reads the value that starts at the cursor.
+   */
+  private static final class JsonReader {
+
+    private final JsonCursor cursor;
+
+    /**
+     * Creates a reader over a cursor.
+     *
+     * @param cursor The cursor to read from.
+     */
+    private JsonReader(JsonCursor cursor) {
+      this.cursor = cursor;
+    }
+
+    /**
+     * Parses the {@code model} object, collecting its {@code type} and its {@code vocab} pieces
+     * in list order.
+     *
+     * @return The parsed type and vocabulary; either may be absent ({@code null}).
+     */
+    private ParsedModel parseModel() throws InvalidFormatException {
+      String type = null;
+      List<String> vocab = null;
+      for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
+        switch (key) {
+          case "type" -> {
+            if (type != null) {
+              throw cursor.malformed("Field 'model.type' appears more than once");
+            }
+            type = cursor.parseString();
+          }
+          case "vocab" -> {
+            if (vocab != null) {
+              throw cursor.malformed("Field 'model.vocab' appears more than once");
+            }
+            if (cursor.peek() == '{') {
+              throw cursor.malformed("model.vocab is an object; only the Unigram list layout "
+                  + "([piece, score] pairs) maps pieces to matrix rows here");
+            }
+            vocab = parseVocabList();
+          }
+          default -> cursor.skipValue();
+        }
+      }
+      return new ParsedModel(type, vocab);
+    }
+
+    /**
+     * Parses the Unigram {@code vocab} list of {@code [piece, score]} pairs.
+     *
+     * @return The pieces in list order.
+     */
+    private List<String> parseVocabList() throws InvalidFormatException {
+      final List<String> pieces = new ArrayList<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a vocab entry")) {
+        cursor.expect('[');
+        cursor.skipWhitespace();
+        pieces.add(cursor.parseString());
+        cursor.skipWhitespace();
+        cursor.expect(',');
+        cursor.skipWhitespace();
+        cursor.skipValue();
+        cursor.skipWhitespace();
+        cursor.expect(']');
+      }
+      return pieces;
+    }
+
+    /**
+     * Parses the {@code added_tokens} list of objects, keeping each entry's {@code id} and
+     * {@code content}.
+     *
+     * @return The added tokens in list order.
+     */
+    private List<AddedToken> parseAddedTokens() throws InvalidFormatException {
+      final List<AddedToken> tokens = new ArrayList<>();
+      final Set<Long> tokenIds = new HashSet<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after an added token")) {
+        final AddedToken token = parseAddedToken();
+        if (!tokenIds.add(token.id())) {
+          throw cursor.malformed("added token id " + token.id() + " occurs more than once");
+        }
+        tokens.add(token);
+      }
+      return tokens;
+    }
+
+    /**
+     * Parses one {@code added_tokens} object, requiring its {@code id} and {@code content}.
+     *
+     * @return The parsed entry.
+     */
+    private AddedToken parseAddedToken() throws InvalidFormatException {
+      Long id = null;
+      String content = null;
+      Boolean special = null;
+      String key = cursor.firstKey();
+      if (key == null) {
+        throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
+      }
+      for (; key != null; key = cursor.nextKey("after an added token field")) {
+        switch (key) {
+          case "id" -> {
+            if (id != null) {
+              throw cursor.malformed("Field 'id' appears more than once in an added token");
+            }
+            id = cursor.parseLong();
+          }
+          case "content" -> {
+            if (content != null) {
+              throw cursor.malformed("Field 'content' appears more than once in an added token");
+            }
+            content = cursor.parseString();
+          }
+          case "special" -> {
+            if (special != null) {
+              throw cursor.malformed("Field 'special' appears more than once in an added token");
+            }
+            special = cursor.parseBoolean();
+          }
+          default -> cursor.skipValue();
+        }
+      }
+      if (id == null || content == null) {
+        throw cursor.malformed(ADDED_TOKEN_FIELDS_REQUIRED);
+      }
+      if (id < 0) {
+        throw cursor.malformed("An added token's id must not be negative: " + id);
+      }
+      return new AddedToken(id, content, Boolean.TRUE.equals(special));
+    }
   }
 }

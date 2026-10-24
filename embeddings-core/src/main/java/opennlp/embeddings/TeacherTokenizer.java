@@ -57,7 +57,6 @@ final class TeacherTokenizer {
 
   private static final String TRAILING_CONTENT = "Trailing content after the top-level object";
 
-
   /** The prefix of the BERT-style placeholder tokens Model2Vec's cleaning drops. */
   private static final String UNUSED_TOKEN_PREFIX = "[unused";
 
@@ -133,6 +132,7 @@ final class TeacherTokenizer {
     final String json = Files.readString(tokenizerJsonFile);
     final String inputName = tokenizerJsonFile.getFileName().toString();
     final JsonCursor cursor = new JsonCursor(json, inputName);
+    final JsonReader reader = new JsonReader(cursor);
     cursor.skipWhitespace();
     String modelType = null;
     List<String> tokensById = null;
@@ -152,7 +152,7 @@ final class TeacherTokenizer {
             throw cursor.malformed("Field 'model' appears more than once");
           }
           seenModel = true;
-          final ModelSection model = parseModel(cursor);
+          final ModelSection model = reader.parseModel();
           modelType = model.type();
           tokensById = model.tokensById();
           unkToken = model.unkToken();
@@ -163,21 +163,21 @@ final class TeacherTokenizer {
             throw cursor.malformed("Field 'added_tokens' appears more than once");
           }
           seenAddedTokens = true;
-          addedContents = parseAddedTokenContents(cursor);
+          addedContents = reader.parseAddedTokenContents();
         }
         case "post_processor" -> {
           if (seenPostProcessor) {
             throw cursor.malformed("Field 'post_processor' appears more than once");
           }
           seenPostProcessor = true;
-          postProcessor = parsePostProcessor(cursor);
+          postProcessor = reader.parsePostProcessor();
         }
         case "normalizer" -> {
           if (seenNormalizer) {
             throw cursor.malformed("Field 'normalizer' appears more than once");
           }
           seenNormalizer = true;
-          lowerCase = parseNormalizerLowercase(cursor);
+          lowerCase = reader.parseNormalizerLowercase();
         }
         default -> cursor.skipValue();
       }
@@ -245,44 +245,6 @@ final class TeacherTokenizer {
     return new TeacherTokenizer(json, inputName, modelType, tokensById, idByToken,
         kept.stream().mapToInt(Integer::intValue).toArray(), originalUnkId, unkToken, padToken,
         padTokenId, bosIds, eosIds, lowerCase);
-  }
-
-  /**
-   * Reads the flat {@code lowercase} boolean of a {@code normalizer} object, for the BERT
-   * normalizer a WordPiece tokenizer carries. Shared with {@link ModelAssembler}, which derives
-   * a distilled directory's {@code do_lower_case} from the same flag.
-   *
-   * @param cursor The cursor, positioned at the normalizer value.
-   * @return The {@code lowercase} flag, or {@code null} when the value is JSON null or the flag
-   *     is absent (for example a nested normalizer with no flat flag).
-   * @throws InvalidFormatException Thrown if the normalizer object is malformed.
-   */
-  static Boolean parseNormalizerLowercase(JsonCursor cursor) throws InvalidFormatException {
-    if (cursor.peek() != '{') {
-      cursor.skipValue();
-      return null;
-    }
-    Boolean lowerCase = null;
-    boolean seenLowerCase = false;
-    for (String key = cursor.firstKey(); key != null;
-         key = cursor.nextKey("after a normalizer field")) {
-      if ("lowercase".equals(key)) {
-        if (seenLowerCase) {
-          throw cursor.malformed("Field 'normalizer.lowercase' appears more than once");
-        }
-        seenLowerCase = true;
-        if (cursor.consumeLiteral("true")) {
-          lowerCase = Boolean.TRUE;
-        } else if (cursor.consumeLiteral("false")) {
-          lowerCase = Boolean.FALSE;
-        } else {
-          throw cursor.malformed("Field 'normalizer.lowercase' must be a boolean");
-        }
-      } else {
-        cursor.skipValue();
-      }
-    }
-    return lowerCase;
   }
 
   /**
@@ -645,393 +607,436 @@ final class TeacherTokenizer {
   private record ModelSection(String type, List<String> tokensById, String unkToken, Long unkId) {
   }
 
-  /**
-   * Parses the {@code model} object for its type, its vocabulary in id order, and its unknown
-   * token (by name for WordPiece, by id for Unigram).
-   *
-   * @param cursor The cursor, positioned at the object's opening brace.
-   * @return The parsed section.
-   */
-  private static ModelSection parseModel(JsonCursor cursor) throws InvalidFormatException {
-    String type = null;
-    List<String> tokensById = null;
-    String unkToken = null;
-    Long unkId = null;
-    boolean seenType = false;
-    boolean seenUnkToken = false;
-    boolean seenUnkId = false;
-    boolean seenVocabulary = false;
-    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
-      switch (key) {
-        case "type" -> {
-          if (seenType) {
-            throw cursor.malformed("Field 'model.type' appears more than once");
-          }
-          seenType = true;
-          type = cursor.parseString();
-        }
-        case "unk_token" -> {
-          if (seenUnkToken) {
-            throw cursor.malformed("Field 'model.unk_token' appears more than once");
-          }
-          seenUnkToken = true;
-          unkToken = cursor.parseString();
-        }
-        case "unk_id" -> {
-          if (seenUnkId) {
-            throw cursor.malformed("Field 'model.unk_id' appears more than once");
-          }
-          seenUnkId = true;
-          if (!cursor.consumeLiteral("null")) {
-            unkId = cursor.parseLong();
-          }
-        }
-        case "vocab" -> {
-          if (seenVocabulary) {
-            throw cursor.malformed("Field 'model.vocab' appears more than once");
-          }
-          seenVocabulary = true;
-          tokensById = parseVocab(cursor);
-        }
-        default -> cursor.skipValue();
-      }
-    }
-    return new ModelSection(type, tokensById, unkToken, unkId);
-  }
-
-  /**
-   * {@return the vocabulary in id order, either from a WordPiece {@code "token": id} dictionary
-   * or from a Unigram {@code [piece, score]} list; dictionary ids must form a gapless range}
-   *
-   * @param cursor The cursor, positioned at the vocabulary's opening character.
-   */
-  private static List<String> parseVocab(JsonCursor cursor) throws InvalidFormatException {
-    if (cursor.peek() == '{') {
-      final Map<Long, String> tokenById = new HashMap<>();
-      for (String token = cursor.firstKey(); token != null;
-           token = cursor.nextKey("after a vocab entry")) {
-        final long id = cursor.parseLong();
-        if (tokenById.putIfAbsent(id, token) != null) {
-          throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
-        }
-      }
-      final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
-      entries.sort(Comparator.comparingLong(Map.Entry::getKey));
-      final List<String> ordered = new ArrayList<>(entries.size());
-      for (int row = 0; row < entries.size(); row++) {
-        if (entries.get(row).getKey() != row) {
-          throw cursor.malformed("Vocabulary ids are not a gapless range: expected id " + row
-              + " but found " + entries.get(row).getKey());
-        }
-        ordered.add(entries.get(row).getValue());
-      }
-      return ordered;
-    }
-    final List<String> pieces = new ArrayList<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after a vocab entry")) {
-      cursor.expect('[');
-      cursor.skipWhitespace();
-      pieces.add(cursor.parseString());
-      cursor.skipWhitespace();
-      cursor.expect(',');
-      cursor.skipWhitespace();
-      cursor.skipValue();
-      cursor.skipWhitespace();
-      cursor.expect(']');
-    }
-    return pieces;
-  }
-
-  /**
-   * {@return the contents of the {@code added_tokens} overlay}
-   *
-   * @param cursor The cursor, positioned at the list's opening bracket.
-   */
-  private static Set<String> parseAddedTokenContents(JsonCursor cursor)
-      throws InvalidFormatException {
-    final Set<String> contents = new HashSet<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after an added token")) {
-      String content = null;
-      boolean seenContent = false;
-      for (String key = cursor.firstKey(); key != null;
-           key = cursor.nextKey("after an added token field")) {
-        if ("content".equals(key)) {
-          if (seenContent) {
-            throw cursor.malformed("Field 'added_tokens[].content' appears more than once");
-          }
-          seenContent = true;
-          content = cursor.parseString();
-        } else {
-          cursor.skipValue();
-        }
-      }
-      if (content != null) {
-        contents.add(content);
-      }
-    }
-    return contents;
-  }
-
   /** The wrapper names or ids of a post-processor, plus its special-token id table. */
   private record PostProcessor(List<String> bosNames, List<String> eosNames, Long clsId,
                                Long sepId, Map<String, Long> specialTokenIds) {
   }
 
   /**
-   * Parses the {@code post_processor} for the wrapper a single-sequence encoding adds. Supports
-   * the {@code TemplateProcessing} form (string or structured template) and the
-   * {@code BertProcessing}/{@code RobertaProcessing} forms with their {@code cls}/{@code sep}
-   * pairs; a {@code null} post-processor means no wrapper.
-   *
-   * @param cursor The cursor, positioned at the value.
-   * @return The parsed post-processor.
-   * @throws InvalidFormatException Thrown if the type is not one of the supported forms.
+   * Reads the parts of a {@code tokenizer.json} under one cursor, the state every method shares.
+   * Each method reads the value that starts at the cursor. The model assembler reads the
+   * normalizer flag with it too.
    */
-  private static PostProcessor parsePostProcessor(JsonCursor cursor)
-      throws InvalidFormatException {
-    if (cursor.consumeLiteral("null")) {
-      return new PostProcessor(List.of(), List.of(), null, null, Map.of());
-    }
-    String type = null;
-    List<String> bosNames = List.of();
-    List<String> eosNames = List.of();
-    Map<String, Long> specialTokenIds = Map.of();
-    Long clsId = null;
-    Long sepId = null;
-    boolean seenType = false;
-    boolean seenSingle = false;
-    boolean seenSpecialTokens = false;
-    boolean seenCls = false;
-    boolean seenSep = false;
-    for (String key = cursor.firstKey(); key != null;
-         key = cursor.nextKey("after a post-processor field")) {
-      switch (key) {
-        case "type" -> {
-          if (seenType) {
-            throw cursor.malformed("Field 'post_processor.type' appears more than once");
-          }
-          seenType = true;
-          type = cursor.parseString();
-        }
-        case "single" -> {
-          if (seenSingle) {
-            throw cursor.malformed("Field 'post_processor.single' appears more than once");
-          }
-          seenSingle = true;
-          final List<List<String>> wrapper = parseTemplate(cursor);
-          bosNames = wrapper.get(0);
-          eosNames = wrapper.get(1);
-        }
-        case "special_tokens" -> {
-          if (seenSpecialTokens) {
-            throw cursor.malformed(
-                "Field 'post_processor.special_tokens' appears more than once");
-          }
-          seenSpecialTokens = true;
-          specialTokenIds = parseSpecialTokenIds(cursor);
-        }
-        case "cls" -> {
-          if (seenCls) {
-            throw cursor.malformed("Field 'post_processor.cls' appears more than once");
-          }
-          seenCls = true;
-          clsId = parseTokenIdPair(cursor);
-        }
-        case "sep" -> {
-          if (seenSep) {
-            throw cursor.malformed("Field 'post_processor.sep' appears more than once");
-          }
-          seenSep = true;
-          sepId = parseTokenIdPair(cursor);
-        }
-        default -> cursor.skipValue();
-      }
-    }
-    if (type == null) {
-      throw cursor.malformed("post_processor.type is required");
-    }
-    return switch (type) {
-      case "TemplateProcessing" -> {
-        if (!seenSingle) {
-          throw cursor.malformed("post_processor.single is required for TemplateProcessing");
-        }
-        yield new PostProcessor(bosNames, eosNames, null, null, specialTokenIds);
-      }
-      case "BertProcessing", "RobertaProcessing" -> {
-        if (clsId == null) {
-          throw cursor.malformed("post_processor.cls is required for " + type);
-        }
-        if (sepId == null) {
-          throw cursor.malformed("post_processor.sep is required for " + type);
-        }
-        yield new PostProcessor(List.of(), List.of(), clsId, sepId, specialTokenIds);
-      }
-      default -> throw new InvalidFormatException("The post_processor type '" + type
-          + "' is not supported; expected TemplateProcessing, BertProcessing, or "
-          + "RobertaProcessing");
-    };
-  }
+  static final class JsonReader {
 
-  /**
-   * {@return a two-element list: the special token names before the sequence placeholder (the
-   * begin-of-sequence wrapper) and those after it (the end-of-sequence wrapper); the template is
-   * either a string like {@code "[CLS] $A [SEP]"} or a list of {@code SpecialToken}/{@code
-   * Sequence} items}
-   *
-   * @param cursor The cursor, positioned at the template value.
-   */
-  private static List<List<String>> parseTemplate(JsonCursor cursor)
-      throws InvalidFormatException {
-    final List<String> bos = new ArrayList<>(1);
-    final List<String> eos = new ArrayList<>(1);
-    int sequenceCount = 0;
-    if (cursor.peek() == '"') {
-      // The template is items separated by whitespace runs, such as "[CLS] $A [SEP]".
-      final String template = cursor.parseString();
+    private final JsonCursor cursor;
+
+    /**
+     * Creates a reader over a cursor.
+     *
+     * @param cursor The cursor to read from.
+     */
+    JsonReader(JsonCursor cursor) {
+      this.cursor = cursor;
+    }
+
+    /**
+     * Reads the flat {@code lowercase} boolean of a {@code normalizer} object, for the BERT
+     * normalizer a WordPiece tokenizer carries. Shared with {@link ModelAssembler}, which derives
+     * a distilled directory's {@code do_lower_case} from the same flag.
+     *
+     * @return The {@code lowercase} flag, or {@code null} when the value is JSON null or the flag
+     *     is absent (for example a nested normalizer with no flat flag).
+     * @throws InvalidFormatException Thrown if the normalizer object is malformed.
+     */
+    Boolean parseNormalizerLowercase() throws InvalidFormatException {
+      if (cursor.peek() != '{') {
+        cursor.skipValue();
+        return null;
+      }
+      Boolean lowerCase = null;
+      boolean seenLowerCase = false;
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a normalizer field")) {
+        if ("lowercase".equals(key)) {
+          if (seenLowerCase) {
+            throw cursor.malformed("Field 'normalizer.lowercase' appears more than once");
+          }
+          seenLowerCase = true;
+          if (cursor.consumeLiteral("true")) {
+            lowerCase = Boolean.TRUE;
+          } else if (cursor.consumeLiteral("false")) {
+            lowerCase = Boolean.FALSE;
+          } else {
+            throw cursor.malformed("Field 'normalizer.lowercase' must be a boolean");
+          }
+        } else {
+          cursor.skipValue();
+        }
+      }
+      return lowerCase;
+    }
+
+    /**
+     * Parses the {@code model} object for its type, its vocabulary in id order, and its unknown
+     * token (by name for WordPiece, by id for Unigram).
+     *
+     * @return The parsed section.
+     */
+    private ModelSection parseModel() throws InvalidFormatException {
+      String type = null;
+      List<String> tokensById = null;
+      String unkToken = null;
+      Long unkId = null;
+      boolean seenType = false;
+      boolean seenUnkToken = false;
+      boolean seenUnkId = false;
+      boolean seenVocabulary = false;
+      for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
+        switch (key) {
+          case "type" -> {
+            if (seenType) {
+              throw cursor.malformed("Field 'model.type' appears more than once");
+            }
+            seenType = true;
+            type = cursor.parseString();
+          }
+          case "unk_token" -> {
+            if (seenUnkToken) {
+              throw cursor.malformed("Field 'model.unk_token' appears more than once");
+            }
+            seenUnkToken = true;
+            unkToken = cursor.parseString();
+          }
+          case "unk_id" -> {
+            if (seenUnkId) {
+              throw cursor.malformed("Field 'model.unk_id' appears more than once");
+            }
+            seenUnkId = true;
+            if (!cursor.consumeLiteral("null")) {
+              unkId = cursor.parseLong();
+            }
+          }
+          case "vocab" -> {
+            if (seenVocabulary) {
+              throw cursor.malformed("Field 'model.vocab' appears more than once");
+            }
+            seenVocabulary = true;
+            tokensById = parseVocab();
+          }
+          default -> cursor.skipValue();
+        }
+      }
+      return new ModelSection(type, tokensById, unkToken, unkId);
+    }
+
+    /**
+     * {@return the vocabulary in id order, either from a WordPiece {@code "token": id} dictionary
+     * or from a Unigram {@code [piece, score]} list; dictionary ids must form a gapless range}
+     *
+     */
+    private List<String> parseVocab() throws InvalidFormatException {
+      if (cursor.peek() == '{') {
+        final Map<Long, String> tokenById = new HashMap<>();
+        for (String token = cursor.firstKey(); token != null;
+             token = cursor.nextKey("after a vocab entry")) {
+          final long id = cursor.parseLong();
+          if (tokenById.putIfAbsent(id, token) != null) {
+            throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
+          }
+        }
+        final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
+        entries.sort(Comparator.comparingLong(Map.Entry::getKey));
+        final List<String> ordered = new ArrayList<>(entries.size());
+        for (int row = 0; row < entries.size(); row++) {
+          if (entries.get(row).getKey() != row) {
+            throw cursor.malformed("Vocabulary ids are not a gapless range: expected id " + row
+                + " but found " + entries.get(row).getKey());
+          }
+          ordered.add(entries.get(row).getValue());
+        }
+        return ordered;
+      }
+      final List<String> pieces = new ArrayList<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a vocab entry")) {
+        cursor.expect('[');
+        cursor.skipWhitespace();
+        pieces.add(cursor.parseString());
+        cursor.skipWhitespace();
+        cursor.expect(',');
+        cursor.skipWhitespace();
+        cursor.skipValue();
+        cursor.skipWhitespace();
+        cursor.expect(']');
+      }
+      return pieces;
+    }
+
+    /**
+     * {@return the contents of the {@code added_tokens} overlay}
+     *
+     */
+    private Set<String> parseAddedTokenContents() throws InvalidFormatException {
+      final Set<String> contents = new HashSet<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after an added token")) {
+        String content = null;
+        boolean seenContent = false;
+        for (String key = cursor.firstKey(); key != null;
+             key = cursor.nextKey("after an added token field")) {
+          if ("content".equals(key)) {
+            if (seenContent) {
+              throw cursor.malformed("Field 'added_tokens[].content' appears more than once");
+            }
+            seenContent = true;
+            content = cursor.parseString();
+          } else {
+            cursor.skipValue();
+          }
+        }
+        if (content != null) {
+          contents.add(content);
+        }
+      }
+      return contents;
+    }
+
+    /**
+     * Parses the {@code post_processor} for the wrapper a single-sequence encoding adds. Supports
+     * the {@code TemplateProcessing} form (string or structured template) and the
+     * {@code BertProcessing}/{@code RobertaProcessing} forms with their {@code cls}/{@code sep}
+     * pairs; a {@code null} post-processor means no wrapper.
+     *
+     * @return The parsed post-processor.
+     * @throws InvalidFormatException Thrown if the type is not one of the supported forms.
+     */
+    private PostProcessor parsePostProcessor() throws InvalidFormatException {
+      if (cursor.consumeLiteral("null")) {
+        return new PostProcessor(List.of(), List.of(), null, null, Map.of());
+      }
+      String type = null;
+      List<String> bosNames = List.of();
+      List<String> eosNames = List.of();
+      Map<String, Long> specialTokenIds = Map.of();
+      Long clsId = null;
+      Long sepId = null;
+      boolean seenType = false;
+      boolean seenSingle = false;
+      boolean seenSpecialTokens = false;
+      boolean seenCls = false;
+      boolean seenSep = false;
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a post-processor field")) {
+        switch (key) {
+          case "type" -> {
+            if (seenType) {
+              throw cursor.malformed("Field 'post_processor.type' appears more than once");
+            }
+            seenType = true;
+            type = cursor.parseString();
+          }
+          case "single" -> {
+            if (seenSingle) {
+              throw cursor.malformed("Field 'post_processor.single' appears more than once");
+            }
+            seenSingle = true;
+            final List<List<String>> wrapper = parseTemplate();
+            bosNames = wrapper.get(0);
+            eosNames = wrapper.get(1);
+          }
+          case "special_tokens" -> {
+            if (seenSpecialTokens) {
+              throw cursor.malformed(
+                  "Field 'post_processor.special_tokens' appears more than once");
+            }
+            seenSpecialTokens = true;
+            specialTokenIds = parseSpecialTokenIds();
+          }
+          case "cls" -> {
+            if (seenCls) {
+              throw cursor.malformed("Field 'post_processor.cls' appears more than once");
+            }
+            seenCls = true;
+            clsId = parseTokenIdPair();
+          }
+          case "sep" -> {
+            if (seenSep) {
+              throw cursor.malformed("Field 'post_processor.sep' appears more than once");
+            }
+            seenSep = true;
+            sepId = parseTokenIdPair();
+          }
+          default -> cursor.skipValue();
+        }
+      }
+      if (type == null) {
+        throw cursor.malformed("post_processor.type is required");
+      }
+      return switch (type) {
+        case "TemplateProcessing" -> {
+          if (!seenSingle) {
+            throw cursor.malformed("post_processor.single is required for TemplateProcessing");
+          }
+          yield new PostProcessor(bosNames, eosNames, null, null, specialTokenIds);
+        }
+        case "BertProcessing", "RobertaProcessing" -> {
+          if (clsId == null) {
+            throw cursor.malformed("post_processor.cls is required for " + type);
+          }
+          if (sepId == null) {
+            throw cursor.malformed("post_processor.sep is required for " + type);
+          }
+          yield new PostProcessor(List.of(), List.of(), clsId, sepId, specialTokenIds);
+        }
+        default -> throw new InvalidFormatException("The post_processor type '" + type
+            + "' is not supported; expected TemplateProcessing, BertProcessing, or "
+            + "RobertaProcessing");
+      };
+    }
+
+    /**
+     * {@return a two-element list: the special token names before the sequence placeholder (the
+     * begin-of-sequence wrapper) and those after it (the end-of-sequence wrapper); the template is
+     * either a string like {@code "[CLS] $A [SEP]"} or a list of {@code SpecialToken}/{@code
+     * Sequence} items}
+     *
+     */
+    private List<List<String>> parseTemplate() throws InvalidFormatException {
+      final List<String> bos = new ArrayList<>(1);
+      final List<String> eos = new ArrayList<>(1);
+      int sequenceCount = 0;
+      if (cursor.peek() == '"') {
+        // The template is items separated by whitespace runs, such as "[CLS] $A [SEP]".
+        final String template = cursor.parseString();
+        List<String> current = bos;
+        final int length = template.length();
+        int i = 0;
+        while (i < length) {
+          final int c = template.codePointAt(i);
+          if (StringUtil.isUnicodeWhitespace(c)) {
+            i += Character.charCount(c);
+            continue;
+          }
+          final int start = i;
+          while (i < length && !StringUtil.isUnicodeWhitespace(template.codePointAt(i))) {
+            i += Character.charCount(template.codePointAt(i));
+          }
+          final String part = template.substring(start, i);
+          if (part.startsWith(SEQUENCE_PLACEHOLDER_PREFIX)) {
+            sequenceCount++;
+            current = eos;
+          } else {
+            current.add(part);
+          }
+        }
+        requireSingleSequence(sequenceCount);
+        return List.of(bos, eos);
+      }
       List<String> current = bos;
-      final int length = template.length();
-      int i = 0;
-      while (i < length) {
-        final int c = template.codePointAt(i);
-        if (StringUtil.isUnicodeWhitespace(c)) {
-          i += Character.charCount(c);
-          continue;
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a template item")) {
+        cursor.expect('{');
+        cursor.skipWhitespace();
+        final String itemType = cursor.parseString();
+        cursor.skipWhitespace();
+        cursor.expect(':');
+        cursor.skipWhitespace();
+        String id = null;
+        boolean seenId = false;
+        for (String key = cursor.firstKey(); key != null;
+             key = cursor.nextKey("after a template item field")) {
+          if ("id".equals(key)) {
+            if (seenId) {
+              throw cursor.malformed("Field 'post_processor.single[].id' appears more than once");
+            }
+            seenId = true;
+            id = cursor.parseString();
+          } else {
+            cursor.skipValue();
+          }
         }
-        final int start = i;
-        while (i < length && !StringUtil.isUnicodeWhitespace(template.codePointAt(i))) {
-          i += Character.charCount(template.codePointAt(i));
-        }
-        final String part = template.substring(start, i);
-        if (part.startsWith(SEQUENCE_PLACEHOLDER_PREFIX)) {
+        cursor.skipWhitespace();
+        cursor.expect('}');
+        if ("SpecialToken".equals(itemType)) {
+          if (id == null) {
+            throw cursor.malformed("SpecialToken template item needs an id");
+          }
+          current.add(id);
+        } else if ("Sequence".equals(itemType)) {
+          if (id == null) {
+            throw cursor.malformed("Sequence template item needs an id");
+          }
           sequenceCount++;
           current = eos;
         } else {
-          current.add(part);
+          throw cursor.malformed("Unknown template item type: '" + itemType + "'");
         }
       }
-      requireSingleSequence(sequenceCount, cursor);
+      requireSingleSequence(sequenceCount);
       return List.of(bos, eos);
     }
-    List<String> current = bos;
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after a template item")) {
-      cursor.expect('{');
-      cursor.skipWhitespace();
-      final String itemType = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(':');
-      cursor.skipWhitespace();
-      String id = null;
-      boolean seenId = false;
-      for (String key = cursor.firstKey(); key != null;
-           key = cursor.nextKey("after a template item field")) {
-        if ("id".equals(key)) {
-          if (seenId) {
-            throw cursor.malformed("Field 'post_processor.single[].id' appears more than once");
-          }
-          seenId = true;
-          id = cursor.parseString();
-        } else {
-          cursor.skipValue();
-        }
-      }
-      cursor.skipWhitespace();
-      cursor.expect('}');
-      if ("SpecialToken".equals(itemType)) {
-        if (id == null) {
-          throw cursor.malformed("SpecialToken template item needs an id");
-        }
-        current.add(id);
-      } else if ("Sequence".equals(itemType)) {
-        if (id == null) {
-          throw cursor.malformed("Sequence template item needs an id");
-        }
-        sequenceCount++;
-        current = eos;
-      } else {
-        throw cursor.malformed("Unknown template item type: '" + itemType + "'");
+
+    /**
+     * Verifies that a single-sequence template inserts its input once.
+     *
+     * @param count  The number of sequence placeholders read.
+     * @throws InvalidFormatException Thrown unless {@code count} is one.
+     */
+    private void requireSingleSequence(int count) throws InvalidFormatException {
+      if (count != 1) {
+        throw cursor.malformed("A single template needs exactly one sequence placeholder; found "
+            + count);
       }
     }
-    requireSingleSequence(sequenceCount, cursor);
-    return List.of(bos, eos);
-  }
 
-  /**
-   * Verifies that a single-sequence template inserts its input once.
-   *
-   * @param count  The number of sequence placeholders read.
-   * @param cursor The cursor used to report the source location.
-   * @throws InvalidFormatException Thrown unless {@code count} is one.
-   */
-  private static void requireSingleSequence(int count, JsonCursor cursor)
-      throws InvalidFormatException {
-    if (count != 1) {
-      throw cursor.malformed("A single template needs exactly one sequence placeholder; found "
-          + count);
-    }
-  }
-
-  /**
-   * {@return the post-processor's special-token id table, name to the first of its ids}
-   *
-   * @param cursor The cursor, positioned at the table's opening brace.
-   */
-  private static Map<String, Long> parseSpecialTokenIds(JsonCursor cursor)
-      throws InvalidFormatException {
-    final Map<String, Long> ids = new HashMap<>();
-    final Set<String> names = new HashSet<>();
-    for (String name = cursor.firstKey(); name != null;
-         name = cursor.nextKey("after a special token")) {
-      if (!names.add(name)) {
-        throw cursor.malformed("Special token '" + name + "' appears more than once");
-      }
-      Long id = null;
-      boolean seenIds = false;
-      for (String key = cursor.firstKey(); key != null;
-           key = cursor.nextKey("after a special token field")) {
-        if ("ids".equals(key)) {
-          if (seenIds) {
-            throw cursor.malformed("Field 'post_processor.special_tokens."
-                + name + ".ids' appears more than once");
-          }
-          seenIds = true;
-          cursor.expect('[');
-          cursor.skipWhitespace();
-          id = cursor.parseLong();
-          cursor.skipWhitespace();
-          while (cursor.consume() == ',') {
+    /**
+     * {@return the post-processor's special-token id table, name to the first of its ids}
+     *
+     */
+    private Map<String, Long> parseSpecialTokenIds() throws InvalidFormatException {
+      final Map<String, Long> ids = new HashMap<>();
+      final Set<String> names = new HashSet<>();
+      for (String name = cursor.firstKey(); name != null;
+           name = cursor.nextKey("after a special token")) {
+        if (!names.add(name)) {
+          throw cursor.malformed("Special token '" + name + "' appears more than once");
+        }
+        Long id = null;
+        boolean seenIds = false;
+        for (String key = cursor.firstKey(); key != null;
+             key = cursor.nextKey("after a special token field")) {
+          if ("ids".equals(key)) {
+            if (seenIds) {
+              throw cursor.malformed("Field 'post_processor.special_tokens."
+                  + name + ".ids' appears more than once");
+            }
+            seenIds = true;
+            cursor.expect('[');
             cursor.skipWhitespace();
+            id = cursor.parseLong();
+            cursor.skipWhitespace();
+            while (cursor.consume() == ',') {
+              cursor.skipWhitespace();
+              cursor.skipValue();
+              cursor.skipWhitespace();
+            }
+          } else {
             cursor.skipValue();
-            cursor.skipWhitespace();
           }
-        } else {
-          cursor.skipValue();
+        }
+        if (id != null) {
+          ids.put(name, id);
         }
       }
-      if (id != null) {
-        ids.put(name, id);
-      }
+      return ids;
     }
-    return ids;
-  }
 
-  /**
-   * {@return the id of a {@code ["token", id]} pair, as {@code cls} and {@code sep} carry it}
-   *
-   * @param cursor The cursor, positioned at the pair's opening bracket.
-   */
-  private static Long parseTokenIdPair(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('[');
-    cursor.skipWhitespace();
-    cursor.parseString();
-    cursor.skipWhitespace();
-    cursor.expect(',');
-    cursor.skipWhitespace();
-    final long id = cursor.parseLong();
-    cursor.skipWhitespace();
-    cursor.expect(']');
-    return id;
+    /**
+     * {@return the id of a {@code ["token", id]} pair, as {@code cls} and {@code sep} carry it}
+     *
+     */
+    private Long parseTokenIdPair() throws InvalidFormatException {
+      cursor.expect('[');
+      cursor.skipWhitespace();
+      cursor.parseString();
+      cursor.skipWhitespace();
+      cursor.expect(',');
+      cursor.skipWhitespace();
+      final long id = cursor.parseLong();
+      cursor.skipWhitespace();
+      cursor.expect(']');
+      return id;
+    }
   }
 }

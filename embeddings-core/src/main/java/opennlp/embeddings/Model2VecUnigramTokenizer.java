@@ -142,6 +142,7 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
   /** Reads and validates the tokenizer configuration. */
   private static Parsed parse(Path file) throws IOException {
     final JsonCursor cursor = new JsonCursor(Files.readString(file), file.getFileName().toString());
+    final JsonReader reader = new JsonReader(cursor);
     cursor.skipWhitespace();
     ParsedModel model = null;
     ParsedNormalizer normalizer = null;
@@ -150,11 +151,11 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
     final Set<String> fields = new HashSet<>();
     for (String key = cursor.firstKey(); key != null;
          key = cursor.nextKey("after a top-level field")) {
-      switch (uniqueKey(cursor, fields, "top-level", key)) {
-        case "model" -> model = parseModel(cursor);
-        case "normalizer" -> normalizer = parseNormalizer(cursor);
-        case "pre_tokenizer" -> metaspace = parsePreTokenizer(cursor);
-        case "added_tokens" -> addedTokens = parseAddedTokens(cursor);
+      switch (reader.uniqueKey(fields, "top-level", key)) {
+        case "model" -> model = reader.parseModel();
+        case "normalizer" -> normalizer = reader.parseNormalizer();
+        case "pre_tokenizer" -> metaspace = reader.parsePreTokenizer();
+        case "added_tokens" -> addedTokens = reader.parseAddedTokens();
         default -> cursor.skipValue();
       }
     }
@@ -200,246 +201,6 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
     }
     return new Parsed(pieces, model.unknownId(), model.byteFallback(),
         normalizer.precompiledCharsMap(), normalizer.operations(), controls);
-  }
-
-  /** Reads the Unigram model object. */
-  private static ParsedModel parseModel(JsonCursor cursor) throws InvalidFormatException {
-    String type = null;
-    int unknownId = -1;
-    boolean byteFallback = false;
-    List<Piece> pieces = null;
-    final Set<String> fields = new HashSet<>();
-    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
-      switch (uniqueKey(cursor, fields, "model", key)) {
-        case "type" -> type = cursor.parseString();
-        case "unk_id" -> unknownId = checkedInt(cursor.parseLong(), cursor, "model.unk_id");
-        case "byte_fallback" -> byteFallback = cursor.parseBoolean();
-        case "vocab" -> pieces = parseVocabulary(cursor);
-        default -> cursor.skipValue();
-      }
-    }
-    return new ParsedModel(type, unknownId, byteFallback, pieces);
-  }
-
-  /** Reads the ordered Unigram vocabulary. */
-  private static List<Piece> parseVocabulary(JsonCursor cursor) throws InvalidFormatException {
-    final List<Piece> pieces = new ArrayList<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after a vocabulary entry")) {
-      cursor.expect('[');
-      cursor.skipWhitespace();
-      final String text = cursor.parseString();
-      cursor.skipWhitespace();
-      cursor.expect(',');
-      cursor.skipWhitespace();
-      final double score = cursor.parseDouble();
-      if (score < -Float.MAX_VALUE || score > Float.MAX_VALUE) {
-        throw cursor.malformed("Unigram score is outside the float range");
-      }
-      cursor.skipWhitespace();
-      cursor.expect(']');
-      pieces.add(new Piece(text, (float) score, TYPE_NORMAL));
-    }
-    return pieces;
-  }
-
-  /** Reads the tokenizer normalizer. */
-  private static ParsedNormalizer parseNormalizer(JsonCursor cursor)
-      throws InvalidFormatException {
-    final NormalizerBuilder builder = new NormalizerBuilder();
-    parseNormalizerObject(cursor, builder);
-    return new ParsedNormalizer(builder.precompiledCharsMap, builder.operations);
-  }
-
-  /** Adds one normalizer object to {@code builder}. */
-  private static void parseNormalizerObject(JsonCursor cursor, NormalizerBuilder builder)
-      throws InvalidFormatException {
-    String type = null;
-    String precompiled = null;
-    List<ParsedNormalizer> children = null;
-    PatternValue pattern = null;
-    String content = null;
-    boolean stripLeft = false;
-    boolean stripRight = false;
-    final Set<String> fields = new HashSet<>();
-    for (String key = cursor.firstKey(); key != null;
-         key = cursor.nextKey("after a normalizer field")) {
-      switch (uniqueKey(cursor, fields, "normalizer", key)) {
-        case "type" -> type = cursor.parseString();
-        case "precompiled_charsmap" -> precompiled = cursor.parseString();
-        case "normalizers" -> children = parseNormalizerChildren(cursor);
-        case "pattern" -> pattern = parsePattern(cursor);
-        case "content" -> content = cursor.parseString();
-        case "strip_left" -> stripLeft = cursor.parseBoolean();
-        case "strip_right" -> stripRight = cursor.parseBoolean();
-        default -> cursor.skipValue();
-      }
-    }
-    if (type == null) {
-      throw cursor.malformed("Normalizer has no type");
-    }
-    switch (type) {
-      case SEQUENCE -> {
-        if (children == null) {
-          throw cursor.malformed("Sequence normalizer has no normalizers list");
-        }
-        for (ParsedNormalizer child : children) {
-          if (child.precompiledCharsMap() != null) {
-            if (builder.precompiledCharsMap != null) {
-              throw cursor.malformed("More than one Precompiled normalizer is not supported");
-            }
-            if (!builder.operations.isEmpty()) {
-              throw cursor.malformed(
-                  "Precompiled normalizer must precede other normalization steps");
-            }
-            builder.precompiledCharsMap = child.precompiledCharsMap();
-          }
-          builder.operations.addAll(child.operations());
-        }
-      }
-      case PRECOMPILED -> {
-        if (precompiled == null) {
-          throw cursor.malformed("Precompiled normalizer has no character map");
-        }
-        try {
-          builder.precompiledCharsMap = Base64.getDecoder().decode(precompiled);
-        } catch (IllegalArgumentException e) {
-          throw cursor.malformed("Precompiled normalizer has malformed base64");
-        }
-      }
-      case REPLACE -> builder.operations.add(replacement(pattern, content, cursor));
-      case STRIP -> builder.operations.add(new StripOperation(stripLeft, stripRight));
-      default -> throw cursor.malformed("Unsupported normalizer type '" + type + "'");
-    }
-  }
-
-  /** Reads the children of a Sequence normalizer. */
-  private static List<ParsedNormalizer> parseNormalizerChildren(JsonCursor cursor)
-      throws InvalidFormatException {
-    final List<ParsedNormalizer> children = new ArrayList<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after a normalizer")) {
-      final NormalizerBuilder child = new NormalizerBuilder();
-      parseNormalizerObject(cursor, child);
-      children.add(new ParsedNormalizer(child.precompiledCharsMap, child.operations));
-    }
-    return children;
-  }
-
-  /** Reads a Replace normalizer pattern. */
-  private static PatternValue parsePattern(JsonCursor cursor) throws InvalidFormatException {
-    cursor.expect('{');
-    cursor.skipWhitespace();
-    final String kind = cursor.parseString();
-    cursor.skipWhitespace();
-    cursor.expect(':');
-    cursor.skipWhitespace();
-    final String value = cursor.parseString();
-    cursor.skipWhitespace();
-    cursor.expect('}');
-    return new PatternValue(kind, value);
-  }
-
-  /** Creates a supported Replace operation. */
-  private static NormalizationOperation replacement(
-      PatternValue pattern, String content, JsonCursor cursor) throws InvalidFormatException {
-    if (pattern == null || content == null) {
-      throw cursor.malformed("Replace normalizer needs pattern and content");
-    }
-    if ("String".equals(pattern.kind())) {
-      if (pattern.value().isEmpty()) {
-        throw cursor.malformed("Replace normalizer has an unsupported empty literal pattern");
-      }
-      if (!content.equals(" " + pattern.value() + " ")) {
-        throw cursor.malformed("Only spacing literal replacements are supported");
-      }
-      return new SurroundOperation(pattern.value());
-    }
-    if ("Regex".equals(pattern.kind())
-        && ("\\s+".equals(pattern.value()) || " {2,}".equals(pattern.value()))
-        && " ".equals(content)) {
-      return CollapseOperation.INSTANCE;
-    }
-    throw cursor.malformed("Unsupported Replace normalizer pattern");
-  }
-
-  /** Reads the pre-tokenizer and reports whether it is the supported Metaspace form. */
-  private static boolean parsePreTokenizer(JsonCursor cursor) throws InvalidFormatException {
-    String type = null;
-    String replacement = null;
-    String prependScheme = null;
-    boolean split = true;
-    final Set<String> fields = new HashSet<>();
-    for (String key = cursor.firstKey(); key != null;
-         key = cursor.nextKey("after a pre-tokenizer field")) {
-      switch (uniqueKey(cursor, fields, "pre-tokenizer", key)) {
-        case "type" -> type = cursor.parseString();
-        case "replacement" -> replacement = cursor.parseString();
-        case "prepend_scheme" -> prependScheme = cursor.parseString();
-        case "split" -> split = cursor.parseBoolean();
-        default -> cursor.skipValue();
-      }
-    }
-    return METASPACE.equals(type) && MARKER.equals(replacement)
-        && "always".equals(prependScheme) && !split;
-  }
-
-  /** Reads tokenizer rows that carry added-token metadata. */
-  private static List<AddedToken> parseAddedTokens(JsonCursor cursor)
-      throws InvalidFormatException {
-    final List<AddedToken> tokens = new ArrayList<>();
-    final Set<Integer> tokenIds = new HashSet<>();
-    for (boolean more = cursor.firstElement(); more;
-         more = cursor.nextElement("after an added token")) {
-      int id = -1;
-      String content = null;
-      boolean special = false;
-      final Set<String> fields = new HashSet<>();
-      for (String key = cursor.firstKey(); key != null;
-           key = cursor.nextKey("after an added-token field")) {
-        switch (uniqueKey(cursor, fields, "added token", key)) {
-          case "id" -> id = checkedInt(cursor.parseLong(), cursor, "added token id");
-          case "content" -> content = cursor.parseString();
-          case "special" -> special = cursor.parseBoolean();
-          default -> cursor.skipValue();
-        }
-      }
-      if (id < 0 || content == null) {
-        throw cursor.malformed("Added token needs id and content");
-      }
-      if (!tokenIds.add(id)) {
-        throw cursor.malformed("added token id " + id + " occurs more than once");
-      }
-      tokens.add(new AddedToken(id, content, special));
-    }
-    return tokens;
-  }
-
-  /**
-   * Rejects an object field name already seen in that object.
-   *
-   * @param cursor The JSON cursor, for the error location.
-   * @param fields The names already read from the current object; {@code key} is added.
-   * @param object A short object name for error messages.
-   * @param key    The field name just read.
-   * @return The field name.
-   * @throws InvalidFormatException Thrown if the field name occurs more than once.
-   */
-  private static String uniqueKey(JsonCursor cursor, Set<String> fields, String object,
-                                  String key) throws InvalidFormatException {
-    if (!fields.add(key)) {
-      throw cursor.malformed(object + " field '" + key + "' occurs more than once");
-    }
-    return key;
-  }
-
-  /** Converts a non-negative JSON integer to an {@code int}. */
-  private static int checkedInt(long value, JsonCursor cursor, String field)
-      throws InvalidFormatException {
-    if (value < 0 || value > Integer.MAX_VALUE) {
-      throw cursor.malformed(field + " is outside the supported range");
-    }
-    return (int) value;
   }
 
   /** {@return whether {@code piece} has the ASCII form {@code <0xNN>}} */
@@ -681,6 +442,258 @@ final class Model2VecUnigramTokenizer implements SubwordTokenizer {
     /** {@return the encoded message} */
     byte[] bytes() {
       return out.toByteArray();
+    }
+  }
+
+  /**
+   * Reads the parts of a {@code tokenizer.json} under one cursor, the state every method shares.
+   * Each method reads the value that starts at the cursor.
+   */
+  private static final class JsonReader {
+
+    private final JsonCursor cursor;
+
+    /**
+     * Creates a reader over a cursor.
+     *
+     * @param cursor The cursor to read from.
+     */
+    private JsonReader(JsonCursor cursor) {
+      this.cursor = cursor;
+    }
+
+    /** Reads the Unigram model object. */
+    private ParsedModel parseModel() throws InvalidFormatException {
+      String type = null;
+      int unknownId = -1;
+      boolean byteFallback = false;
+      List<Piece> pieces = null;
+      final Set<String> fields = new HashSet<>();
+      for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
+        switch (uniqueKey(fields, "model", key)) {
+          case "type" -> type = cursor.parseString();
+          case "unk_id" -> unknownId = checkedInt(cursor.parseLong(), "model.unk_id");
+          case "byte_fallback" -> byteFallback = cursor.parseBoolean();
+          case "vocab" -> pieces = parseVocabulary();
+          default -> cursor.skipValue();
+        }
+      }
+      return new ParsedModel(type, unknownId, byteFallback, pieces);
+    }
+
+    /** Reads the ordered Unigram vocabulary. */
+    private List<Piece> parseVocabulary() throws InvalidFormatException {
+      final List<Piece> pieces = new ArrayList<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a vocabulary entry")) {
+        cursor.expect('[');
+        cursor.skipWhitespace();
+        final String text = cursor.parseString();
+        cursor.skipWhitespace();
+        cursor.expect(',');
+        cursor.skipWhitespace();
+        final double score = cursor.parseDouble();
+        if (score < -Float.MAX_VALUE || score > Float.MAX_VALUE) {
+          throw cursor.malformed("Unigram score is outside the float range");
+        }
+        cursor.skipWhitespace();
+        cursor.expect(']');
+        pieces.add(new Piece(text, (float) score, TYPE_NORMAL));
+      }
+      return pieces;
+    }
+
+    /** Reads the tokenizer normalizer. */
+    private ParsedNormalizer parseNormalizer() throws InvalidFormatException {
+      final NormalizerBuilder builder = new NormalizerBuilder();
+      parseNormalizerObject(builder);
+      return new ParsedNormalizer(builder.precompiledCharsMap, builder.operations);
+    }
+
+    /** Adds one normalizer object to {@code builder}. */
+    private void parseNormalizerObject(NormalizerBuilder builder) throws InvalidFormatException {
+      String type = null;
+      String precompiled = null;
+      List<ParsedNormalizer> children = null;
+      PatternValue pattern = null;
+      String content = null;
+      boolean stripLeft = false;
+      boolean stripRight = false;
+      final Set<String> fields = new HashSet<>();
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a normalizer field")) {
+        switch (uniqueKey(fields, "normalizer", key)) {
+          case "type" -> type = cursor.parseString();
+          case "precompiled_charsmap" -> precompiled = cursor.parseString();
+          case "normalizers" -> children = parseNormalizerChildren();
+          case "pattern" -> pattern = parsePattern();
+          case "content" -> content = cursor.parseString();
+          case "strip_left" -> stripLeft = cursor.parseBoolean();
+          case "strip_right" -> stripRight = cursor.parseBoolean();
+          default -> cursor.skipValue();
+        }
+      }
+      if (type == null) {
+        throw cursor.malformed("Normalizer has no type");
+      }
+      switch (type) {
+        case SEQUENCE -> {
+          if (children == null) {
+            throw cursor.malformed("Sequence normalizer has no normalizers list");
+          }
+          for (ParsedNormalizer child : children) {
+            if (child.precompiledCharsMap() != null) {
+              if (builder.precompiledCharsMap != null) {
+                throw cursor.malformed("More than one Precompiled normalizer is not supported");
+              }
+              if (!builder.operations.isEmpty()) {
+                throw cursor.malformed(
+                    "Precompiled normalizer must precede other normalization steps");
+              }
+              builder.precompiledCharsMap = child.precompiledCharsMap();
+            }
+            builder.operations.addAll(child.operations());
+          }
+        }
+        case PRECOMPILED -> {
+          if (precompiled == null) {
+            throw cursor.malformed("Precompiled normalizer has no character map");
+          }
+          try {
+            builder.precompiledCharsMap = Base64.getDecoder().decode(precompiled);
+          } catch (IllegalArgumentException e) {
+            throw cursor.malformed("Precompiled normalizer has malformed base64");
+          }
+        }
+        case REPLACE -> builder.operations.add(replacement(pattern, content));
+        case STRIP -> builder.operations.add(new StripOperation(stripLeft, stripRight));
+        default -> throw cursor.malformed("Unsupported normalizer type '" + type + "'");
+      }
+    }
+
+    /** Reads the children of a Sequence normalizer. */
+    private List<ParsedNormalizer> parseNormalizerChildren() throws InvalidFormatException {
+      final List<ParsedNormalizer> children = new ArrayList<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after a normalizer")) {
+        final NormalizerBuilder child = new NormalizerBuilder();
+        parseNormalizerObject(child);
+        children.add(new ParsedNormalizer(child.precompiledCharsMap, child.operations));
+      }
+      return children;
+    }
+
+    /** Reads a Replace normalizer pattern. */
+    private PatternValue parsePattern() throws InvalidFormatException {
+      cursor.expect('{');
+      cursor.skipWhitespace();
+      final String kind = cursor.parseString();
+      cursor.skipWhitespace();
+      cursor.expect(':');
+      cursor.skipWhitespace();
+      final String value = cursor.parseString();
+      cursor.skipWhitespace();
+      cursor.expect('}');
+      return new PatternValue(kind, value);
+    }
+
+    /** Creates a supported Replace operation. */
+    private NormalizationOperation replacement(
+        PatternValue pattern, String content) throws InvalidFormatException {
+      if (pattern == null || content == null) {
+        throw cursor.malformed("Replace normalizer needs pattern and content");
+      }
+      if ("String".equals(pattern.kind())) {
+        if (pattern.value().isEmpty()) {
+          throw cursor.malformed("Replace normalizer has an unsupported empty literal pattern");
+        }
+        if (!content.equals(" " + pattern.value() + " ")) {
+          throw cursor.malformed("Only spacing literal replacements are supported");
+        }
+        return new SurroundOperation(pattern.value());
+      }
+      if ("Regex".equals(pattern.kind())
+          && ("\\s+".equals(pattern.value()) || " {2,}".equals(pattern.value()))
+          && " ".equals(content)) {
+        return CollapseOperation.INSTANCE;
+      }
+      throw cursor.malformed("Unsupported Replace normalizer pattern");
+    }
+
+    /** Reads the pre-tokenizer and reports whether it is the supported Metaspace form. */
+    private boolean parsePreTokenizer() throws InvalidFormatException {
+      String type = null;
+      String replacement = null;
+      String prependScheme = null;
+      boolean split = true;
+      final Set<String> fields = new HashSet<>();
+      for (String key = cursor.firstKey(); key != null;
+           key = cursor.nextKey("after a pre-tokenizer field")) {
+        switch (uniqueKey(fields, "pre-tokenizer", key)) {
+          case "type" -> type = cursor.parseString();
+          case "replacement" -> replacement = cursor.parseString();
+          case "prepend_scheme" -> prependScheme = cursor.parseString();
+          case "split" -> split = cursor.parseBoolean();
+          default -> cursor.skipValue();
+        }
+      }
+      return METASPACE.equals(type) && MARKER.equals(replacement)
+          && "always".equals(prependScheme) && !split;
+    }
+
+    /** Reads tokenizer rows that carry added-token metadata. */
+    private List<AddedToken> parseAddedTokens() throws InvalidFormatException {
+      final List<AddedToken> tokens = new ArrayList<>();
+      final Set<Integer> tokenIds = new HashSet<>();
+      for (boolean more = cursor.firstElement(); more;
+           more = cursor.nextElement("after an added token")) {
+        int id = -1;
+        String content = null;
+        boolean special = false;
+        final Set<String> fields = new HashSet<>();
+        for (String key = cursor.firstKey(); key != null;
+             key = cursor.nextKey("after an added-token field")) {
+          switch (uniqueKey(fields, "added token", key)) {
+            case "id" -> id = checkedInt(cursor.parseLong(), "added token id");
+            case "content" -> content = cursor.parseString();
+            case "special" -> special = cursor.parseBoolean();
+            default -> cursor.skipValue();
+          }
+        }
+        if (id < 0 || content == null) {
+          throw cursor.malformed("Added token needs id and content");
+        }
+        if (!tokenIds.add(id)) {
+          throw cursor.malformed("added token id " + id + " occurs more than once");
+        }
+        tokens.add(new AddedToken(id, content, special));
+      }
+      return tokens;
+    }
+
+    /**
+     * Rejects an object field name already seen in that object.
+     *
+     * @param fields The names already read from the current object; {@code key} is added.
+     * @param object A short object name for error messages.
+     * @param key    The field name just read.
+     * @return The field name.
+     * @throws InvalidFormatException Thrown if the field name occurs more than once.
+     */
+    private String uniqueKey(Set<String> fields, String object, String key)
+        throws InvalidFormatException {
+      if (!fields.add(key)) {
+        throw cursor.malformed(object + " field '" + key + "' occurs more than once");
+      }
+      return key;
+    }
+
+    /** Converts a non-negative JSON integer to an {@code int}. */
+    private int checkedInt(long value, String field) throws InvalidFormatException {
+      if (value < 0 || value > Integer.MAX_VALUE) {
+        throw cursor.malformed(field + " is outside the supported range");
+      }
+      return (int) value;
     }
   }
 }

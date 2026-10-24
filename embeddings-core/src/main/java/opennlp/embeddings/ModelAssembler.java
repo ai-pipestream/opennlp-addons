@@ -219,6 +219,7 @@ public final class ModelAssembler {
   private static TokenizerJson readTokenizerJson(Path file) throws IOException {
     final String json = Files.readString(file);
     final JsonCursor cursor = new JsonCursor(json, file.getFileName().toString());
+    final JsonReader reader = new JsonReader(cursor);
     cursor.skipWhitespace();
     String modelType = null;
     List<String> orderedVocabulary = null;
@@ -232,7 +233,7 @@ public final class ModelAssembler {
             throw cursor.malformed("Field 'model' appears more than once");
           }
           seenModel = true;
-          final ModelSection model = parseModel(cursor);
+          final ModelSection model = reader.parseModel();
           modelType = model.type();
           orderedVocabulary = model.orderedVocabulary();
         }
@@ -241,7 +242,7 @@ public final class ModelAssembler {
             throw cursor.malformed("Field 'normalizer' appears more than once");
           }
           seenNormalizer = true;
-          lowerCase = TeacherTokenizer.parseNormalizerLowercase(cursor);
+          lowerCase = new TeacherTokenizer.JsonReader(cursor).parseNormalizerLowercase();
         }
         default -> cursor.skipValue();
       }
@@ -258,77 +259,91 @@ public final class ModelAssembler {
   }
 
   /**
-   * Parses the {@code model} object for its {@code type} and, when the vocabulary is a WordPiece
-   * dictionary, its rows in id order.
-   *
-   * @param cursor The cursor, positioned at the object's opening brace.
-   * @return The parsed type and, for a dictionary vocabulary, the ordered rows.
+   * Reads the parts of a {@code tokenizer.json} under one cursor, the state every method shares.
+   * Each method reads the value that starts at the cursor.
    */
-  private static ModelSection parseModel(JsonCursor cursor) throws InvalidFormatException {
-    String type = null;
-    List<String> orderedVocabulary = null;
-    boolean seenType = false;
-    boolean seenVocabulary = false;
-    for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
-      if ("type".equals(key)) {
-        if (seenType) {
-          throw cursor.malformed("Field 'model.type' appears more than once");
-        }
-        seenType = true;
-        type = cursor.parseString();
-      } else if ("vocab".equals(key)) {
-        if (seenVocabulary) {
-          throw cursor.malformed("Field 'model.vocab' appears more than once");
-        }
-        seenVocabulary = true;
-        if (cursor.peek() == '{') {
-          orderedVocabulary = parseVocabularyDictionary(cursor);
+  private static final class JsonReader {
+
+    private final JsonCursor cursor;
+
+    /**
+     * Creates a reader over a cursor.
+     *
+     * @param cursor The cursor to read from.
+     */
+    private JsonReader(JsonCursor cursor) {
+      this.cursor = cursor;
+    }
+
+    /**
+     * Parses the {@code model} object for its {@code type} and, when the vocabulary is a WordPiece
+     * dictionary, its rows in id order.
+     *
+     * @return The parsed type and, for a dictionary vocabulary, the ordered rows.
+     */
+    private ModelSection parseModel() throws InvalidFormatException {
+      String type = null;
+      List<String> orderedVocabulary = null;
+      boolean seenType = false;
+      boolean seenVocabulary = false;
+      for (String key = cursor.firstKey(); key != null; key = cursor.nextKey("after a model field")) {
+        if ("type".equals(key)) {
+          if (seenType) {
+            throw cursor.malformed("Field 'model.type' appears more than once");
+          }
+          seenType = true;
+          type = cursor.parseString();
+        } else if ("vocab".equals(key)) {
+          if (seenVocabulary) {
+            throw cursor.malformed("Field 'model.vocab' appears more than once");
+          }
+          seenVocabulary = true;
+          if (cursor.peek() == '{') {
+            orderedVocabulary = parseVocabularyDictionary();
+          } else {
+            cursor.skipValue();
+          }
         } else {
           cursor.skipValue();
         }
-      } else {
-        cursor.skipValue();
       }
+      return new ModelSection(type, orderedVocabulary);
     }
-    return new ModelSection(type, orderedVocabulary);
-  }
 
-  /**
-   * Parses a WordPiece {@code vocab} dictionary of {@code "token": id} pairs into the token list in
-   * id order.
-   *
-   * @param cursor The cursor, positioned at the dictionary's opening brace.
-   * @return The tokens in id order.
-   * @throws InvalidFormatException Thrown if an id repeats or the ids are not a gapless range.
-   */
-  private static List<String> parseVocabularyDictionary(JsonCursor cursor)
-      throws InvalidFormatException {
-    final Map<Long, String> tokenById = new LinkedHashMap<>();
-    final Map<String, Long> idByToken = new LinkedHashMap<>();
-    for (String token = cursor.firstKey(); token != null;
-         token = cursor.nextKey("after a vocab entry")) {
-      final long id = cursor.parseLong();
-      final Long previousId = idByToken.putIfAbsent(token, id);
-      if (previousId != null) {
-        throw cursor.malformed("Vocabulary token '" + token + "' is assigned more than once, "
-            + "at ids " + previousId + " and " + id);
+    /**
+     * Parses a WordPiece {@code vocab} dictionary of {@code "token": id} pairs into the token list in
+     * id order.
+     *
+     * @return The tokens in id order.
+     * @throws InvalidFormatException Thrown if an id repeats or the ids are not a gapless range.
+     */
+    private List<String> parseVocabularyDictionary() throws InvalidFormatException {
+      final Map<Long, String> tokenById = new LinkedHashMap<>();
+      final Map<String, Long> idByToken = new LinkedHashMap<>();
+      for (String token = cursor.firstKey(); token != null;
+           token = cursor.nextKey("after a vocab entry")) {
+        final long id = cursor.parseLong();
+        final Long previousId = idByToken.putIfAbsent(token, id);
+        if (previousId != null) {
+          throw cursor.malformed("Vocabulary token '" + token + "' is assigned more than once, "
+              + "at ids " + previousId + " and " + id);
+        }
+        if (tokenById.putIfAbsent(id, token) != null) {
+          throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
+        }
       }
-      if (tokenById.putIfAbsent(id, token) != null) {
-        throw cursor.malformed("Vocabulary id " + id + " is assigned more than once");
+      final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
+      entries.sort(Comparator.comparingLong(Map.Entry::getKey));
+      final List<String> ordered = new ArrayList<>(entries.size());
+      for (int row = 0; row < entries.size(); row++) {
+        final Map.Entry<Long, String> entry = entries.get(row);
+        if (entry.getKey() != row) {
+          throw cursor.malformed("Vocabulary ids are not a gapless range: expected id " + row
+              + " but found " + entry.getKey());
+        }
+        ordered.add(entry.getValue());
       }
+      return ordered;
     }
-    final List<Map.Entry<Long, String>> entries = new ArrayList<>(tokenById.entrySet());
-    entries.sort(Comparator.comparingLong(Map.Entry::getKey));
-    final List<String> ordered = new ArrayList<>(entries.size());
-    for (int row = 0; row < entries.size(); row++) {
-      final Map.Entry<Long, String> entry = entries.get(row);
-      if (entry.getKey() != row) {
-        throw cursor.malformed("Vocabulary ids are not a gapless range: expected id " + row
-            + " but found " + entry.getKey());
-      }
-      ordered.add(entry.getValue());
-    }
-    return ordered;
   }
-
 }
