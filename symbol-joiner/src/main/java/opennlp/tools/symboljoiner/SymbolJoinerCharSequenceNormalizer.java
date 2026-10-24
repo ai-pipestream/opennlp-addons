@@ -18,6 +18,7 @@ package opennlp.tools.symboljoiner;
 
 import java.io.Serial;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 
 /**
@@ -51,11 +52,7 @@ public class SymbolJoinerCharSequenceNormalizer implements CharSequenceNormalize
   private static final SymbolJoinerCharSequenceNormalizer INSTANCE =
       new SymbolJoinerCharSequenceNormalizer();
 
-  /**
-   * Returns the shared normalizer.
-   *
-   * @return The stateless instance.
-   */
+  /** {@return the shared, stateless instance} */
   public static SymbolJoinerCharSequenceNormalizer getInstance() {
     return INSTANCE;
   }
@@ -65,9 +62,7 @@ public class SymbolJoinerCharSequenceNormalizer implements CharSequenceNormalize
    */
   @Override
   public CharSequence normalize(CharSequence text) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     if (text.length() != 1) {
       return text;
     }
@@ -86,11 +81,7 @@ public class SymbolJoinerCharSequenceNormalizer implements CharSequenceNormalize
     };
   }
 
-  /**
-   * Restores the shared instance after deserialization.
-   *
-   * @return The shared normalizer.
-   */
+  /** {@return the shared instance after deserialization} */
   @Serial
   private Object readResolve() {
     return INSTANCE;

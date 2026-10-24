@@ -25,11 +25,12 @@ Build and run the module tests from the repository root:
 mvn -pl symbol-joiner -am verify -Dopennlp.forkCount=1
 ```
 
-This research module pins core `3.0.0-SNAPSHOT`. Use exact versions when consuming
+The module builds against core `3.0.0-SNAPSHOT`. Use exact versions when consuming
 snapshots; Maven version ranges may select branch snapshots ahead of releases.
 
-## Source
+## Contents
 
-Migrated from [ai-pipestream/opennlp OPENNLP-XXXX-symbol-joiner](https://github.com/ai-pipestream/opennlp/tree/7507499539db583c2552a6ef011440d62d0f60c4).
-The original feature source and tests remain in that commit. Family contracts
-live in this module; shared document and normalization contracts come from core.
+`SymbolJoinerCharSequenceNormalizer` replaces an input that is exactly one supported
+symbol, such as `&` or `™`, with a fixed English word, such as `and` or `trademark`.
+Any other input is returned unchanged. The manual chapter "Symbol joiner" shows how
+to apply it per token.
