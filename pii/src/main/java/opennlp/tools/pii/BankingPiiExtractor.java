@@ -51,6 +51,9 @@ public final class BankingPiiExtractor implements PiiExtractor {
 
   private static final int CHECK_MODULUS = 10;
 
+  /** Separators that continue a number when a digit follows: a decimal or a comma group. */
+  private static final String NUMBER_CONTINUATIONS = ".,";
+
   /**
    * Allocated routing-prefix ranges from section IV of the linked ABA policy, inclusive.
    */
@@ -76,7 +79,8 @@ public final class BankingPiiExtractor implements PiiExtractor {
         continue;
       }
       final int end = i + ROUTING_DIGITS;
-      if (!onNumberEnd(text, end) || !allDigits(text, i, end)) {
+      if (StringUtil.endOfAsciiDigits(text, i) < end
+          || !Boundaries.onNumberEnd(text, end, NUMBER_CONTINUATIONS)) {
         continue;
       }
       if (!allocatedPrefix(text, i) || !checkDigitValid(text, i)) {
@@ -88,42 +92,6 @@ public final class BankingPiiExtractor implements PiiExtractor {
       i = end - 1;
     }
     return Hits.resolve(hits);
-  }
-
-  /**
-   * Checks that a range contains only ASCII digits.
-   *
-   * @param text The text being scanned.
-   * @param start The first character of the range.
-   * @param end The exclusive end of the range.
-   * @return {@code true} if the range contains only ASCII digits.
-   */
-  private boolean allDigits(CharSequence text, int start, int end) {
-    for (int i = start; i < end; i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Checks the end boundary for a numeric candidate, including decimal and comma-grouped
-   * continuations.
-   *
-   * @param text The text being scanned.
-   * @param end The candidate end, exclusive.
-   * @return {@code true} if the candidate may end here.
-   */
-  private boolean onNumberEnd(CharSequence text, int end) {
-    if (!Boundaries.onEnd(text, end)) {
-      return false;
-    }
-    if (end + 1 >= text.length()) {
-      return true;
-    }
-    final char next = text.charAt(end);
-    return (next != '.' && next != ',') || !StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 
   /**

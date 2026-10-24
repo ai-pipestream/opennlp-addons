@@ -102,6 +102,12 @@ public final class CursorPiiExtractor implements PiiExtractor {
 
   /** The most groups a domestic number ending in a single extension digit may have. */
   private static final int PHONE_EXTENSION_MAX_GROUPS = 3;
+
+  /**
+   * Separators that continue a phone candidate into a decimal fraction or a clock time when a
+   * digit follows, such as {@code 1.5551234567} or {@code 2024-01-15 12:30}.
+   */
+  private static final String PHONE_CONTINUATIONS = ".:";
   private static final int DOMAIN_LABEL_MAX_LENGTH = 63;
   private static final int EMAIL_LOCAL_PART_MAX_LENGTH = 64;
   private static final int EMAIL_MAX_LENGTH = 254;
@@ -444,9 +450,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
             ? count <= PHONE_MAX_DIGITS && PhoneNumberLengths.plausibleInternational(candidate)
             : count >= PHONE_DOMESTIC_MIN_DIGITS && count <= PHONE_DOMESTIC_MAX_DIGITS
                 && visiblySeparated && !endsInSingleDigitGroup(groups, g);
-        if (!lengthOk
-            || !Boundaries.onEnd(text, end)
-            || continuesIntoNumber(text, end)) {
+        if (!lengthOk || !Boundaries.onNumberEnd(text, end, PHONE_CONTINUATIONS)) {
           continue;
         }
         Hits.add(hits, i, end, PiiMention.TYPE_PHONE,
@@ -472,22 +476,6 @@ public final class CursorPiiExtractor implements PiiExtractor {
   private boolean endsInSingleDigitGroup(List<int[]> groups, int cut) {
     return cut >= PHONE_EXTENSION_MAX_GROUPS
         && groups.get(cut)[1] - groups.get(cut - 1)[1] == 1;
-  }
-
-  /**
-   * Tests whether a phone candidate ending at {@code end} continues into a decimal
-   * fraction or a clock time, such as {@code 1.5551234567} or {@code 2024-01-15 12:30}.
-   *
-   * @param text The text being scanned.
-   * @param end The candidate end, exclusive.
-   * @return {@code true} if a dot or colon followed by a digit continues the run.
-   */
-  private boolean continuesIntoNumber(CharSequence text, int end) {
-    if (end + 1 >= text.length()) {
-      return false;
-    }
-    final char next = text.charAt(end);
-    return (next == '.' || next == ':') && StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 
   /**

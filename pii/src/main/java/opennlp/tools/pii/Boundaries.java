@@ -20,7 +20,7 @@ package opennlp.tools.pii;
 import opennlp.tools.util.StringUtil;
 
 /**
- * Unicode letter/digit boundary checks shared by PII scanners.
+ * Unicode letter/digit boundary and context checks shared by PII scanners.
  *
  * <p>Word boundaries use complete code points, including supplementary characters.</p>
  */
@@ -99,6 +99,56 @@ final class Boundaries {
       p++;
     }
     return p == end || onEnd(text, p);
+  }
+
+  /**
+   * Checks the end boundary of a numeric candidate and rejects a continuation into a
+   * further digit group, such as a decimal fraction, a comma-grouped number or the next
+   * group of a hyphenated identifier.
+   *
+   * @param text The text being scanned.
+   * @param end The candidate end, exclusive.
+   * @param continuations The separators that continue the number when a digit follows them;
+   *                      an ASCII space in it stands for every {@link #isGroupSpace(char)
+   *                      group space}.
+   * @return {@code true} if the candidate may end here.
+   */
+  static boolean onNumberEnd(CharSequence text, int end, String continuations) {
+    if (!onEnd(text, end)) {
+      return false;
+    }
+    if (end + 1 >= text.length()) {
+      return true;
+    }
+    return continuations.indexOf(separatorKind(text.charAt(end))) < 0
+        || !StringUtil.isAsciiDigit(text.charAt(end + 1));
+  }
+
+  /**
+   * Checks that one of the labels directly precedes a candidate, separated only by
+   * whitespace and the given punctuation, and does not continue a word on the left.
+   *
+   * @param text The text being scanned.
+   * @param start The candidate start.
+   * @param labels The accepted labels, in ASCII lowercase.
+   * @param punctuation The punctuation that may separate the label and the candidate.
+   * @return {@code true} if an isolated label precedes the candidate.
+   */
+  static boolean precededByLabel(CharSequence text, int start, String[] labels,
+      String punctuation) {
+    int end = start;
+    while (end > 0 && (StringUtil.isUnicodeWhitespace(text.charAt(end - 1))
+        || punctuation.indexOf(text.charAt(end - 1)) >= 0)) {
+      end--;
+    }
+    for (final String label : labels) {
+      final int labelStart = end - label.length();
+      if (labelStart >= 0 && Ascii.equalsIgnoreCase(text, labelStart, label)
+          && onWordStart(text, labelStart)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

@@ -80,6 +80,42 @@ public class BoundariesTest {
     Assertions.assertEquals(expected, Boundaries.onEndBefore(text, end, '.'));
   }
 
+  @ParameterizedTest
+  @CsvSource({
+      "'123', 3, '.,', true",
+      "'123.', 3, '.,', true",
+      "'123.4', 3, '.,', false",
+      "'123,4', 3, '.,', false",
+      "'123-4', 3, '.,', true",
+      "'123-4', 3, '.,-', false",
+      "'123 4', 3, '- ', false",
+      "'123\u00a04', 3, '- ', false",
+      "'123 4', 3, '-', true",
+      "'123. x', 3, '.', true",
+      "'1234', 3, '.', false"
+  })
+  void testNumberEnd(String text, int end, String continuations, boolean expected) {
+    Assertions.assertEquals(expected, Boundaries.onNumberEnd(text, end, continuations));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "'SIN: 046', 5, true",
+      "'sin 046', 4, true",
+      "'SIN#046', 4, true",
+      "'SIN:\t046', 5, true",
+      "'Social Insurance No. 046', 21, true",
+      "'046', 0, false",
+      "'casino: 046', 8, false",
+      "'SIN was 046', 8, false",
+      "'SIN- 046', 5, false",
+      "'sİn: 046', 5, false"
+  })
+  void testPrecededByLabel(String text, int start, boolean expected) {
+    final String[] labels = {"social insurance no", "sin"};
+    Assertions.assertEquals(expected, Boundaries.precededByLabel(text, start, labels, ":#=."));
+  }
+
   /**
    * Verifies boundaries are judged on whole code points: a candidate that follows or
    * precedes a supplementary letter is rejected, not accepted because the adjacent

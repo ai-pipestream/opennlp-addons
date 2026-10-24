@@ -81,6 +81,12 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
   /** Maximum permitted frequency for a digit among the initial 10 tax-number digits. */
   private static final int STEUER_ID_MAX_REPEATS = 3;
 
+  /**
+   * Separators that continue a number when a digit follows: a decimal, a comma group or
+   * the next group of a hyphenated or spaced identifier.
+   */
+  private static final String NUMBER_CONTINUATIONS = ".,- ";
+
   private final Set<String> types;
 
   /**
@@ -193,7 +199,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
         p++;
       }
     }
-    return onNumberEnd(text, p) ? p : -1;
+    return Boundaries.onNumberEnd(text, p, NUMBER_CONTINUATIONS) ? p : -1;
   }
 
   /**
@@ -208,13 +214,11 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    */
   private int readBare(CharSequence text, int start, int digits, int[] value) {
     final int end = start + digits;
-    if (end > text.length() || !onNumberEnd(text, end)) {
+    if (end > text.length() || StringUtil.endOfAsciiDigits(text, start) < end
+        || !Boundaries.onNumberEnd(text, end, NUMBER_CONTINUATIONS)) {
       return -1;
     }
     for (int i = start; i < end; i++) {
-      if (!StringUtil.isAsciiDigit(text.charAt(i))) {
-        return -1;
-      }
       value[i - start] = text.charAt(i) - '0';
     }
     return end;
@@ -312,24 +316,5 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
       }
     }
     return true;
-  }
-
-  /**
-   * Checks a numeric candidate's end boundary and a possible following digit group.
-   *
-   * @param text The text being scanned.
-   * @param end The candidate end, exclusive.
-   * @return {@code true} if the candidate may end here.
-   */
-  private boolean onNumberEnd(CharSequence text, int end) {
-    if (!Boundaries.onEnd(text, end)) {
-      return false;
-    }
-    if (end + 1 >= text.length()) {
-      return true;
-    }
-    final char next = Boundaries.separatorKind(text.charAt(end));
-    return (next != '.' && next != ',' && next != '-' && next != ' ')
-        || !StringUtil.isAsciiDigit(text.charAt(end + 1));
   }
 }

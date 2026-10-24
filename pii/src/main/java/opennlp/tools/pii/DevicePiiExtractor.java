@@ -44,7 +44,14 @@ import opennlp.tools.util.StringUtil;
  */
 public final class DevicePiiExtractor implements PiiExtractor {
 
-  private static final String LABEL = "imei";
+  private static final String[] LABELS = {"imei"};
+
+  /** Punctuation that may separate the label and the value. */
+  private static final String LABEL_PUNCTUATION = ":#=";
+
+  /** Separators that continue the digit groups when a digit follows. */
+  private static final String GROUP_CONTINUATIONS = "- ";
+
   private static final int DIGITS = 15;
 
   /** Initializes an extractor for IMEIs. */
@@ -62,7 +69,7 @@ public final class DevicePiiExtractor implements PiiExtractor {
     final List<Hits.Hit> hits = new ArrayList<>();
     for (int i = 0; i < text.length(); i++) {
       if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
-          || !hasLabel(text, i)) {
+          || !Boundaries.precededByLabel(text, i, LABELS, LABEL_PUNCTUATION)) {
         continue;
       }
       final StringBuilder normalized = new StringBuilder(DIGITS);
@@ -74,23 +81,6 @@ public final class DevicePiiExtractor implements PiiExtractor {
       i = end - 1;
     }
     return Hits.resolve(hits);
-  }
-
-  /**
-   * Checks for the required label immediately before a candidate.
-   *
-   * @param text The text being scanned.
-   * @param start The first digit of the candidate.
-   * @return {@code true} if an isolated {@code IMEI} label precedes the candidate.
-   */
-  private boolean hasLabel(CharSequence text, int start) {
-    int end = start;
-    while (end > 0 && isLabelSeparator(text.charAt(end - 1))) {
-      end--;
-    }
-    final int labelStart = end - LABEL.length();
-    return labelStart >= 0 && Ascii.equalsIgnoreCase(text, labelStart, LABEL)
-        && Boundaries.onWordStart(text, labelStart);
   }
 
   /**
@@ -120,23 +110,10 @@ public final class DevicePiiExtractor implements PiiExtractor {
         break;
       }
     }
-    if (normalized.length() != DIGITS || !Boundaries.onEnd(text, p)) {
-      return -1;
-    }
-    if (p + 1 < text.length() && (text.charAt(p) == '-' || Boundaries.isGroupSpace(text.charAt(p)))
-        && StringUtil.isAsciiDigit(text.charAt(p + 1))) {
+    if (normalized.length() != DIGITS
+        || !Boundaries.onNumberEnd(text, p, GROUP_CONTINUATIONS)) {
       return -1;
     }
     return p;
-  }
-
-  /**
-   * Tests for punctuation permitted between a label and value.
-   *
-   * @param c The character.
-   * @return {@code true} for accepted label separators.
-   */
-  private boolean isLabelSeparator(char c) {
-    return StringUtil.isUnicodeWhitespace(c) || c == ':' || c == '#' || c == '=';
   }
 }
