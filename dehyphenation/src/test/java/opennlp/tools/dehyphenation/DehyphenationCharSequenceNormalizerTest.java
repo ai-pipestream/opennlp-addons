@@ -24,6 +24,7 @@ import java.io.ObjectOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import opennlp.tools.util.Span;
@@ -99,6 +100,55 @@ public class DehyphenationCharSequenceNormalizerTest {
   void testJoinAcrossTypesetHyphen() {
     // PDF extractors such as Poppler and PDFBox emit U+2010 HYPHEN for typeset hyphens.
     assertEquals("wellknown", NORMALIZER.normalize("well\u2010\nknown").toString());
+  }
+
+  /**
+   * Joins at the hyphens that Armenian, Canadian syllabics, Fraktur and Yezidi text use to
+   * hyphenate a word at the end of a line.
+   *
+   * @param text The hyphenated text.
+   * @param joined The joined word.
+   */
+  @ParameterizedTest
+  @CsvSource({
+      // U+058A ARMENIAN HYPHEN
+      "'\u0540\u0561\u0575\u0561\u057D\u058A\n\u057F\u0561\u0576', "
+          + "'\u0540\u0561\u0575\u0561\u057D\u057F\u0561\u0576'",
+      // U+1400 CANADIAN SYLLABICS HYPHEN
+      "'\u1403\u14C4\u1400\n\u1483\u1450\u1450\u1466', '\u1403\u14C4\u1483\u1450\u1450\u1466'",
+      // U+2E17 DOUBLE OBLIQUE HYPHEN, the hyphen of Fraktur
+      "'Gesell\u2E17\nschaft', 'Gesellschaft'",
+      // U+10EAD YEZIDI HYPHENATION MARK, a surrogate pair like the Yezidi letters
+      "'\uD803\uDE80\uD803\uDE81\uD803\uDEAD\n\uD803\uDE82\uD803\uDE83', "
+          + "'\uD803\uDE80\uD803\uDE81\uD803\uDE82\uD803\uDE83'"})
+  void testJoinAcrossHyphenOfOtherScripts(String text, String joined) {
+    final AlignedText aligned = NORMALIZER.normalizeAligned(text);
+    assertEquals(joined, NORMALIZER.normalize(text).toString());
+    assertEquals(joined, aligned.normalizedString());
+    assertEquals(new Span(0, text.length()), aligned.toOriginalSpan(0, joined.length()));
+  }
+
+  /**
+   * Leaves dashes and the hyphens that do not mark a hyphenation break untouched.
+   *
+   * @param hyphen The code point before the line break.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {
+      0x05BE,    // HEBREW PUNCTUATION MAQAF joins the words of a compound
+      0x1806,    // MONGOLIAN TODO SOFT HYPHEN is written at the start of the next line
+      0x2011,    // NON-BREAKING HYPHEN
+      0x2012,    // FIGURE DASH
+      0x2013,    // EN DASH
+      0x2014,    // EM DASH
+      0x2E40,    // DOUBLE HYPHEN
+      0x30A0,    // KATAKANA-HIRAGANA DOUBLE HYPHEN joins the words of a name
+      0xFE63,    // SMALL HYPHEN-MINUS
+      0xFF0D,    // FULLWIDTH HYPHEN-MINUS
+      0x2212})   // MINUS SIGN
+  void testDashesAndJoiningHyphensAreLeftAlone(int hyphen) {
+    final String text = "litiga" + Character.toString(hyphen) + "\ntion";
+    assertSame(text, NORMALIZER.normalize(text));
   }
 
   @Test
