@@ -17,7 +17,6 @@
 
 package opennlp.tools.pii;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -123,14 +122,14 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_DE_STEUER_ID)) {
       scan(text, hits, STEUER_ID_GROUPS, STEUER_ID_DIGITS, PiiMention.TYPE_DE_STEUER_ID);
     }
     if (types.contains(PiiMention.TYPE_UK_NHS)) {
       scan(text, hits, NHS_GROUPS, NHS_DIGITS, PiiMention.TYPE_UK_NHS);
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**
@@ -142,7 +141,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
    * @param digits The number of digits the identifier has.
    * @param type The type to report.
    */
-  private void scan(CharSequence text, List<Hits.Hit> hits, int[] groups, int digits,
+  private void scan(CharSequence text, Hits hits, int[] groups, int digits,
       String type) {
     final int[] value = new int[digits];
     for (int i = 0; i < text.length(); i++) {
@@ -160,7 +159,7 @@ public final class EuIdentityPiiExtractor implements PiiExtractor {
       for (final int digit : value) {
         normalized.append((char) ('0' + digit));
       }
-      Hits.add(hits, i, end, type, normalized.toString());
+      hits.add(i, end, type, normalized.toString());
       // The loop increment resumes the scan at the exclusive match end.
       i = end - 1;
     }

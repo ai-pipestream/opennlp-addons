@@ -156,7 +156,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_EMAIL)) {
       scanEmails(text, hits);
     }
@@ -169,7 +169,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
     if (types.contains(PiiMention.TYPE_PHONE)) {
       scanPhones(text, hits);
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**
@@ -179,7 +179,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanEmails(CharSequence text, List<Hits.Hit> hits) {
+  private void scanEmails(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) != '@') {
         continue;
@@ -212,7 +212,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
       for (int p = i + 1; p < end; p++) {
         normalized.append(Ascii.toLower(text.charAt(p)));
       }
-      Hits.add(hits, start, end, PiiMention.TYPE_EMAIL, normalized.toString());
+      hits.add(start, end, PiiMention.TYPE_EMAIL, normalized.toString());
     }
   }
 
@@ -280,7 +280,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanIbans(CharSequence text, List<Hits.Hit> hits) {
+  private void scanIbans(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (!Ascii.isUpper(text.charAt(i))
           || (i > 0 && Character.isLetterOrDigit(Character.codePointBefore(text, i)))
@@ -317,7 +317,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
         }
         if (mod97(compact, length) == 1) {
           final String candidate = compact.substring(0, length);
-          Hits.add(hits, i, textEnd, PiiMention.TYPE_IBAN, candidate);
+          hits.add(i, textEnd, PiiMention.TYPE_IBAN, candidate);
           // The loop increment resumes the scan at the exclusive match end.
           i = textEnd - 1;
           break;
@@ -334,7 +334,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanCards(CharSequence text, List<Hits.Hit> hits) {
+  private void scanCards(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       final char first = text.charAt(i);
       if (((first < '2' || first > '6') && first != UNIONPAY_LEADING_DIGIT)
@@ -372,7 +372,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
           continue;
         }
         final String candidate = digits.substring(0, length);
-        Hits.add(hits, i, end, PiiMention.TYPE_CARD, candidate);
+        hits.add(i, end, PiiMention.TYPE_CARD, candidate);
         // The loop increment resumes the scan at the exclusive match end.
         i = end - 1;
         break;
@@ -388,7 +388,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanPhones(CharSequence text, List<Hits.Hit> hits) {
+  private void scanPhones(CharSequence text, Hits hits) {
     int lastEnd = -1;
     for (int i = 0; i < text.length(); i++) {
       final char c = text.charAt(i);
@@ -454,7 +454,7 @@ public final class CursorPiiExtractor implements PiiExtractor {
         if (!lengthOk || !Boundaries.onNumberEnd(text, end, PHONE_CONTINUATIONS)) {
           continue;
         }
-        Hits.add(hits, i, end, PiiMention.TYPE_PHONE,
+        hits.add(i, end, PiiMention.TYPE_PHONE,
             plus ? "+" + candidate : candidate);
         lastEnd = end;
         // The loop increment resumes the scan at the exclusive match end.

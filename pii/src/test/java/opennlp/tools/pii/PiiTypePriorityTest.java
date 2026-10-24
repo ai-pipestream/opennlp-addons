@@ -17,7 +17,6 @@
 
 package opennlp.tools.pii;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -116,11 +115,11 @@ public class PiiTypePriorityTest {
     final PiiMention lowerPriority = new PiiMention(span, alternative, "lower");
     for (final List<PiiMention> candidates : List.of(List.of(higherPriority, lowerPriority),
         List.of(lowerPriority, higherPriority))) {
-      final List<Hits.Hit> hits = new ArrayList<>();
+      final Hits hits = new Hits();
       for (final PiiMention candidate : candidates) {
-        Hits.add(hits, span.getStart(), span.getEnd(), candidate.type(), candidate.normalized());
+        hits.add(span.getStart(), span.getEnd(), candidate.type(), candidate.normalized());
       }
-      Assertions.assertEquals(List.of(higherPriority, lowerPriority), Hits.resolve(hits));
+      Assertions.assertEquals(List.of(higherPriority, lowerPriority), hits.resolve());
       final PiiExtractor a = text -> List.of(candidates.get(0));
       final PiiExtractor b = text -> List.of(candidates.get(1));
       final CompositePiiExtractor composite = new CompositePiiExtractor(a, b);
@@ -147,11 +146,11 @@ public class PiiTypePriorityTest {
     final PiiMention following = new PiiMention(span, followingType, "following");
     for (final List<PiiMention> candidates : List.of(List.of(leading, following),
         List.of(following, leading))) {
-      final List<Hits.Hit> hits = new ArrayList<>();
+      final Hits hits = new Hits();
       for (final PiiMention candidate : candidates) {
-        Hits.add(hits, 0, 5, candidate.type(), candidate.normalized());
+        hits.add(0, 5, candidate.type(), candidate.normalized());
       }
-      Assertions.assertEquals(candidates, Hits.resolve(hits));
+      Assertions.assertEquals(candidates, hits.resolve());
       final List<PiiMention> withinDelegate =
           new CompositePiiExtractor(text -> candidates).extract("value");
       Assertions.assertEquals(candidates, withinDelegate);
@@ -173,11 +172,11 @@ public class PiiTypePriorityTest {
         "value");
     final PiiMention duplicate = new PiiMention(new Span(0, 5), PiiMention.TYPE_EMAIL,
         "value");
-    final List<Hits.Hit> hits = new ArrayList<>();
-    Hits.add(hits, first);
-    Hits.add(hits, duplicate);
+    final Hits hits = new Hits();
+    hits.add(first);
+    hits.add(duplicate);
 
-    final List<PiiMention> resolved = Hits.resolve(hits);
+    final List<PiiMention> resolved = hits.resolve();
 
     Assertions.assertEquals(List.of(first), resolved);
     Assertions.assertSame(first, resolved.getFirst());
@@ -190,11 +189,11 @@ public class PiiTypePriorityTest {
         PiiMention.TYPE_EMAIL, "value");
     final PiiMention duplicate = new PiiMention(new Span(0, 5, "source", 0.9),
         PiiMention.TYPE_EMAIL, "value");
-    final List<Hits.Hit> hits = new ArrayList<>();
-    Hits.add(hits, first);
-    Hits.add(hits, duplicate);
+    final Hits hits = new Hits();
+    hits.add(first);
+    hits.add(duplicate);
 
-    final List<PiiMention> resolved = Hits.resolve(hits);
+    final List<PiiMention> resolved = hits.resolve();
 
     Assertions.assertEquals(List.of(first), resolved);
     Assertions.assertSame(first, resolved.getFirst());
@@ -206,11 +205,11 @@ public class PiiTypePriorityTest {
   void testEqualEmptyMentionsCollapseToTheFirstObject() {
     final PiiMention first = new PiiMention(new Span(0, 0), "marker", "value");
     final PiiMention duplicate = new PiiMention(new Span(0, 0), "marker", "value");
-    final List<Hits.Hit> hits = new ArrayList<>();
-    Hits.add(hits, first);
-    Hits.add(hits, duplicate);
+    final Hits hits = new Hits();
+    hits.add(first);
+    hits.add(duplicate);
 
-    final List<PiiMention> resolved = Hits.resolve(hits);
+    final List<PiiMention> resolved = hits.resolve();
 
     Assertions.assertEquals(List.of(first), resolved);
     Assertions.assertSame(first, resolved.getFirst());
@@ -223,11 +222,11 @@ public class PiiTypePriorityTest {
         PiiMention.TYPE_EMAIL, "value");
     final PiiMention second = new PiiMention(new Span(0, 5, "source-b"),
         PiiMention.TYPE_EMAIL, "value");
-    final List<Hits.Hit> hits = new ArrayList<>();
-    Hits.add(hits, first);
-    Hits.add(hits, second);
+    final Hits hits = new Hits();
+    hits.add(first);
+    hits.add(second);
 
-    final List<PiiMention> resolved = Hits.resolve(hits);
+    final List<PiiMention> resolved = hits.resolve();
 
     Assertions.assertEquals(List.of(first, second), resolved);
     Assertions.assertSame(first, resolved.get(0));

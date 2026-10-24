@@ -20,7 +20,6 @@ package opennlp.tools.pii;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -142,7 +141,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_URL_CREDENTIAL)) {
       scanUrlCredentials(text, hits);
     }
@@ -155,7 +154,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
     if (types.contains(PiiMention.TYPE_GITHUB_TOKEN)) {
       scanGithubTokens(text, hits);
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**
@@ -165,7 +164,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanAwsKeys(CharSequence text, List<Hits.Hit> hits) {
+  private void scanAwsKeys(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) != 'A' || !onTokenStart(text, i, false)) {
         continue;
@@ -184,7 +183,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
           body &= Ascii.isUpper(c) || StringUtil.isAsciiDigit(c);
         }
         if (body) {
-          Hits.add(hits, i, end, PiiMention.TYPE_AWS_ACCESS_KEY,
+          hits.add(i, end, PiiMention.TYPE_AWS_ACCESS_KEY,
               text.subSequence(i, end).toString());
           // The loop increment resumes the scan at the exclusive match end.
           i = end - 1;
@@ -200,7 +199,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanGithubTokens(CharSequence text, List<Hits.Hit> hits) {
+  private void scanGithubTokens(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (text.charAt(i) != 'g' || !onTokenStart(text, i, false)) {
         continue;
@@ -233,7 +232,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
       }
       if (candidateEnd - start >= minimumLength
           && (installation || candidateEnd - i <= GITHUB_MAX_LENGTH) && onTokenEnd(text, end)) {
-        Hits.add(hits, i, candidateEnd, PiiMention.TYPE_GITHUB_TOKEN,
+        hits.add(i, candidateEnd, PiiMention.TYPE_GITHUB_TOKEN,
             text.subSequence(i, candidateEnd).toString());
       }
       // Skip the scanned run even when rejected, to avoid scanning embedded prefixes again.
@@ -268,7 +267,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanJwts(CharSequence text, List<Hits.Hit> hits) {
+  private void scanJwts(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       if (!canStartJsonHeader(text.charAt(i)) || !onJwtStart(text, i)) {
         continue;
@@ -297,7 +296,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
       if (!segments || !onJwtEnd(text, p) || !isJwsHeader(text, i, headerEnd)) {
         continue;
       }
-      Hits.add(hits, i, p, PiiMention.TYPE_JWT, text.subSequence(i, p).toString());
+      hits.add(i, p, PiiMention.TYPE_JWT, text.subSequence(i, p).toString());
       // The loop increment resumes the scan at the exclusive match end.
       i = p - 1;
     }
@@ -421,7 +420,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanUrlCredentials(CharSequence text, List<Hits.Hit> hits) {
+  private void scanUrlCredentials(CharSequence text, Hits hits) {
     // A scheme is at least one letter long, so no credential can start before offset 1.
     for (int i = 1; i + SCHEME_SEPARATOR.length() < text.length(); i++) {
       if (!startsWith(text, i, SCHEME_SEPARATOR) || !hasScheme(text, i)) {
@@ -448,7 +447,7 @@ public final class SecretsPiiExtractor implements PiiExtractor {
       if (p >= text.length() || text.charAt(p) != '@' || colon <= start || colon + 1 >= p) {
         continue;
       }
-      Hits.add(hits, start, p, PiiMention.TYPE_URL_CREDENTIAL,
+      hits.add(start, p, PiiMention.TYPE_URL_CREDENTIAL,
           text.subSequence(start, p).toString());
       // The loop increment resumes the scan at the exclusive credential end.
       i = p - 1;

@@ -25,10 +25,10 @@ import java.util.Set;
 import opennlp.tools.util.Span;
 
 /**
- * Candidate storage and ordering for built-in and composite extractors.
+ * Collects the candidates of one scan and resolves them into mentions in text order.
  *
- * <p>Candidates are ordered by start offset, descending length, type rank and insertion
- * order. Overlapping mentions are retained; equal mentions are combined.</p>
+ * <p>An accumulator belongs to one call of an extractor and is not shared between
+ * threads.</p>
  */
 final class Hits {
 
@@ -40,46 +40,45 @@ final class Hits {
    * @param priority The type rank for candidates with equal offsets.
    * @param mention The candidate mention.
    */
-  record Hit(int start, int end, int priority, PiiMention mention) {
+  private record Hit(int start, int end, int priority, PiiMention mention) {
   }
 
-  /** Prevents construction. */
-  private Hits() {
+  private final List<Hit> hits = new ArrayList<>();
+
+  /** Initializes an empty accumulator. */
+  Hits() {
   }
 
   /**
    * Records one candidate.
    *
-   * @param hits The candidate collector.
    * @param start The candidate start offset, inclusive.
    * @param end The candidate end offset, exclusive.
    * @param type The mention type.
    * @param normalized The normalized form of the mention.
    */
-  static void add(List<Hit> hits, int start, int end, String type, String normalized) {
-    add(hits, new PiiMention(new Span(start, end), type, normalized));
+  void add(int start, int end, String type, String normalized) {
+    add(new PiiMention(new Span(start, end), type, normalized));
   }
 
   /**
    * Adds an existing mention without copying it.
    *
-   * @param hits The candidate collector.
    * @param mention The non-null candidate.
    */
-  static void add(List<Hit> hits, PiiMention mention) {
+  void add(PiiMention mention) {
     hits.add(new Hit(mention.span().getStart(), mention.span().getEnd(),
         PiiTypePriority.rank(mention.type()), mention));
   }
 
   /**
-   * Sorts candidates by start, length and type rank, retaining overlaps. Stable sorting
-   * preserves insertion order for equal offsets and ranks. Duplicates compare by
+   * Sorts the candidates by start, length and type rank, retaining overlaps. Stable
+   * sorting preserves insertion order for equal offsets and ranks. Duplicates compare by
    * {@link PiiMention#equals(Object)}; the first original mention is retained.
    *
-   * @param hits The raw candidates; this list is sorted in place.
    * @return The distinct mentions in text order.
    */
-  static List<PiiMention> resolve(List<Hit> hits) {
+  List<PiiMention> resolve() {
     hits.sort((a, b) -> {
       if (a.start() != b.start()) {
         return Integer.compare(a.start(), b.start());

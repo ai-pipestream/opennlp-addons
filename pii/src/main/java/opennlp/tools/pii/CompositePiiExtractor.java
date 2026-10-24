@@ -18,7 +18,6 @@
 package opennlp.tools.pii;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
@@ -99,7 +98,7 @@ public final class CompositePiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     final Deque<PiiExtractor> pending = new ArrayDeque<>(extractors);
     while (!pending.isEmpty()) {
       final PiiExtractor extractor = pending.removeFirst();
@@ -109,10 +108,10 @@ public final class CompositePiiExtractor implements PiiExtractor {
         }
       } else {
         for (final PiiMention mention : PiiExtraction.extract(extractor, text)) {
-          Hits.add(hits, mention);
+          hits.add(mention);
         }
       }
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 }

@@ -17,7 +17,6 @@
 
 package opennlp.tools.pii;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -121,7 +120,7 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     for (int i = 0; i + FORM_LENGTH <= text.length(); i++) {
       if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)) {
         continue;
@@ -150,11 +149,11 @@ public final class UsIdentityPiiExtractor implements PiiExtractor {
         normalized.append(Boundaries.separatorKind(text.charAt(p)) == separator
             ? '-' : text.charAt(p));
       }
-      Hits.add(hits, i, end, type, normalized.toString());
+      hits.add(i, end, type, normalized.toString());
       // The loop increment resumes the scan at the exclusive match end.
       i = end - 1;
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**

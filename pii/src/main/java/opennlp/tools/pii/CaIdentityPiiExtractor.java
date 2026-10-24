@@ -17,7 +17,6 @@
 
 package opennlp.tools.pii;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import opennlp.tools.util.ParamChecks;
@@ -72,7 +71,7 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     for (int i = 0; i < text.length(); i++) {
       if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
           || !Boundaries.precededByLabel(text, i, LABELS, LABEL_PUNCTUATION)) {
@@ -83,10 +82,10 @@ public final class CaIdentityPiiExtractor implements PiiExtractor {
       if (end < 0 || !Luhn.valid(normalized, DIGITS)) {
         continue;
       }
-      Hits.add(hits, i, end, PiiMention.TYPE_CA_SIN, normalized.toString());
+      hits.add(i, end, PiiMention.TYPE_CA_SIN, normalized.toString());
       i = end - 1;
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**

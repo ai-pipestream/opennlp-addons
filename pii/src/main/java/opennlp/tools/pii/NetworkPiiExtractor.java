@@ -122,7 +122,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
   @Override
   public List<PiiMention> extract(CharSequence text) {
     ParamChecks.requireNonNullArg(text, "text");
-    final List<Hits.Hit> hits = new ArrayList<>();
+    final Hits hits = new Hits();
     if (types.contains(PiiMention.TYPE_MAC)) {
       scanMacs(text, hits);
     }
@@ -132,7 +132,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
     if (types.contains(PiiMention.TYPE_IPV4)) {
       scanIpv4(text, hits);
     }
-    return Hits.resolve(hits);
+    return hits.resolve();
   }
 
   /**
@@ -141,7 +141,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanIpv4(CharSequence text, List<Hits.Hit> hits) {
+  private void scanIpv4(CharSequence text, Hits hits) {
     final int[] octets = new int[IPV4_OCTETS];
     for (int i = 0; i < text.length(); i++) {
       if (!StringUtil.isAsciiDigit(text.charAt(i)) || !Boundaries.onNumberStart(text, i)
@@ -159,7 +159,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
         }
         normalized.append(octets[o]);
       }
-      Hits.add(hits, i, end, PiiMention.TYPE_IPV4, normalized.toString());
+      hits.add(i, end, PiiMention.TYPE_IPV4, normalized.toString());
       // The loop increment resumes the scan at the exclusive match end.
       i = end - 1;
     }
@@ -240,7 +240,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanIpv6(CharSequence text, List<Hits.Hit> hits) {
+  private void scanIpv6(CharSequence text, Hits hits) {
     for (int i = 0; i < text.length(); i++) {
       final char c = text.charAt(i);
       final boolean doubleColon = c == ':' && i + 1 < text.length() && text.charAt(i + 1) == ':';
@@ -252,7 +252,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
           || !plausibleIpv6(candidate)) {
         continue;
       }
-      Hits.add(hits, i, candidate.end(), PiiMention.TYPE_IPV6,
+      hits.add(i, candidate.end(), PiiMention.TYPE_IPV6,
           formatIpv6(candidate.groups()));
       // The loop increment resumes the scan at the exclusive match end.
       i = candidate.end() - 1;
@@ -424,7 +424,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
    * @param text The text to scan.
    * @param hits The candidate collector.
    */
-  private void scanMacs(CharSequence text, List<Hits.Hit> hits) {
+  private void scanMacs(CharSequence text, Hits hits) {
     final int[] bytes = new int[MAC_PAIRS];
     for (int i = 0; i < text.length(); i++) {
       if (!Ascii.isHexDigit(text.charAt(i)) || !onGroupStart(text, i)) {
@@ -451,7 +451,7 @@ public final class NetworkPiiExtractor implements PiiExtractor {
         normalized.append(hexDigit(bytes[b] >> 4));
         normalized.append(hexDigit(bytes[b] & 0xF));
       }
-      Hits.add(hits, i, end, PiiMention.TYPE_MAC, normalized.toString());
+      hits.add(i, end, PiiMention.TYPE_MAC, normalized.toString());
       // The loop increment resumes the scan at the exclusive match end.
       i = end - 1;
     }
