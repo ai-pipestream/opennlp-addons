@@ -16,7 +16,12 @@
  */
 package opennlp.subword.sentencepiece;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+
+import opennlp.tools.util.InvalidFormatException;
 
 /**
  * Read-only lookup over a serialized Darts-clone double-array trie, the dictionary format
@@ -25,8 +30,8 @@ import java.io.Serializable;
  * <p>Each unit is one little-endian 32-bit word encoding a label, an offset to the unit's
  * children, and a leaf flag; traversal XORs the offset with the next key byte. Only the longest
  * prefix match is needed here, so this walks the byte key once and remembers the last accepting
- * state. An out-of-range unit reference indicates malformed data and causes an
- * {@link IllegalArgumentException}.</p>
+ * state. The constructor checks that every unit a walk can reach lies inside the trie, so a
+ * lookup never leaves it.</p>
  *
  * @see <a href="https://github.com/s-yata/darts-clone">Darts-clone</a>
  */
@@ -45,26 +50,83 @@ final class DoubleArrayTrie implements Serializable {
   // Bit 8 of a non-leaf unit marks that one of its children is a leaf holding this key's value.
   private static final int HAS_LEAF_BIT = 8;
 
+  // Units are allocated in blocks of 256, one unit per value of a key byte.
+  private static final int BLOCK_UNITS = 256;
+
   private final int[] units;
 
   /**
-   * Wraps serialized trie units.
+   * Wraps serialized trie units and checks that every reachable unit lies inside the trie.
    *
    * @param data   The bytes holding the units; must not be {@code null}.
    * @param offset The offset of the first unit byte.
-   * @param length The number of bytes; must be a positive multiple of four.
-   * @throws IllegalArgumentException Thrown if {@code length} is not a positive multiple of four.
+   * @param length The number of bytes; the caller checks that it is a positive multiple of 1024,
+   *               so that the units form whole blocks of {@value #BLOCK_UNITS}.
+   * @throws InvalidFormatException Thrown if a unit references children outside the trie.
    */
-  DoubleArrayTrie(byte[] data, int offset, int length) {
-    if (length <= 0 || (length & 3) != 0) {
-      throw new IllegalArgumentException(
-          "The trie length " + length + " is not a positive multiple of four bytes.");
-    }
-    units = new int[length >> 2];
+  DoubleArrayTrie(byte[] data, int offset, int length) throws InvalidFormatException {
+    units = new int[length / Integer.BYTES];
     for (int i = 0; i < units.length; i++) {
-      final int base = offset + (i << 2);
+      final int base = offset + i * Integer.BYTES;
       units[i] = (data[base] & 0xFF) | (data[base + 1] & 0xFF) << 8
           | (data[base + 2] & 0xFF) << 16 | (data[base + 3] & 0xFF) << 24;
+    }
+    checkReachableUnits();
+  }
+
+  /**
+   * Restores the units of a serialized trie and applies the check of the constructor to them.
+   *
+   * @param in The stream to read from.
+   * @throws IOException Thrown if the stream cannot be read, or, as an
+   *     {@link InvalidObjectException}, if a unit references children outside the trie.
+   * @throws ClassNotFoundException Thrown if a class of the stream is not found.
+   */
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    if (units == null || units.length == 0 || units.length % BLOCK_UNITS != 0) {
+      throw new InvalidObjectException("The trie units do not form whole blocks of "
+          + BLOCK_UNITS + ".");
+    }
+    try {
+      checkReachableUnits();
+    } catch (InvalidFormatException e) {
+      final InvalidObjectException invalid = new InvalidObjectException(e.getMessage());
+      invalid.initCause(e);
+      throw invalid;
+    }
+  }
+
+  /**
+   * Walks every unit reachable from the root and checks that its children lie inside the trie.
+   * The units form whole blocks of {@value #BLOCK_UNITS}, and a key byte changes only the low
+   * eight bits of a child position, so a children position inside the trie keeps every child
+   * and leaf read of {@link #longestPrefixMatch} inside it.
+   *
+   * @throws InvalidFormatException Thrown if a reachable unit references children outside the
+   *     trie.
+   */
+  private void checkReachableUnits() throws InvalidFormatException {
+    final boolean[] visited = new boolean[units.length];
+    // Every unit is pushed at most once, so the stack never holds more than all of them.
+    final int[] pending = new int[units.length];
+    int top = 0;
+    pending[top++] = 0;
+    visited[0] = true;
+    while (top > 0) {
+      final int node = pending[--top];
+      final int children = node ^ offset(units[node]);
+      if (children >= units.length) {
+        throw new InvalidFormatException("The precompiled character map trie references a unit"
+            + " outside its " + units.length + " units.");
+      }
+      for (int b = 0; b < BLOCK_UNITS; b++) {
+        final int child = children ^ b;
+        if (!visited[child] && (units[child] & LEAF_FLAG_AND_LABEL_MASK) == b) {
+          visited[child] = true;
+          pending[top++] = child;
+        }
+      }
     }
   }
 
@@ -76,35 +138,24 @@ final class DoubleArrayTrie implements Serializable {
    * @param to   The exclusive end of the query window.
    * @return {@code (value << 32) | matchedLength} for the longest match, or {@code -1} when no
    *     key matches. Values are non-negative, so the result is negative only on no-match.
-   * @throws IllegalArgumentException Thrown if the trie data references a unit outside its
-   *     bounds, indicating corrupt data.
    */
   long longestPrefixMatch(byte[] key, int from, int to) {
-    // Array checks guard the walk. The catch translates a bad unit reference into a model error.
-    final int[] u = units;
-    try {
-      long result = -1;
-      int nodePos = 0;
-      int unit = u[0];
-      nodePos ^= offset(unit);
-      for (int i = from; i < to; i++) {
-        final int b = key[i] & 0xFF;
-        nodePos ^= b;
-        unit = u[nodePos];
-        if ((unit & LEAF_FLAG_AND_LABEL_MASK) != b) {
-          return result;
-        }
-        nodePos ^= offset(unit);
-        if (((unit >>> HAS_LEAF_BIT) & 1) == 1) {
-          final int value = u[nodePos] & LEAF_VALUE_MASK;
-          result = ((long) value << 32) | (i - from + 1);
-        }
+    long result = -1;
+    int nodePos = offset(units[0]);
+    for (int i = from; i < to; i++) {
+      final int b = key[i] & 0xFF;
+      nodePos ^= b;
+      final int unit = units[nodePos];
+      if ((unit & LEAF_FLAG_AND_LABEL_MASK) != b) {
+        return result;
       }
-      return result;
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new IllegalArgumentException(
-          "The trie references a unit outside its " + u.length + " units.", e);
+      nodePos ^= offset(unit);
+      if (((unit >>> HAS_LEAF_BIT) & 1) == 1) {
+        final int value = units[nodePos] & LEAF_VALUE_MASK;
+        result = ((long) value << 32) | (i - from + 1);
+      }
     }
+    return result;
   }
 
   /**
@@ -115,12 +166,7 @@ final class DoubleArrayTrie implements Serializable {
    * @return {@code true} if some key starts with {@code b}.
    */
   boolean hasTransitionFromRoot(int b) {
-    final int root = units[0];
-    final int nodePos = offset(root) ^ b;
-    if (nodePos < 0 || nodePos >= units.length) {
-      return false;
-    }
-    return (units[nodePos] & LEAF_FLAG_AND_LABEL_MASK) == b;
+    return (units[offset(units[0]) ^ b] & LEAF_FLAG_AND_LABEL_MASK) == b;
   }
 
   /**
