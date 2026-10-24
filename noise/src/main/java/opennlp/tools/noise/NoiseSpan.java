@@ -17,8 +17,8 @@
 
 package opennlp.tools.noise;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.StringUtil;
 
 /**
  * A noisy region in the original text, with a severity and score.
@@ -59,14 +59,8 @@ public record NoiseSpan(Span span, String severity, double score) {
    *         {@code (0, 1]}.
    */
   public NoiseSpan {
-    if (span == null) {
-      throw new IllegalArgumentException("span must not be null");
-    }
-    if (StringUtil.isUnicodeBlank(severity)) {
-      throw new IllegalArgumentException("severity must not be null or blank");
-    }
-    if (!(score > 0.0 && score <= 1.0)) {
-      throw new IllegalArgumentException("score must be in (0, 1], got: " + score);
-    }
+    ParamChecks.requireNonNullArg(span, "span");
+    ParamChecks.requireNonBlank(severity, "severity");
+    ParamChecks.requirePositiveFraction(score, "score");
   }
 }

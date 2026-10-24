@@ -28,6 +28,7 @@ import opennlp.tools.document.DocumentAnnotator;
 import opennlp.tools.document.DocumentAnnotators;
 import opennlp.tools.document.LayerKey;
 import opennlp.tools.document.Layers;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 
 /**
@@ -39,7 +40,7 @@ import opennlp.tools.util.Span;
  *
  * @since 3.0.0
  */
-public class NoiseAnnotator implements DocumentAnnotator {
+public final class NoiseAnnotator implements DocumentAnnotator {
 
   /**
    * Noise annotations with original-text offsets and {@link NoiseSpan} values.
@@ -67,10 +68,7 @@ public class NoiseAnnotator implements DocumentAnnotator {
    * @throws IllegalArgumentException Thrown if {@code scorer} is {@code null}.
    */
   public NoiseAnnotator(NoiseScorer scorer, boolean excludeAssets) {
-    if (scorer == null) {
-      throw new IllegalArgumentException("scorer must not be null");
-    }
-    this.scorer = scorer;
+    this.scorer = ParamChecks.requireNonNullArg(scorer, "scorer");
     this.excludeAssets = excludeAssets;
   }
 
@@ -84,9 +82,7 @@ public class NoiseAnnotator implements DocumentAnnotator {
    */
   @Override
   public Document annotate(Document document) {
-    if (document == null) {
-      throw new IllegalArgumentException("document must not be null");
-    }
+    ParamChecks.requireNonNullArg(document, "document");
     final List<Span> exclude = new ArrayList<>();
     if (excludeAssets) {
       DocumentAnnotators.requireLayers(document, AssetAnnotator.ASSETS);

@@ -351,13 +351,27 @@ public class StructuralNoiseScorerTest {
   /** Rejects null API arguments. */
   @Test
   void testRejectsContractViolations() {
-    assertThrows(IllegalArgumentException.class, () -> scorer.score(null, List.of()));
-    assertThrows(IllegalArgumentException.class, () -> scorer.score("x", null));
+    assertEquals("text must not be null", assertThrows(IllegalArgumentException.class,
+        () -> scorer.score(null, List.of())).getMessage());
+    assertEquals("exclude must not be null", assertThrows(IllegalArgumentException.class,
+        () -> scorer.score("x", null)).getMessage());
     final List<Span> holdsNull = new ArrayList<>();
     holdsNull.add(null);
-    assertThrows(IllegalArgumentException.class, () -> scorer.score("x", holdsNull));
-    assertThrows(IllegalArgumentException.class,
-        () -> new StructuralNoiseScorer(null));
+    assertEquals("exclude must not contain null", assertThrows(IllegalArgumentException.class,
+        () -> scorer.score("x", holdsNull)).getMessage());
+    assertEquals("dictionary must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new StructuralNoiseScorer(null)).getMessage());
+  }
+
+  /** A dictionary that fails is not swallowed: its exception reaches the caller. */
+  @Test
+  void testDictionaryFailurePropagates() {
+    final StructuralNoiseScorer failing = new StructuralNoiseScorer(word -> {
+      throw new IllegalStateException("dictionary unavailable");
+    });
+    final IllegalStateException e = assertThrows(IllegalStateException.class,
+        () -> failing.score("hello", List.of()));
+    assertEquals("dictionary unavailable", e.getMessage());
   }
 
   /** A payload past the saturation length scores the maximum of its tier. */

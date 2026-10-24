@@ -104,9 +104,10 @@ public class NoiseAnnotatorTest {
   /** Rejects null constructor and annotation arguments. */
   @Test
   void testRejectsContractViolations() {
-    assertThrows(IllegalArgumentException.class, () -> new NoiseAnnotator(null, true));
-    assertThrows(IllegalArgumentException.class,
-        () -> new NoiseAnnotator().annotate(null));
+    assertEquals("scorer must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new NoiseAnnotator(null, true)).getMessage());
+    assertEquals("document must not be null", assertThrows(IllegalArgumentException.class,
+        () -> new NoiseAnnotator().annotate(null)).getMessage());
   }
 
   /** Adds an empty result layer without changing the input document. */

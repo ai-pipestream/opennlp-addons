@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.StringUtil;
 
@@ -126,21 +127,14 @@ public final class StructuralNoiseScorer implements NoiseScorer {
    * @throws IllegalArgumentException Thrown if {@code dictionary} is {@code null}.
    */
   public StructuralNoiseScorer(Predicate<CharSequence> dictionary) {
-    if (dictionary == null) {
-      throw new IllegalArgumentException("dictionary must not be null");
-    }
-    this.dictionary = dictionary;
+    this.dictionary = ParamChecks.requireNonNullArg(dictionary, "dictionary");
   }
 
   /** {@inheritDoc} */
   @Override
   public List<NoiseSpan> score(CharSequence text, Collection<Span> exclude) {
-    if (text == null) {
-      throw new IllegalArgumentException("text must not be null");
-    }
-    if (exclude == null) {
-      throw new IllegalArgumentException("exclude must not be null");
-    }
+    ParamChecks.requireNonNullArg(text, "text");
+    ParamChecks.requireNonNullArg(exclude, "exclude");
     for (final Span span : exclude) {
       if (span == null) {
         throw new IllegalArgumentException("exclude must not contain null");
@@ -221,11 +215,12 @@ public final class StructuralNoiseScorer implements NoiseScorer {
     boolean lastLetter = false;
     for (int i = 0; i < core.length(); i++) {
       final char c = core.charAt(i);
-      final boolean upper = c >= 'A' && c <= 'Z';
-      final boolean lower = c >= 'a' && c <= 'z';
-      if (c >= '0' && c <= '9') {
+      final boolean lower = StringUtil.isAsciiLowerCase(c);
+      final boolean upper = !lower && StringUtil.isAsciiLetter(c);
+      if (StringUtil.isAsciiDigit(c)) {
         digit = true;
       } else if (c == '+' || c == '/' || c == '=') {
+        // RFC 4648 section 4: the two symbols and the padding of the base64 alphabet.
         symbol = true;
       } else if (!upper && !lower) {
         return null;
@@ -264,8 +259,8 @@ public final class StructuralNoiseScorer implements NoiseScorer {
     char last = 0;
     for (int i = 0; i < core.length(); i++) {
       final char c = core.charAt(i);
-      final boolean letter = c >= 'a' && c <= 'z';
-      final boolean digit = c >= '0' && c <= '9';
+      final boolean letter = StringUtil.isAsciiLowerCase(c);
+      final boolean digit = StringUtil.isAsciiDigit(c);
       if (letter) {
         letters++;
         if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' || c == 'y') {
