@@ -23,6 +23,7 @@ import java.util.Map;
 
 import opennlp.tools.commons.ThreadSafe;
 import opennlp.tools.util.InvalidFormatException;
+import opennlp.tools.util.ParamChecks;
 import opennlp.tools.util.StringUtil;
 
 /**
@@ -32,18 +33,15 @@ import opennlp.tools.util.StringUtil;
  * is preferred to "habeas corpus", which is preferred to the subword pieces of each word.
  *
  * <p>A term is stored in normalized form: the lower-cased letter-or-digit word runs of its text,
- * joined by single spaces (see {@link #normalizeTerm(String)}). Matching folds each word run of
- * the input text the same way, so "Habeas Corpus" and "habeas-corpus" both match the term
- * "habeas corpus". The fold is {@link StringUtil#toLowerCase(CharSequence)}, locale-independent
- * and one code point to one code point, so word-run boundaries are the same before and after
- * folding.</p>
+ * joined by single spaces (see {@link #normalizeTerm(String)}). Matching splits the input text
+ * into the same word runs and folds each one the same way, so "Habeas Corpus" and
+ * "habeas-corpus" both match the term "habeas corpus". The fold is
+ * {@link StringUtil#toLowerCase(CharSequence)}, which is locale-independent.</p>
  *
  * <p>Immutable and safe for concurrent reads after construction.</p>
  */
 @ThreadSafe
 final class TermTable {
-
-  private static final String TEXT_NULL = "text must not be null";
 
   private final List<String> termsByOffset;
   private final Map<String, Integer> rowByTerm;
@@ -74,9 +72,7 @@ final class TermTable {
    */
   static TermTable of(List<String> terms, int firstRow, String sourceName)
       throws InvalidFormatException {
-    if (terms == null) {
-      throw new IllegalArgumentException("terms must not be null");
-    }
+    ParamChecks.requireNonNullArg(terms, "terms");
     final Map<String, Integer> rowByTerm = new HashMap<>(terms.size() * 2);
     int maxTermWords = 0;
     for (int i = 0; i < terms.size(); i++) {
@@ -102,28 +98,9 @@ final class TermTable {
    * @throws IllegalArgumentException Thrown if {@code text} is {@code null}.
    */
   static String normalizeTerm(String text) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_NULL);
-    }
-    final StringBuilder normalized = new StringBuilder(text.length());
-    final String folded = StringUtil.toLowerCase(text);
-    final int length = folded.length();
-    int i = 0;
-    while (i < length) {
-      final int c = folded.codePointAt(i);
-      if (Character.isLetterOrDigit(c)) {
-        if (normalized.length() > 0) {
-          normalized.append(' ');
-        }
-        while (i < length && Character.isLetterOrDigit(folded.codePointAt(i))) {
-          normalized.appendCodePoint(folded.codePointAt(i));
-          i += Character.charCount(folded.codePointAt(i));
-        }
-      } else {
-        i += Character.charCount(c);
-      }
-    }
-    return normalized.toString();
+    ParamChecks.requireNonNullArg(text, "text");
+    final List<Run> runs = wordRuns(text);
+    return runs.isEmpty() ? "" : joined(runs, 0, runs.size());
   }
 
   /**
@@ -183,9 +160,7 @@ final class TermTable {
    * @throws IllegalArgumentException Thrown if {@code text} is {@code null}.
    */
   List<Match> matches(String text) {
-    if (text == null) {
-      throw new IllegalArgumentException(TEXT_NULL);
-    }
+    ParamChecks.requireNonNullArg(text, "text");
     if (termsByOffset.isEmpty()) {
       return List.of();
     }
