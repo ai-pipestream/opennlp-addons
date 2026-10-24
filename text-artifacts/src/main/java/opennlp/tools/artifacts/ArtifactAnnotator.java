@@ -66,14 +66,29 @@ public class ArtifactAnnotator implements DocumentAnnotator {
 
   /**
    * {@inheritDoc} Adds the {@link #ARTIFACTS} layer even when no artifacts are detected.
+   *
+   * @throws IllegalArgumentException Thrown if {@code document} is {@code null}, or the
+   *         detector returns {@code null}, an artifact that is {@code null}, or an artifact
+   *         whose span lies outside the text.
    */
   @Override
   public Document annotate(Document document) {
     if (document == null) {
       throw new IllegalArgumentException("document must not be null");
     }
-    final List<Annotation<TextArtifact>> found = new ArrayList<>();
-    for (final TextArtifact artifact : detector.detect(document.text())) {
+    final CharSequence text = document.text();
+    final List<TextArtifact> detected = detector.detect(text);
+    if (detected == null) {
+      throw new IllegalArgumentException("detector result must not be null");
+    }
+    final List<Annotation<TextArtifact>> found = new ArrayList<>(detected.size());
+    for (final TextArtifact artifact : detected) {
+      if (artifact == null) {
+        throw new IllegalArgumentException("detector result must not contain null");
+      }
+      if (artifact.span().getEnd() > text.length()) {
+        throw new IllegalArgumentException("detector artifact spans must lie within the text");
+      }
       found.add(new Annotation<>(artifact.span(), artifact));
     }
     return document.with(ARTIFACTS, found);
